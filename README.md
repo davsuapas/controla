@@ -1,2 +1,2 @@
 # controla
-Control de registro del personal de una organización
+Control del registro horario del personal de una organización
