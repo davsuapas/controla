@@ -1,17 +1,48 @@
+use chrono_tz::Tz;
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 /// Representa la configuración de la base de datos.
 pub struct DB {
-  #[allow(unused)]
   /// url de la base de datos.
   pub url: String,
+  /// usuario de la base de datos.
+  pub usuario: String,
   /// password de la base de datos.
   /// Se obtiene de un fichero secreto.
   pub password: String,
+  /// Número máximo de conexiones a la base de datos.
+  pub max_conexiones: u32,
+}
+
+impl std::fmt::Debug for DB {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("DB")
+      .field("url", &self.url)
+      .field("usuario", &self.usuario)
+      .field("password", &"[OCULTA]")
+      .field("max_conexiones", &self.max_conexiones)
+      .finish()
+  }
+}
+
+/// Representa la configuración de los logs.
+#[derive(Deserialize, Debug)]
+pub struct Log {
+  /// Nivel de log.
+  pub level: String,
+}
+
+/// Representa la configuración del servidor
+#[derive(Deserialize, Debug)]
+pub struct Servidor {
+  /// Host del servidor
+  pub host: String,
+  /// Puerto
+  pub puerto: u32,
 }
 
 /// Representa la configuración de la aplicación.
@@ -21,6 +52,17 @@ pub struct DB {
 #[derive(Deserialize, Debug)]
 pub struct Config {
   pub db: DB,
+  pub log: Log,
+  pub servidor: Servidor,
+  pub zona_horaria: Tz,
+}
+
+/// Representa la configuración del trabajo.
+///
+/// Se propaga a través de la aplicación
+#[derive(Clone, Copy)]
+pub struct ConfigTrabajo {
+  pub zona_horaria: Tz,
 }
 
 impl Config {
@@ -44,6 +86,13 @@ impl Config {
 
     config
   }
+
+  ///Genera la configuración para las aplicaciones que gestionan el trabajo.
+  pub fn config_trabajo(&self) -> ConfigTrabajo {
+    ConfigTrabajo {
+      zona_horaria: self.zona_horaria,
+    }
+  }
 }
 
 /// Representa un secreto que se obtiene de un fichero en una carpeta.
@@ -52,6 +101,8 @@ pub struct Secreto {
 }
 
 impl Secreto {
+  /// Crea un nuevo objeto `Secreto` con la ruta a la carpeta
+  /// donde se encuentran los ficheros secretos.
   pub fn new(ruta: PathBuf) -> Self {
     Self { ruta }
   }
