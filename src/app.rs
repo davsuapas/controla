@@ -5,7 +5,7 @@ use axum::{Router, extract::State, routing::get};
 use crate::{
   app,
   config::ConfigTrabajo,
-  infraestructura::PoolConexion,
+  infra::PoolConexion,
   registro::{Registro, RegistroRepo, RegistroServicio, TrazaRepo},
   usuarios::{HorarioRepo, Usuario, UsuarioServicio},
 };
@@ -42,7 +42,7 @@ pub fn rutas(app: Arc<AppState>) -> Router {
 /// Ruta para crear un nuevo registro de empleado completo.
 pub async fn registrar(State(state): State<Arc<AppState>>) -> &'static str {
   let usuario_log = Usuario {
-    id: 2, // Aquí deberías obtener el ID del usuario logueado
+    id: 1, // Aquí deberías obtener el ID del usuario logueado
     nombre: "Pepe Gomez".to_string(),
   };
 
@@ -54,14 +54,13 @@ pub async fn registrar(State(state): State<Arc<AppState>>) -> &'static str {
   let registro = Registro {
     usuario: usuario_reg,
     fecha: chrono::Utc::now().naive_utc().date(),
-    hora_inicio: chrono::NaiveTime::from_hms_opt(9, 1, 0).unwrap(),
-    hora_fin: chrono::NaiveTime::from_hms_opt(10, 30, 0),
-    horas_a_trabajar: 0,
+    hora_inicio: chrono::NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
+    hora_fin: Option::None,
   };
 
   state
     .reg_servicio
-    .agregar(&usuario_log, registro)
+    .agregar(&usuario_log, &registro)
     .await
     .expect("Error al agregar el registro");
 

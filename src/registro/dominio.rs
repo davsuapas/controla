@@ -9,7 +9,6 @@ pub struct Registro {
   pub fecha: NaiveDate,
   pub hora_inicio: NaiveTime,
   pub hora_fin: Option<NaiveTime>,
-  pub horas_a_trabajar: u8,
 }
 
 impl Registro {

@@ -34,7 +34,7 @@
 mod app;
 /// Gestiona la configuración de la aplicación.
 mod config;
-mod infraestructura;
+mod infra;
 
 mod registro;
 mod usuarios;
@@ -49,7 +49,7 @@ use tracing::level_filters::LevelFilter;
 use tracing_subscriber::fmt;
 
 use crate::app::{AppState, rutas};
-use crate::infraestructura::PoolConexion;
+use crate::infra::PoolConexion;
 
 #[tokio::main]
 async fn main() {

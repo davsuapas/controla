@@ -10,9 +10,6 @@ pub enum DBError {
 
   #[error("No hay filas afectadas: {0}")]
   RegistroVacio(anyhow::Error),
-
-  #[error("No cumple la validación: {0}")]
-  ValidacionIncorrecta(anyhow::Error),
 }
 
 impl DBError {
@@ -26,10 +23,6 @@ impl DBError {
 
   pub fn registro_vacio(msg: String) -> Self {
     DBError::RegistroVacio(anyhow::anyhow!(msg))
-  }
-
-  pub fn validacion_incorrecta(msg: String) -> Self {
-    DBError::ValidacionIncorrecta(anyhow::anyhow!(msg))
   }
 }
 

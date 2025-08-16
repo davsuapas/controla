@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 
 use crate::{
-  infraestructura::ServicioError,
+  infra::ServicioError,
   usuarios::{Horario, HorarioRepo},
 };
 
