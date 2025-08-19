@@ -3,7 +3,7 @@ use chrono::{NaiveDate, NaiveTime};
 use crate::{
   db_pool_getter,
   infra::{DBError, PoolConexion, Transaccion},
-  registro::{Registro, Traza},
+  registro::Registro,
 };
 
 /// Implementación del repositorio de registros.
@@ -152,38 +152,5 @@ impl RegistroRepo {
     .map_err(DBError::consulta_from)?;
 
     Ok(result)
-  }
-}
-
-/// Implementación del repositorio de trazas.
-pub struct TrazaRepo {}
-
-impl TrazaRepo {
-  pub fn new() -> Self {
-    TrazaRepo {}
-  }
-}
-
-impl TrazaRepo {
-  /// Agrega una nueva traza a la base de datos.
-  pub(in crate::registro) async fn agregar(
-    &self,
-    trans: &mut Transaccion<'_>,
-    traza: &Traza,
-  ) -> Result<u64, DBError> {
-    let result = sqlx::query(
-      r"INSERT INTO trazas
-      (registro, usuario, fecha, tipo)
-      VALUES (?, ?, ?, ?)",
-    )
-    .bind(traza.reg_id)
-    .bind(traza.user_id)
-    .bind(traza.fecha)
-    .bind(traza.tipo.as_u8())
-    .execute(&mut **trans.deref_mut())
-    .await
-    .map_err(DBError::consulta_from)?;
-
-    Ok(result.last_insert_id())
   }
 }

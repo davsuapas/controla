@@ -3,7 +3,7 @@ use sqlx::Row;
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
 
 use crate::{
-  infra::{DBError, PoolConexion},
+  infra::{DBError, PoolConexion, ShortDateFormat, ShortDateTimeFormat},
   usuarios::{Dia, Horario},
 };
 
@@ -46,7 +46,7 @@ impl HorarioRepo {
       DBError::registro_vacio(format!(
         "No se ha encontrado ningún horario configurado \
         para el usuario en la fecha: {}",
-        hora
+        hora.formato_corto()
       ))
     })?;
 
@@ -126,7 +126,9 @@ impl HorarioRepo {
           "No se ha encontrado ningún horario registrado en la fecha: {}, \
           para el usuario en la fecha: {} y día de la seamana: {}. \
           Verifique que los horarios no estén ya asignados a un registro.",
-          fecha_creacion, hora, &dia
+          fecha_creacion.formato_corto(),
+          hora,
+          &dia
         )))
       }
     }

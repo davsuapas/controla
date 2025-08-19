@@ -1,8 +1,13 @@
-/// Módulo que gestiona el registro de los empleados
-pub mod repo;
+//! Gestiona los casos de uso para registro horario por
+//! parte de los empleados y la gestión de incidencias
 
-pub mod dominio;
-pub mod servicio;
+/// Módulo que gestiona el acceso a datos para registro de los empleados
+mod repo;
+
+/// Módulo que define el dominio para el registro horario
+mod dominio;
+/// Módulo con los servicios para el registro horario
+mod servicio;
 
 pub use dominio::*;
 pub use repo::*;

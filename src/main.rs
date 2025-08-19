@@ -30,7 +30,6 @@
 //! La carpeta de secretos debe contener un fichero por cada secreto
 //! que se quiera usar en la configuración.
 
-/// Módulo que contiene las apis de la aplicación.
 mod app;
 /// Gestiona la configuración de la aplicación.
 mod config;
@@ -38,6 +37,7 @@ mod infra;
 
 mod registro;
 mod usuarios;
+mod traza;
 
 use config::*;
 use sqlx::mysql::MySqlPoolOptions;
