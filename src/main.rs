@@ -37,7 +37,7 @@ mod infra;
 
 mod registro;
 mod usuarios;
-mod traza;
+//mod traza;
 
 use config::*;
 use sqlx::mysql::MySqlPoolOptions;
@@ -98,10 +98,7 @@ async fn main() {
 
   eprintln!("🌐 Preparando los servicios de aplicación...");
 
-  let app = Arc::new(AppState::iniciar(
-    config.config_trabajo(),
-    PoolConexion::new(pool),
-  ));
+  let app = Arc::new(AppState::iniciar(PoolConexion::new(pool)));
 
   eprintln!("📡 Iniciando el servidor web...");
 

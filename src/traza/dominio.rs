@@ -1,18 +1,27 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use chrono_tz::Tz;
+use derive_builder::Builder;
 
-pub struct Traza {
-  pub usuario_id: u64,
-  pub fecha: NaiveDateTime,
-  pub mensaje: String,
+#[repr(u32)]
+#[derive(Copy, Clone)]
+pub enum TipoTraza {
+  RegistroEliminado = 1,
 }
 
-impl Traza {
-  pub fn with_timezone(tz: Tz, user_id: u64, mensaje: String) -> Self {
-    Traza {
-      usuario_id: user_id,
-      fecha: chrono::Utc::now().with_timezone(&tz).naive_local(),
-      mensaje,
-    }
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(private, name = "final_build"))]
+pub struct Traza {
+  pub tipo: TipoTraza,
+  pub usuario_id: u64,
+  pub fecha: NaiveDateTime,
+  pub motivo: Option<String>,
+  pub horario_id: Option<u64>,
+  pub registro_id: Option<u64>,
+}
+
+impl TrazaBuilder {
+  pub fn build(mut self, tz: &Tz) -> Result<Traza, TrazaBuilderError> {
+    self.fecha = Some(Utc::now().with_timezone(tz).naive_local());
+    self.final_build()
   }
 }

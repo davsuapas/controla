@@ -3,6 +3,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum DBError {
   #[error("Error cuando se trabaja con transacciones: {0}")]
+  #[allow(dead_code)]
   Transaccion(anyhow::Error),
 
   #[error("Error en la consulta: {0}")]
@@ -17,6 +18,7 @@ impl DBError {
     DBError::Consulta(err.into())
   }
 
+  #[allow(dead_code)]
   pub fn trans_from<E: Into<anyhow::Error>>(err: E) -> Self {
     DBError::Transaccion(err.into())
   }
@@ -49,6 +51,7 @@ impl PoolConexion {
     &self.pool
   }
   /// Empieza una nueva transacción.
+  #[allow(dead_code)]
   pub async fn empezar_transaccion(&self) -> Result<Transaccion<'_>, DBError> {
     let transaction = self.pool.begin().await.map_err(DBError::trans_from)?;
     Ok(Transaccion { transaction })
@@ -56,10 +59,12 @@ impl PoolConexion {
 }
 
 /// Gestiona las tranasciones de la base de datos.
+#[allow(dead_code)]
 pub struct Transaccion<'a> {
   transaction: sqlx::Transaction<'a, sqlx::MySql>,
 }
 
+#[allow(dead_code)]
 impl<'a> Transaccion<'a> {
   // Obtiene la transacción interna
   pub fn deref_mut(&mut self) -> &mut sqlx::Transaction<'a, sqlx::MySql> {

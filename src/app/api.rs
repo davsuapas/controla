@@ -15,11 +15,9 @@ use crate::app::{
 
 /// Define las rutas de la aplicación.
 pub fn rutas(app: Arc<AppState>) -> Router {
-  let api_rutas = Router::new()
-    .route("/registro", post(registrar))
-    .with_state(app);
+  let api_rutas = Router::new().route("/registro", post(registrar));
 
-  Router::new().nest("/api", api_rutas)
+  Router::new().nest("/api", api_rutas).with_state(app)
 }
 
 /// Ruta para crear un nuevo registro de empleado completo.

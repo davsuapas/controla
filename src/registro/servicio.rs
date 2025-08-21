@@ -1,30 +1,19 @@
 use crate::{
-  config::ConfigTrabajo,
   infra::{ServicioError, ShortDateFormat},
   registro::{Registro, RegistroRepo},
-  traza::{Traza, TrazaRepo},
   usuarios::{Usuario, UsuarioServicio},
 };
 
 /// Servicio que gestiona los registros del usuario
 pub struct RegistroServicio {
-  config: ConfigTrabajo,
   repo: RegistroRepo,
-  traza_repo: TrazaRepo,
   usuario_servico: UsuarioServicio,
 }
 
 impl RegistroServicio {
-  pub fn new(
-    config: ConfigTrabajo,
-    repo: RegistroRepo,
-    traza_repo: TrazaRepo,
-    usuario_servico: UsuarioServicio,
-  ) -> Self {
+  pub fn new(repo: RegistroRepo, usuario_servico: UsuarioServicio) -> Self {
     RegistroServicio {
-      config,
       repo,
-      traza_repo,
       usuario_servico,
     }
   }
@@ -103,48 +92,21 @@ impl RegistroServicio {
       horas_a_trabajar = horas_a_trabajar,
       "Horario más cercano al registro horario del usuario");
 
-    let mut trans = self.repo.conexion().empezar_transaccion().await?;
-
-    let reg_id =
-      match self.repo.agregar(&mut trans, reg, horario_cercano.id).await {
-        Ok(reg_id) => reg_id,
-        Err(err) => {
-          trans.rollback().await?;
-          tracing::error!(
-            registro = ?reg,
-            error = %err,
-            "Creando registro horario"
-          );
-          return Err(ServicioError::from(err));
-        }
-      };
-
-    if *usuario_log != reg.usuario {
-      let traza = Traza::with_timezone(
-        self.config.zona_horaria,
-        usuario_log.id,
-        format!(
-          "Registro creado con ID: {} y gestor: {}",
-          reg_id, usuario_log.id
-        ),
-      );
-
-      match self.traza_repo.agregar(&mut trans, &traza).await {
-        Ok(reg) => reg,
-        Err(err) => {
-          trans.rollback().await?;
-          tracing::error!(
-            regsitro = ?reg,
-            usuario_logeado = usuario_log.nombre,
-            error = %err,
-            "Añadiendo traza de registro horario creado"
-          );
-          return Err(ServicioError::from(err));
-        }
-      };
-    }
-
-    trans.commit().await?;
+    let reg_id = match self
+      .repo
+      .agregar(reg, usuario_log.id, horario_cercano.id)
+      .await
+    {
+      Ok(reg_id) => reg_id,
+      Err(err) => {
+        tracing::error!(
+          registro = ?reg,
+          error = %err,
+          "Creando registro horario"
+        );
+        return Err(ServicioError::from(err));
+      }
+    };
 
     tracing::debug!(
       id_registro = reg_id,

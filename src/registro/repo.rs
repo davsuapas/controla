@@ -1,8 +1,7 @@
 use chrono::{NaiveDate, NaiveTime};
 
 use crate::{
-  db_pool_getter,
-  infra::{DBError, PoolConexion, Transaccion},
+  infra::{DBError, PoolConexion},
   registro::Registro,
 };
 
@@ -17,29 +16,32 @@ impl RegistroRepo {
   }
 }
 
-db_pool_getter!(RegistroRepo);
-
 impl RegistroRepo {
   /// Agrega un nuevo registro a la base de datos.
   ///
   /// Devuelve el ID del registro creado.
   pub(in crate::registro) async fn agregar(
     &self,
-    trans: &mut Transaccion<'_>,
     reg: &Registro,
+    usuario_registrador: u64,
     horario: u64,
   ) -> Result<u64, DBError> {
     let result = sqlx::query(
       r"INSERT INTO registros
-      (usuario, fecha, horario, hora_inicio, hora_fin)
-      VALUES (?, ?, ?, ?, ?)",
+      (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
+      VALUES (?, ?, ?, ?, ?, ?)",
     )
     .bind(reg.usuario.id)
     .bind(reg.fecha)
     .bind(horario)
     .bind(reg.hora_inicio)
     .bind(reg.hora_fin)
-    .execute(&mut **trans.deref_mut())
+    .bind(if usuario_registrador != reg.usuario.id {
+      Some(usuario_registrador)
+    } else {
+      None
+    })
+    .execute(self.pool.conexion())
     .await
     .map_err(DBError::consulta_from)?;
 

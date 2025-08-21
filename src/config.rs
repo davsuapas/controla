@@ -62,6 +62,7 @@ pub struct Config {
 /// Se propaga a través de la aplicación
 #[derive(Clone, Copy)]
 pub struct ConfigTrabajo {
+  #[allow(dead_code)]
   pub zona_horaria: Tz,
 }
 
@@ -87,7 +88,8 @@ impl Config {
     config
   }
 
-  ///Genera la configuración para las aplicaciones que gestionan el trabajo.
+  /// Genera la configuración para las aplicaciones que gestionan el trabajo.
+  #[allow(dead_code)]
   pub fn config_trabajo(&self) -> ConfigTrabajo {
     ConfigTrabajo {
       zona_horaria: self.zona_horaria,
