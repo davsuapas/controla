@@ -1,6 +1,7 @@
-use sqlx::Row;
+use chrono_tz::Tz;
+use sqlx::{Row, mysql::MySqlRow};
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
   infra::{DBError, PoolConexion, ShortDateFormat, ShortDateTimeFormat},
@@ -31,24 +32,7 @@ impl HorarioRepo {
     usuario: u64,
     hora: NaiveDateTime,
   ) -> Result<Horario, DBError> {
-    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDate>>(
-      r"SELECT MAX(fecha_creacion) 
-    FROM usuario_horarios 
-    WHERE usuario = ? 
-    AND fecha_creacion < ?",
-    )
-    .bind(usuario)
-    .bind(hora)
-    .fetch_one(self.pool.conexion())
-    .await
-    .map_err(DBError::consulta_from)?
-    .ok_or_else(|| {
-      DBError::registro_vacio(format!(
-        "No se ha encontrado ningún horario configurado \
-        para el usuario en la fecha: {}",
-        hora.formato_corto()
-      ))
-    })?;
+    let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
 
     let dia = crate::infra::letra_dia_semana(hora.weekday()).to_string();
 
@@ -79,12 +63,7 @@ impl HorarioRepo {
     .map_err(DBError::consulta_from)?;
 
     if let Some(row) = result {
-      Ok(Horario {
-        id: row.get("id"),
-        dia: Dia::desde_str(row.get::<String, _>("dia").as_str()).unwrap(),
-        hora_inicio: row.get("hora_inicio"),
-        hora_fin: row.get("hora_fin"),
-      })
+      Ok(HorarioRepo::horario_from_row(&row))
     } else {
       // Si no encuentra un horario entre las horas de inicio y fin,
       // devuelve el más cercano al inicio
@@ -115,12 +94,7 @@ impl HorarioRepo {
       .map_err(DBError::consulta_from)?;
 
       if let Some(row) = result {
-        Ok(Horario {
-          id: row.get("id"),
-          dia: Dia::desde_str(row.get::<String, _>("dia").as_str()).unwrap(),
-          hora_inicio: row.get("hora_inicio"),
-          hora_fin: row.get("hora_fin"),
-        })
+        Ok(HorarioRepo::horario_from_row(&row))
       } else {
         Err(DBError::registro_vacio(format!(
           "No se ha encontrado ningún horario registrado en la fecha: {}, \
@@ -131,6 +105,83 @@ impl HorarioRepo {
           &dia
         )))
       }
+    }
+  }
+
+  /// Obtiene el horario asignado al usuario para el día actual.
+  pub(in crate::usuarios) async fn horarios_hoy_usuario(
+    &self,
+    tz: &Tz,
+    usuario: u64,
+  ) -> Result<Vec<Horario>, DBError> {
+    let hora = Utc::now().with_timezone(tz).naive_local();
+    let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
+    let dia = crate::infra::letra_dia_semana(hora.weekday()).to_string();
+
+    let rows = sqlx::query(
+      r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+        FROM horarios h
+         JOIN usuario_horarios uh ON h.id = uh.horario
+        WHERE uh.usuario = ?
+         AND uh.fecha_creacion = ?
+         AND h.dia = ?
+         AND NOT EXISTS 
+         ( SELECT r.id
+            FROM registros r
+            WHERE r.usuario = uh.usuario
+             AND r.fecha = ?
+             AND r.horario = h.id);",
+    )
+    .bind(usuario)
+    .bind(fecha_creacion)
+    .bind(&dia)
+    .bind(hora.date())
+    .fetch_all(self.pool.conexion())
+    .await
+    .map_err(DBError::consulta_from)?;
+
+    Ok(
+      rows
+        .into_iter()
+        .map(|row| HorarioRepo::horario_from_row(&row))
+        .collect(),
+    )
+  }
+
+  /// Obtiene la fecha de creación del horario más reciente
+  async fn fecha_creacion_horario(
+    &self,
+    usuario: u64,
+    hora: NaiveDateTime,
+  ) -> Result<NaiveDate, DBError> {
+    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDate>>(
+      r"SELECT MAX(fecha_creacion) 
+    FROM usuario_horarios 
+    WHERE usuario = ? 
+    AND fecha_creacion < ?",
+    )
+    .bind(usuario)
+    .bind(hora)
+    .fetch_one(self.pool.conexion())
+    .await
+    .map_err(DBError::consulta_from)?
+    .ok_or_else(|| {
+      DBError::registro_vacio(format!(
+        "No se ha encontrado ningún horario configurado \
+        para el usuario en la fecha: {}",
+        hora.formato_corto()
+      ))
+    })?;
+
+    Ok(fecha_creacion)
+  }
+
+  fn horario_from_row(row: &MySqlRow) -> Horario {
+    Horario {
+      id: row.get("id"),
+      dia: Dia::from(row.get::<String, _>("dia").chars().next().unwrap()),
+      hora_inicio: row.get("hora_inicio"),
+      hora_fin: row.get("hora_fin"),
     }
   }
 }

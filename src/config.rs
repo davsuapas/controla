@@ -62,7 +62,6 @@ pub struct Config {
 /// Se propaga a través de la aplicación
 #[derive(Clone, Copy)]
 pub struct ConfigTrabajo {
-  #[allow(dead_code)]
   pub zona_horaria: Tz,
 }
 

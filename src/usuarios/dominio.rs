@@ -26,16 +26,30 @@ pub enum Dia {
 }
 
 impl Dia {
-  pub fn desde_str(dia: &str) -> Option<Self> {
+  pub fn letra(&self) -> char {
+    match self {
+      Dia::Lunes => 'L',
+      Dia::Martes => 'M',
+      Dia::Miercoles => 'X',
+      Dia::Jueves => 'J',
+      Dia::Viernes => 'V',
+      Dia::Sabado => 'S',
+      Dia::Domingo => 'D',
+    }
+  }
+}
+
+impl From<char> for Dia {
+  fn from(dia: char) -> Self {
     match dia {
-      "L" => Some(Dia::Lunes),
-      "M" => Some(Dia::Martes),
-      "X" => Some(Dia::Miercoles),
-      "J" => Some(Dia::Jueves),
-      "V" => Some(Dia::Viernes),
-      "S" => Some(Dia::Sabado),
-      "D" => Some(Dia::Domingo),
-      _ => None,
+      'L' => Dia::Lunes,
+      'M' => Dia::Martes,
+      'X' => Dia::Miercoles,
+      'J' => Dia::Jueves,
+      'V' => Dia::Viernes,
+      'S' => Dia::Sabado,
+      'D' => Dia::Domingo,
+      _ => panic!("Día no válido"),
     }
   }
 }

@@ -1,9 +1,36 @@
 #![allow(clippy::from_over_into)]
 
 use chrono::{NaiveDate, NaiveTime};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::{registro::Registro, usuarios::Usuario};
+use crate::{
+  registro::Registro,
+  usuarios::{Horario, Usuario},
+};
+
+/// Define la entidad de intercambio para el horario
+#[derive(Serialize)]
+pub struct HorarioDTO {
+  pub dia: char,
+  pub hora_inicio: NaiveTime,
+  pub hora_fin: NaiveTime,
+}
+
+impl From<Horario> for HorarioDTO {
+  fn from(horario: Horario) -> Self {
+    HorarioDTO {
+      dia: horario.dia.letra(),
+      hora_inicio: horario.hora_inicio,
+      hora_fin: horario.hora_fin,
+    }
+  }
+}
+
+pub(in crate::app) fn horarios_to_dtos(
+  horarios: Vec<Horario>,
+) -> Vec<HorarioDTO> {
+  horarios.into_iter().map(HorarioDTO::from).collect()
+}
 
 /// Define la entidad de intercambio para el registro
 #[derive(Deserialize)]

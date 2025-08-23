@@ -8,6 +8,7 @@ mod dto;
 pub use api::*;
 
 use crate::{
+  config::ConfigTrabajo,
   infra::PoolConexion,
   registro::{RegistroRepo, RegistroServicio},
   usuarios::{HorarioRepo, UsuarioServicio},
@@ -16,18 +17,20 @@ use crate::{
 /// Estructura principal de la aplicación que contiene los servicios.
 pub struct AppState {
   pub reg_servicio: RegistroServicio,
-  #[allow(dead_code)]
   pub usuario_servicio: UsuarioServicio,
 }
 
 impl AppState {
   /// Inicia la aplicación y devuelve una instancia de `App`.
-  pub fn iniciar(pool: PoolConexion) -> Self {
+  pub fn iniciar(cnfg: &ConfigTrabajo, pool: PoolConexion) -> Self {
     AppState {
-      usuario_servicio: UsuarioServicio::new(HorarioRepo::new(pool.clone())),
+      usuario_servicio: UsuarioServicio::new(
+        *cnfg,
+        HorarioRepo::new(pool.clone()),
+      ),
       reg_servicio: RegistroServicio::new(
         RegistroRepo::new(pool.clone()),
-        UsuarioServicio::new(HorarioRepo::new(pool.clone())),
+        UsuarioServicio::new(*cnfg, HorarioRepo::new(pool.clone())),
       ),
     }
   }

@@ -98,7 +98,10 @@ async fn main() {
 
   eprintln!("🌐 Preparando los servicios de aplicación...");
 
-  let app = Arc::new(AppState::iniciar(PoolConexion::new(pool)));
+  let app = Arc::new(AppState::iniciar(
+    &config.config_trabajo(),
+    PoolConexion::new(pool),
+  ));
 
   eprintln!("📡 Iniciando el servidor web...");
 
