@@ -1,7 +1,7 @@
 use crate::{
   infra::{ServicioError, ShortDateFormat},
   registro::{Registro, RegistroRepo},
-  usuarios::{Usuario, UsuarioServicio},
+  usuarios::{UsuarioNombre, UsuarioServicio},
 };
 
 /// Servicio que gestiona los registros del usuario
@@ -43,7 +43,7 @@ impl RegistroServicio {
   /// Devuelve el ID del registro creado.
   pub async fn agregar(
     &self,
-    usuario_log: &Usuario,
+    usuario_log: &UsuarioNombre,
     reg: &Registro,
   ) -> Result<u64, ServicioError> {
     tracing::info!(

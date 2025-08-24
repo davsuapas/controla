@@ -1,10 +1,10 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
-use crate::usuarios::Usuario;
+use crate::usuarios::UsuarioNombre;
 
 #[derive(Debug)]
 pub struct Registro {
-  pub usuario: Usuario,
+  pub usuario: UsuarioNombre,
   pub fecha: NaiveDate,
   pub hora_inicio: NaiveTime,
   pub hora_fin: Option<NaiveTime>,

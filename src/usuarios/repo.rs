@@ -5,7 +5,7 @@ use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
   infra::{DBError, PoolConexion, ShortDateFormat, ShortDateTimeFormat},
-  usuarios::{Dia, Horario},
+  usuarios::{DescriptorUsuario, Dia, Horario, Rol},
 };
 
 /// Implementación del repositorio de los horarios de usuario.
@@ -20,6 +20,35 @@ impl HorarioRepo {
 }
 
 impl HorarioRepo {
+  /// Obtiene los usuarios que tienen un rol específico.
+  pub(in crate::usuarios) async fn usuarios_por_rol(
+    &self,
+    rol: Rol,
+  ) -> Result<Vec<DescriptorUsuario>, DBError> {
+    let rows = sqlx::query(
+      r"SELECT u.id, u.nombre, u.primer_apellido, u.segundo_apellido 
+          FROM usuarios u
+          JOIN roles_usuario ru ON u.id = ru.usuario
+          WHERE ru.rol = ?;",
+    )
+    .bind(rol as u32)
+    .fetch_all(self.pool.conexion())
+    .await
+    .map_err(DBError::consulta_from)?;
+
+    Ok(
+      rows
+        .into_iter()
+        .map(|row| DescriptorUsuario {
+          id: row.get("id"),
+          nombre: row.get("nombre"),
+          primer_apellido: row.get("primer_apellido"),
+          segundo_apellido: row.get("segundo_apellido"),
+        })
+        .collect(),
+    )
+  }
+
   /// Obtiene el horario más cercano a una hora dada para un usuario.
   ///
   /// Busca un horario que esté entre las horas de inicio y fin

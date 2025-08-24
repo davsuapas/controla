@@ -1,18 +1,51 @@
 use chrono::{NaiveTime, TimeDelta};
 
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Rol {
+  Empleado = 1,
+  Gestor = 2,
+  Admin = 3,
+  Director = 4,
+  Registrador = 5,
+  Inspector = 6,
+}
+
+impl From<u8> for Rol {
+  fn from(value: u8) -> Self {
+    match value {
+      1 => Rol::Empleado,
+      2 => Rol::Gestor,
+      3 => Rol::Admin,
+      4 => Rol::Director,
+      5 => Rol::Registrador,
+      6 => Rol::Inspector,
+      _ => panic!("Valor de Rol no válido"),
+    }
+  }
+}
+
 #[derive(Debug)]
-pub struct Usuario {
+pub struct UsuarioNombre {
   pub id: u64,
   pub nombre: String,
 }
 
-impl PartialEq for Usuario {
+impl PartialEq for UsuarioNombre {
   fn eq(&self, other: &Self) -> bool {
     self.id == other.id
   }
 }
 
-impl Eq for Usuario {}
+impl Eq for UsuarioNombre {}
+
+#[derive(Debug)]
+pub struct DescriptorUsuario {
+  pub id: u64,
+  pub nombre: String,
+  pub primer_apellido: String,
+  pub segundo_apellido: String,
+}
 
 #[derive(Debug)]
 pub enum Dia {

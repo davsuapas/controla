@@ -24,7 +24,7 @@ impl TrazaRepo {
       (tipo, fecha, usuario, horario, registro, motivo)
       VALUES (?, ?, ?, ?, ?, ?)",
     )
-    .bind(traza.tipo as u32)
+    .bind(traza.tipo as u8)
     .bind(traza.fecha)
     .bind(traza.usuario_id)
     .bind(traza.horario_id)

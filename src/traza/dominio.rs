@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use derive_builder::Builder;
 
-#[repr(u32)]
+#[repr(u8)]
 #[derive(Copy, Clone)]
 pub enum TipoTraza {
   RegistroEliminado = 1,

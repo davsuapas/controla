@@ -10,9 +10,15 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 
-use crate::app::{
-  AppState,
-  dto::{RegistroDTO, UsuarioDTO, horarios_to_dtos},
+use crate::{
+  app::{
+    AppState,
+    dto::{
+      DescriptorUsuarioDTO, HorarioDTO, RegistroDTO, UsuarioNombreDTO,
+      vec_dominio_to_dtos,
+    },
+  },
+  usuarios::Rol,
 };
 
 /// Define las rutas de la aplicación.
@@ -23,7 +29,8 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route(
       "/usuario/{id}/horario/{fecha}",
       get(horario_usuario_por_fecha),
-    );
+    )
+    .route("/rol/{id}/usuarios", get(usuarios_por_rol));
 
   Router::new().nest("/api", api_rutas).with_state(app)
 }
@@ -33,7 +40,7 @@ async fn registrar(
   State(state): State<Arc<AppState>>,
   Json(reg): Json<RegistroDTO>,
 ) -> impl IntoResponse {
-  let usuario_log = UsuarioDTO {
+  let usuario_log = UsuarioNombreDTO {
     id: 1,
     nombre: "David Suárez Pascual".to_string(),
   };
@@ -58,7 +65,7 @@ async fn horario_usuario(
     .horario_usuario(usuario, None)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(horarios_to_dtos(horarios)))
+    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
 }
 
 #[derive(Deserialize)]
@@ -77,5 +84,18 @@ async fn horario_usuario_por_fecha(
     .horario_usuario(params.id, Some(params.fecha))
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(horarios_to_dtos(horarios)))
+    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
+}
+
+/// Api para obtener los usuarios que tienen un rol específico.
+async fn usuarios_por_rol(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u8>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .usuarios_por_rol(Rol::from(id))
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|usrs| Json(vec_dominio_to_dtos::<_, DescriptorUsuarioDTO>(usrs)))
 }
