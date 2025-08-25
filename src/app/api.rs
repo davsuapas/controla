@@ -14,7 +14,7 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, HorarioDTO, RegistroDTO, UsuarioNombreDTO,
+      DescriptorUsuarioDTO, HorarioDTO, RegistroInDTO, RegistroOutDTO,
       vec_dominio_to_dtos,
     },
   },
@@ -25,6 +25,7 @@ use crate::{
 pub fn rutas(app: Arc<AppState>) -> Router {
   let api_rutas = Router::new()
     .route("/registro", post(registrar))
+    .route("/usuario/{id}/ultimos_registros", get(ultimos_registros))
     .route("/usuario/{id}/horario", get(horario_usuario))
     .route(
       "/usuario/{id}/horario/{fecha}",
@@ -38,27 +39,33 @@ pub fn rutas(app: Arc<AppState>) -> Router {
 /// Api para crear un nuevo registro de empleado completo.
 async fn registrar(
   State(state): State<Arc<AppState>>,
-  Json(reg): Json<RegistroDTO>,
+  Json(reg): Json<RegistroInDTO>,
 ) -> impl IntoResponse {
-  let usuario_log = UsuarioNombreDTO {
-    id: 1,
-    nombre: "David Suárez Pascual".to_string(),
-  };
-
-  let registro = reg.into_dominio(&usuario_log);
-
   state
     .reg_servicio
-    .agregar(&usuario_log.into(), &registro)
+    .agregar(&reg.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|_| (StatusCode::OK, ""))
 }
 
+/// Api para obtener los últimos registros horarios de un usuario.
+async fn ultimos_registros(
+  State(state): State<Arc<AppState>>,
+  Path(usuario): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .reg_servicio
+    .ultimos_registros(usuario)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(vec_dominio_to_dtos::<_, RegistroOutDTO>(regs)))
+}
+
 /// Api para obtener el horario de un usuario completo.
 async fn horario_usuario(
   State(state): State<Arc<AppState>>,
-  Path(usuario): Path<u64>,
+  Path(usuario): Path<u32>,
 ) -> impl IntoResponse {
   state
     .usuario_servicio
@@ -70,7 +77,7 @@ async fn horario_usuario(
 
 #[derive(Deserialize)]
 struct HorarioUsuarioParams {
-  id: u64,
+  id: u32,
   fecha: NaiveDateTime,
 }
 

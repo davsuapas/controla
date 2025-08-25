@@ -25,16 +25,17 @@ impl HorarioRepo {
     &self,
     rol: Rol,
   ) -> Result<Vec<DescriptorUsuario>, DBError> {
-    let rows = sqlx::query(
-      r"SELECT u.id, u.nombre, u.primer_apellido, u.segundo_apellido 
+    const QUERY: &str = r"SELECT u.id, u.nombre,
+          u.primer_apellido, u.segundo_apellido 
           FROM usuarios u
           JOIN roles_usuario ru ON u.id = ru.usuario
-          WHERE ru.rol = ?;",
-    )
-    .bind(rol as u32)
-    .fetch_all(self.pool.conexion())
-    .await
-    .map_err(DBError::consulta_from)?;
+          WHERE ru.rol = ?;";
+
+    let rows = sqlx::query(QUERY)
+      .bind(rol as u32)
+      .fetch_all(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
 
     Ok(
       rows
@@ -58,7 +59,7 @@ impl HorarioRepo {
   /// a un registro horario.
   pub(in crate::usuarios) async fn horario_cercano(
     &self,
-    usuario: u64,
+    usuario: u32,
     hora: NaiveDateTime,
   ) -> Result<Horario, DBError> {
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
@@ -67,8 +68,7 @@ impl HorarioRepo {
 
     // Busca un horario que esté entre las horas de inicio y fin
     // del día de la semana y que no esté ya asignado a un registro horario.
-    let result = sqlx::query(
-      r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+    const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
          JOIN usuario_horarios uh ON h.id = uh.horario
         WHERE uh.usuario = ?
@@ -80,16 +80,17 @@ impl HorarioRepo {
             FROM registros r
             WHERE r.usuario = uh.usuario
              AND r.fecha = ?
-             AND r.horario = h.id);",
-    )
-    .bind(usuario)
-    .bind(fecha_creacion)
-    .bind(&dia)
-    .bind(hora.time())
-    .bind(hora.date())
-    .fetch_optional(self.pool.conexion())
-    .await
-    .map_err(DBError::consulta_from)?;
+             AND r.horario = h.id);";
+
+    let result = sqlx::query(QUERY)
+      .bind(usuario)
+      .bind(fecha_creacion)
+      .bind(&dia)
+      .bind(hora.time())
+      .bind(hora.date())
+      .fetch_optional(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
 
     if let Some(row) = result {
       Ok(HorarioRepo::horario_from_row(&row))
@@ -97,8 +98,7 @@ impl HorarioRepo {
       // Si no encuentra un horario entre las horas de inicio y fin,
       // devuelve el más cercano al inicio
       // y que no esté ya asignado a un registro horario.
-      let result = sqlx::query(
-        r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+      const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
             FROM horarios h
             JOIN usuario_horarios uh ON h.id = uh.horario
             WHERE uh.usuario = ?
@@ -111,24 +111,25 @@ impl HorarioRepo {
                  WHERE r.usuario = uh.usuario
                   AND r.fecha = ?
                   AND r.horario = h.id)
-             LIMIT 1;",
-      )
-      .bind(usuario)
-      .bind(fecha_creacion)
-      .bind(&dia)
-      .bind(hora.time())
-      .bind(hora.date())
-      .fetch_optional(self.pool.conexion())
-      .await
-      .map_err(DBError::consulta_from)?;
+             LIMIT 1;";
+
+      let result = sqlx::query(QUERY)
+        .bind(usuario)
+        .bind(fecha_creacion)
+        .bind(&dia)
+        .bind(hora.time())
+        .bind(hora.date())
+        .fetch_optional(self.pool.conexion())
+        .await
+        .map_err(DBError::consulta_from)?;
 
       if let Some(row) = result {
         Ok(HorarioRepo::horario_from_row(&row))
       } else {
         Err(DBError::registro_vacio(format!(
           "No se ha encontrado ningún horario registrado en la fecha: {}, \
-          para el usuario en la fecha: {} y día de la seamana: {}. \
-          Verifique que los horarios no estén ya asignados a un registro.",
+            para el usuario en la fecha: {} y día de la seamana: {}. \
+            Verifique que los horarios no estén ya asignados a un registro.",
           fecha_creacion.formato_corto(),
           hora,
           &dia
@@ -141,14 +142,13 @@ impl HorarioRepo {
   pub(in crate::usuarios) async fn horarios_hoy_usuario(
     &self,
     tz: &Tz,
-    usuario: u64,
+    usuario: u32,
   ) -> Result<Vec<Horario>, DBError> {
     let hora = Utc::now().with_timezone(tz).naive_local();
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
     let dia = crate::infra::letra_dia_semana(hora.weekday()).to_string();
 
-    let rows = sqlx::query(
-      r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+    const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
          JOIN usuario_horarios uh ON h.id = uh.horario
         WHERE uh.usuario = ?
@@ -159,15 +159,16 @@ impl HorarioRepo {
             FROM registros r
             WHERE r.usuario = uh.usuario
              AND r.fecha = ?
-             AND r.horario = h.id);",
-    )
-    .bind(usuario)
-    .bind(fecha_creacion)
-    .bind(&dia)
-    .bind(hora.date())
-    .fetch_all(self.pool.conexion())
-    .await
-    .map_err(DBError::consulta_from)?;
+             AND r.horario = h.id);";
+
+    let rows = sqlx::query(QUERY)
+      .bind(usuario)
+      .bind(fecha_creacion)
+      .bind(&dia)
+      .bind(hora.date())
+      .fetch_all(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
 
     Ok(
       rows
@@ -180,27 +181,27 @@ impl HorarioRepo {
   /// Obtiene la fecha de creación del horario más reciente
   async fn fecha_creacion_horario(
     &self,
-    usuario: u64,
+    usuario: u32,
     hora: NaiveDateTime,
   ) -> Result<NaiveDate, DBError> {
-    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDate>>(
-      r"SELECT MAX(fecha_creacion) 
+    const QUERY: &str = r"SELECT MAX(fecha_creacion) 
     FROM usuario_horarios 
     WHERE usuario = ? 
-    AND fecha_creacion < ?",
-    )
-    .bind(usuario)
-    .bind(hora)
-    .fetch_one(self.pool.conexion())
-    .await
-    .map_err(DBError::consulta_from)?
-    .ok_or_else(|| {
-      DBError::registro_vacio(format!(
-        "No se ha encontrado ningún horario configurado \
+    AND fecha_creacion < ?";
+
+    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDate>>(QUERY)
+      .bind(usuario)
+      .bind(hora)
+      .fetch_one(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?
+      .ok_or_else(|| {
+        DBError::registro_vacio(format!(
+          "No se ha encontrado ningún horario configurado \
         para el usuario en la fecha: {}",
-        hora.formato_corto()
-      ))
-    })?;
+          hora.formato_corto()
+        ))
+      })?;
 
     Ok(fecha_creacion)
   }

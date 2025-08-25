@@ -12,11 +12,11 @@ pub enum TipoTraza {
 #[builder(pattern = "owned", build_fn(private, name = "final_build"))]
 pub struct Traza {
   pub tipo: TipoTraza,
-  pub usuario_id: u64,
+  pub usuario_id: u32,
   pub fecha: NaiveDateTime,
   pub motivo: Option<String>,
-  pub horario_id: Option<u64>,
-  pub registro_id: Option<u64>,
+  pub horario_id: Option<u32>,
+  pub registro_id: Option<u32>,
 }
 
 impl TrazaBuilder {

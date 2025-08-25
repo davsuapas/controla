@@ -4,6 +4,13 @@ use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
+/// Representa los límites del número de registros
+/// que se pueden obtener en las consultas.
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub struct Limites {
+  pub ultimos_registros: u8,
+}
+
 #[derive(Deserialize)]
 /// Representa la configuración de la base de datos.
 pub struct DB {
@@ -16,6 +23,8 @@ pub struct DB {
   pub password: String,
   /// Número máximo de conexiones a la base de datos.
   pub max_conexiones: u32,
+  /// Límites de las consultas.
+  pub limites: Limites,
 }
 
 impl std::fmt::Debug for DB {
@@ -25,6 +34,7 @@ impl std::fmt::Debug for DB {
       .field("usuario", &self.usuario)
       .field("password", &"[OCULTA]")
       .field("max_conexiones", &self.max_conexiones)
+      .field("limites", &self.limites)
       .finish()
   }
 }
@@ -63,6 +73,7 @@ pub struct Config {
 #[derive(Clone, Copy)]
 pub struct ConfigTrabajo {
   pub zona_horaria: Tz,
+  pub limites: Limites,
 }
 
 impl Config {
@@ -88,10 +99,10 @@ impl Config {
   }
 
   /// Genera la configuración para las aplicaciones que gestionan el trabajo.
-  #[allow(dead_code)]
   pub fn config_trabajo(&self) -> ConfigTrabajo {
     ConfigTrabajo {
       zona_horaria: self.zona_horaria,
+      limites: self.db.limites,
     }
   }
 }

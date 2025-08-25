@@ -1,18 +1,25 @@
 use crate::{
+  config::ConfigTrabajo,
   infra::{ServicioError, ShortDateFormat},
   registro::{Registro, RegistroRepo},
-  usuarios::{UsuarioNombre, UsuarioServicio},
+  usuarios::UsuarioServicio,
 };
 
 /// Servicio que gestiona los registros del usuario
 pub struct RegistroServicio {
+  cnfg: ConfigTrabajo,
   repo: RegistroRepo,
   usuario_servico: UsuarioServicio,
 }
 
 impl RegistroServicio {
-  pub fn new(repo: RegistroRepo, usuario_servico: UsuarioServicio) -> Self {
+  pub fn new(
+    cnfg: ConfigTrabajo,
+    repo: RegistroRepo,
+    usuario_servico: UsuarioServicio,
+  ) -> Self {
     RegistroServicio {
+      cnfg,
       repo,
       usuario_servico,
     }
@@ -33,19 +40,12 @@ impl RegistroServicio {
   /// * Si la hora de inicio o fin ya están asignadas al usuario,
   ///   se devuelve un error.
   /// * El nuevo registro no se puede solapar con ningún otro registro.
-  /// * La hora de inicio no sea anterior a la hora de fin
+  /// * La hora de inicio no puede ser anterior a la hora de fin
   ///   de un registro previo con un horario anterior al horario cercano
   ///   obtenido.
   ///
-  /// Si el usuario que añade el registro es diferente al usuario del registro,
-  /// se añade una traza de registro.
-  ///
   /// Devuelve el ID del registro creado.
-  pub async fn agregar(
-    &self,
-    usuario_log: &UsuarioNombre,
-    reg: &Registro,
-  ) -> Result<u64, ServicioError> {
+  pub async fn agregar(&self, reg: &Registro) -> Result<u64, ServicioError> {
     tracing::info!(
       registro = ?reg,
       "Se ha iniciado el servicio para crear un registro horario de usuario");
@@ -92,11 +92,7 @@ impl RegistroServicio {
       horas_a_trabajar = horas_a_trabajar,
       "Horario más cercano al registro horario del usuario");
 
-    let reg_id = match self
-      .repo
-      .agregar(reg, usuario_log.id, horario_cercano.id)
-      .await
-    {
+    let reg_id = match self.repo.agregar(reg, horario_cercano.id).await {
       Ok(reg_id) => reg_id,
       Err(err) => {
         tracing::error!(
@@ -114,6 +110,29 @@ impl RegistroServicio {
     );
 
     Ok(reg_id)
+  }
+
+  /// Obtiene los últimos registros horarios de un usuario.
+  #[inline]
+  pub async fn ultimos_registros(
+    &self,
+    usuario: u32,
+  ) -> Result<Vec<Registro>, ServicioError> {
+    self
+      .repo
+      .ultimos_registros(
+        usuario,
+        Some(&self.cnfg.limites.ultimos_registros.to_string()),
+      )
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          usuario_id = usuario,
+          error = %err,
+          "Obteniendo los últimos registros horarios del usuario"
+        );
+        ServicioError::from(err)
+      })
   }
 
   async fn validar_agregacion(

@@ -27,7 +27,7 @@ impl From<u8> for Rol {
 
 #[derive(Debug)]
 pub struct UsuarioNombre {
-  pub id: u64,
+  pub id: u32,
   pub nombre: String,
 }
 
@@ -41,7 +41,7 @@ impl Eq for UsuarioNombre {}
 
 #[derive(Debug)]
 pub struct DescriptorUsuario {
-  pub id: u64,
+  pub id: u32,
   pub nombre: String,
   pub primer_apellido: String,
   pub segundo_apellido: String,
@@ -90,7 +90,7 @@ impl From<char> for Dia {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Horario {
-  pub id: u64,
+  pub id: u32,
   pub dia: Dia,
   pub hora_inicio: NaiveTime,
   pub hora_fin: NaiveTime,

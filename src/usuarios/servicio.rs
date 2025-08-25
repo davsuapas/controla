@@ -44,7 +44,7 @@ impl UsuarioServicio {
   /// Si se proporciona una hora, devuelve el horario más cercano a esa hora.
   pub async fn horario_usuario(
     &self,
-    usuario: u64,
+    usuario: u32,
     hora: Option<NaiveDateTime>,
   ) -> Result<Vec<Horario>, ServicioError> {
     match hora {
@@ -76,7 +76,7 @@ impl UsuarioServicio {
   #[inline]
   pub async fn horario_cercano(
     &self,
-    usuario: u64,
+    usuario: u32,
     hora: NaiveDateTime,
   ) -> Result<Horario, ServicioError> {
     self

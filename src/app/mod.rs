@@ -29,6 +29,7 @@ impl AppState {
         HorarioRepo::new(pool.clone()),
       ),
       reg_servicio: RegistroServicio::new(
+        *cnfg,
         RegistroRepo::new(pool.clone()),
         UsuarioServicio::new(*cnfg, HorarioRepo::new(pool.clone())),
       ),
