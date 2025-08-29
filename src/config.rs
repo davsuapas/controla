@@ -59,20 +59,34 @@ pub struct Servidor {
 ///
 /// Consultar las estructuras internas para ver qué valores
 /// se obtienen de un fichero secreto.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct Config {
   pub db: DB,
   pub log: Log,
   pub servidor: Servidor,
   pub zona_horaria: Tz,
+  pub secreto: String,
+}
+
+impl std::fmt::Debug for Config {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Config")
+      .field("db", &self.db)
+      .field("log", &self.log)
+      .field("servidor", &self.servidor)
+      .field("zona_horaria", &self.zona_horaria)
+      .field("secreto", &"[OCULTO]")
+      .finish()
+  }
 }
 
 /// Representa la configuración del trabajo.
 ///
 /// Se propaga a través de la aplicación
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct ConfigTrabajo {
   pub zona_horaria: Tz,
+  pub secreto: String,
   pub limites: Limites,
 }
 
@@ -94,6 +108,7 @@ impl Config {
       .expect("No se pudo deserializar el archivo de configuración");
 
     config.db.password = secreto.get(&config.db.password);
+    config.secreto = secreto.get(&config.secreto);
 
     config
   }
@@ -101,6 +116,7 @@ impl Config {
   /// Genera la configuración para las aplicaciones que gestionan el trabajo.
   pub fn config_trabajo(&self) -> ConfigTrabajo {
     ConfigTrabajo {
+      secreto: self.secreto.clone(),
       zona_horaria: self.zona_horaria,
       limites: self.db.limites,
     }

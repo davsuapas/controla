@@ -11,6 +11,9 @@ pub enum DBError {
 
   #[error("No hay filas afectadas: {0}")]
   RegistroVacio(anyhow::Error),
+
+  #[error("Error encriptando o desencriptando un campo: {0}")]
+  Criptografia(anyhow::Error),
 }
 
 impl DBError {
@@ -25,6 +28,10 @@ impl DBError {
 
   pub fn registro_vacio(msg: String) -> Self {
     DBError::RegistroVacio(anyhow::anyhow!(msg))
+  }
+
+  pub fn cripto_from<E: Into<anyhow::Error>>(err: E) -> Self {
+    DBError::Criptografia(err.into())
   }
 }
 
@@ -51,7 +58,6 @@ impl PoolConexion {
     &self.pool
   }
   /// Empieza una nueva transacción.
-  #[allow(dead_code)]
   pub async fn empezar_transaccion(&self) -> Result<Transaccion<'_>, DBError> {
     let transaction = self.pool.begin().await.map_err(DBError::trans_from)?;
     Ok(Transaccion { transaction })
@@ -59,12 +65,10 @@ impl PoolConexion {
 }
 
 /// Gestiona las tranasciones de la base de datos.
-#[allow(dead_code)]
 pub struct Transaccion<'a> {
   transaction: sqlx::Transaction<'a, sqlx::MySql>,
 }
 
-#[allow(dead_code)]
 impl<'a> Transaccion<'a> {
   // Obtiene la transacción interna
   pub fn deref_mut(&mut self) -> &mut sqlx::Transaction<'a, sqlx::MySql> {

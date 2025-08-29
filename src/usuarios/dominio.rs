@@ -1,4 +1,8 @@
-use chrono::{NaiveTime, TimeDelta};
+use std::fmt::Debug;
+
+use chrono::{NaiveDateTime, NaiveTime, TimeDelta};
+
+use crate::infra::{Dni, Password};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
@@ -31,20 +35,47 @@ pub struct UsuarioNombre {
   pub nombre: String,
 }
 
-impl PartialEq for UsuarioNombre {
-  fn eq(&self, other: &Self) -> bool {
-    self.id == other.id
-  }
-}
-
-impl Eq for UsuarioNombre {}
-
 #[derive(Debug)]
 pub struct DescriptorUsuario {
   pub id: u32,
   pub nombre: String,
   pub primer_apellido: String,
   pub segundo_apellido: String,
+}
+
+pub struct Usuario {
+  pub id: u32,
+  pub dni: Dni,
+  pub nombre: String,
+  pub primer_apellido: String,
+  pub segundo_apellido: String,
+  pub password: Option<Password>,
+  pub activo: Option<NaiveDateTime>,
+  pub inicio: Option<NaiveDateTime>,
+  pub roles: Vec<Rol>,
+}
+
+impl Debug for Usuario {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Usuario")
+      .field("id", &self.id)
+      .field("dni", &"[OCULTO]")
+      .field("nombre", &self.nombre)
+      .field("primer_apellido", &self.primer_apellido)
+      .field("segundo_apellido", &self.segundo_apellido)
+      .field(
+        "password",
+        if self.password.is_some() {
+          &"[OCULTO]"
+        } else {
+          &"None"
+        },
+      )
+      .field("activo", &self.activo)
+      .field("inicio", &self.inicio)
+      .field("roles", &self.roles)
+      .finish()
+  }
 }
 
 #[derive(Debug)]

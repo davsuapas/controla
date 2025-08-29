@@ -27,7 +27,7 @@ impl RegistroRepo {
     &self,
     reg: &Registro,
     horario: u32,
-  ) -> Result<u64, DBError> {
+  ) -> Result<u32, DBError> {
     const QUERY: &str = r"INSERT INTO registros
       (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
       VALUES (?, ?, ?, ?, ?, ?)";
@@ -43,7 +43,7 @@ impl RegistroRepo {
       .await
       .map_err(DBError::consulta_from)?;
 
-    Ok(result.last_insert_id())
+    Ok(result.last_insert_id() as u32)
   }
 
   /// Verifica si la hora de fin para cualquier registro
@@ -160,15 +160,17 @@ impl RegistroRepo {
     usuario: u32,
     top: Option<&str>,
   ) -> Result<Vec<Registro>, DBError> {
+    const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
     let filter = format!("r.usuario = {}", usuario);
 
-    self.registros(top, Some(&filter)).await
+    self.registros(top, Some(&filter), Some(ORDER_BY)).await
   }
 
   async fn registros(
     &self,
     top: Option<&str>,
     filter: Option<&str>,
+    order: Option<&str>,
   ) -> Result<Vec<Registro>, DBError> {
     const SELECT: &str = r"SELECT r.id, r.fecha, r.hora_inicio, r.hora_fin,
         r.usuario, r.usuario_registrador, r.horario,
@@ -181,12 +183,10 @@ impl RegistroRepo {
         JOIN usuarios u ON r.usuario = u.id
         LEFT JOIN usuarios ur ON r.usuario_registrador = ur.id";
 
-    const ORDER_BY: &str = " ORDER BY r.fecha, r.hora_inicio";
-
     let mut query = String::with_capacity(
       SELECT.len()
-        + filter.map_or(0, |f| f.len() + 20)
-        + ORDER_BY.len()
+        + filter.map_or(0, |f| f.len() + 10)
+        + order.map_or(0, |f| f.len() + 10)
         + top.map_or(0, |t| t.len() + 10),
     );
 
@@ -197,7 +197,10 @@ impl RegistroRepo {
       query.push_str(f);
     }
 
-    query.push_str(ORDER_BY);
+    if let Some(o) = order {
+      query.push_str(" ORDER BY ");
+      query.push_str(o);
+    }
 
     if let Some(t) = top {
       query.push_str(" LIMIT ");

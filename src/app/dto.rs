@@ -1,10 +1,111 @@
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+  infra::{Dni, Password},
   registro::Registro,
-  usuarios::{DescriptorUsuario, Horario, UsuarioNombre},
+  usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioNombre},
 };
+
+/// Define la entidad de intercambio para el usuario
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct UsuarioDTO {
+  pub id: u32,
+  pub dni: String,
+  pub nombre: String,
+  pub primer_apellido: String,
+  pub segundo_apellido: String,
+  pub password: Option<String>,
+  pub activo: Option<NaiveDateTime>,
+  pub inicio: Option<NaiveDateTime>,
+  pub roles: Vec<u8>,
+}
+
+impl From<Usuario> for UsuarioDTO {
+  fn from(usr: Usuario) -> Self {
+    UsuarioDTO {
+      id: usr.id,
+      dni: usr.dni.clone(),
+      nombre: usr.nombre,
+      primer_apellido: usr.primer_apellido,
+      segundo_apellido: usr.segundo_apellido,
+      password: None, // Nunca se envía la contraseña
+      activo: usr.activo,
+      inicio: usr.inicio,
+      roles: usr.roles.iter().map(|r| *r as u8).collect(),
+    }
+  }
+}
+
+impl From<UsuarioDTO> for Usuario {
+  fn from(usr: UsuarioDTO) -> Self {
+    Usuario {
+      id: usr.id,
+      dni: Dni::new(usr.dni),
+      nombre: usr.nombre,
+      primer_apellido: usr.primer_apellido,
+      segundo_apellido: usr.segundo_apellido,
+      password: usr.password.as_ref().map(|p| Password::new(p.clone())),
+      activo: usr.activo,
+      inicio: usr.inicio,
+      roles: usr.roles.iter().map(|r| Rol::from(*r)).collect(),
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct UsuarioNombreDTO {
+  pub id: u32,
+  pub nombre: String,
+}
+
+impl From<UsuarioNombreDTO> for UsuarioNombre {
+  fn from(usr: UsuarioNombreDTO) -> Self {
+    UsuarioNombre {
+      id: usr.id,
+      nombre: usr.nombre,
+    }
+  }
+}
+
+impl From<UsuarioNombre> for UsuarioNombreDTO {
+  fn from(usr: UsuarioNombre) -> Self {
+    UsuarioNombreDTO {
+      id: usr.id,
+      nombre: usr.nombre,
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct DescriptorUsuarioDTO {
+  pub id: u32,
+  pub nombre: String,
+  pub primer_apellido: String,
+  pub segundo_apellido: String,
+}
+
+impl From<DescriptorUsuarioDTO> for DescriptorUsuario {
+  fn from(usr: DescriptorUsuarioDTO) -> Self {
+    DescriptorUsuario {
+      id: usr.id,
+      nombre: usr.nombre,
+      primer_apellido: usr.primer_apellido,
+      segundo_apellido: usr.segundo_apellido,
+    }
+  }
+}
+
+impl From<DescriptorUsuario> for DescriptorUsuarioDTO {
+  fn from(usr: DescriptorUsuario) -> Self {
+    DescriptorUsuarioDTO {
+      id: usr.id,
+      nombre: usr.nombre,
+      primer_apellido: usr.primer_apellido,
+      segundo_apellido: usr.segundo_apellido,
+    }
+  }
+}
 
 /// Define la entidad de intercambio para el horario
 #[derive(Serialize)]
@@ -69,61 +170,6 @@ impl From<Registro> for RegistroOutDTO {
       fecha: reg.fecha,
       hora_inicio: reg.hora_inicio,
       hora_fin: reg.hora_fin,
-    }
-  }
-}
-
-/// Define la entidad de intercambio para el usuario
-#[derive(Serialize, Deserialize)]
-pub(in crate::app) struct UsuarioNombreDTO {
-  pub id: u32,
-  pub nombre: String,
-}
-
-impl From<UsuarioNombreDTO> for UsuarioNombre {
-  fn from(usr: UsuarioNombreDTO) -> Self {
-    UsuarioNombre {
-      id: usr.id,
-      nombre: usr.nombre,
-    }
-  }
-}
-
-impl From<UsuarioNombre> for UsuarioNombreDTO {
-  fn from(usr: UsuarioNombre) -> Self {
-    UsuarioNombreDTO {
-      id: usr.id,
-      nombre: usr.nombre,
-    }
-  }
-}
-
-#[derive(Serialize, Deserialize)]
-pub(in crate::app) struct DescriptorUsuarioDTO {
-  pub id: u32,
-  pub nombre: String,
-  pub primer_apellido: String,
-  pub segundo_apellido: String,
-}
-
-impl From<DescriptorUsuarioDTO> for DescriptorUsuario {
-  fn from(usr: DescriptorUsuarioDTO) -> Self {
-    DescriptorUsuario {
-      id: usr.id,
-      nombre: usr.nombre,
-      primer_apellido: usr.primer_apellido,
-      segundo_apellido: usr.segundo_apellido,
-    }
-  }
-}
-
-impl From<DescriptorUsuario> for DescriptorUsuarioDTO {
-  fn from(usr: DescriptorUsuario) -> Self {
-    DescriptorUsuarioDTO {
-      id: usr.id,
-      nombre: usr.nombre,
-      primer_apellido: usr.primer_apellido,
-      segundo_apellido: usr.segundo_apellido,
     }
   }
 }

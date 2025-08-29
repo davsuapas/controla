@@ -18,7 +18,7 @@ impl TrazaRepo {
     &self,
     trans: &mut Transaccion<'_>,
     traza: &Traza,
-  ) -> Result<u64, DBError> {
+  ) -> Result<u32, DBError> {
     let result = sqlx::query(
       r"INSERT INTO trazas
       (tipo, fecha, usuario, horario, registro, motivo)
@@ -34,6 +34,6 @@ impl TrazaRepo {
     .await
     .map_err(DBError::consulta_from)?;
 
-    Ok(result.last_insert_id())
+    Ok(result.last_insert_id() as u32)
   }
 }

@@ -3,39 +3,194 @@ use chrono::NaiveDateTime;
 use crate::{
   config::ConfigTrabajo,
   infra::ServicioError,
-  usuarios::{DescriptorUsuario, Horario, HorarioRepo, Rol},
+  traza::{TipoTraza, TrazaBuilder, TrazaServicio},
+  usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo},
 };
 
 ///Servicio para manejar operaciones relacionadas con usuarios.
 pub struct UsuarioServicio {
   cnfg: ConfigTrabajo,
-  horario_repo: HorarioRepo,
+  repo: UsuarioRepo,
+  srv_traza: TrazaServicio,
 }
 
 impl UsuarioServicio {
-  pub fn new(cnfg: ConfigTrabajo, horario_repo: HorarioRepo) -> Self {
-    UsuarioServicio { cnfg, horario_repo }
+  pub fn new(
+    cnfg: ConfigTrabajo,
+    repo: UsuarioRepo,
+    srv_traza: TrazaServicio,
+  ) -> Self {
+    UsuarioServicio {
+      cnfg,
+      repo,
+      srv_traza,
+    }
   }
 }
 
 impl UsuarioServicio {
+  /// Crea un nuevo usuario.
+  /// 
+  /// Valida los datos del usuario antes de proceder con la creación.
+  /// Genera una traza de la operación.
+  pub async fn crear_usuario(
+    &self,
+    usuario: &Usuario,
+  ) -> Result<u32, ServicioError> {
+    tracing::info!(
+      usuario = ?usuario,
+      "Se ha iniciado el servicio para crear un nuevo usuario");
+
+    self.valida_creacion_usuario(usuario).await?;
+
+    let mut tr = self.repo.conexion().empezar_transaccion().await.map_err(
+      |err| {
+        tracing::error!(
+           usuario = usuario.nombre , error = %err,
+           "Iniciando transacción para creación de usuario");
+        ServicioError::from(err)
+      },
+    )?;
+
+    let id = match self
+      .repo
+      .crear_usuario(&mut tr, &self.cnfg.secreto, usuario)
+      .await
+    {
+      Ok(id) => id,
+      Err(err) => {
+        tracing::error!(
+          usuario = usuario.nombre, error = %err,
+          error = %err,
+          "Creando usuario");
+        tr.rollback().await.map_err(ServicioError::from)?;
+
+        return Err(ServicioError::from(err));
+      }
+    };
+
+    if let Err(err) = self
+      .repo
+      .agregar_roles(&mut tr, id, &usuario.roles)
+      .await {
+        tracing::error!( 
+          usuario = usuario.nombre,
+          roles = ?usuario.roles,
+          error = %err,
+          "Anádiendo roles a el de usuario");
+        tr.rollback().await.map_err(ServicioError::from)?;
+
+        return Err(ServicioError::from(err));
+    }
+
+    let traza = TrazaBuilder::with_usuario(TipoTraza::CreacionUsuario, id)
+      .build(&self.cnfg.zona_horaria)
+      .map_err(|err| {
+        tracing::error!(
+           usuario = usuario.nombre, error = %err,
+           "Formando traza para creación de usuario");
+        ServicioError::Interno
+      })?;
+
+    if let Err(err) = self
+      .srv_traza
+      .agregar(&mut tr, &traza)
+      .await {
+        tracing::error!( 
+          usuario = usuario.nombre, error = %err,
+          "Creando traza para creación de usuario");
+        tr.rollback().await.map_err(ServicioError::from)?;
+
+        return Err(err);
+    }
+
+    tr.commit().await.map_err(|err| {
+      tracing::error!(
+         usuario = usuario.nombre, error = %err,
+        "Commit transacción para creación de usuario");
+      ServicioError::from(err)
+    })?;
+
+    tracing::debug!(
+      id_usuario = id,
+      "Se ha completado satisfactoriamente la creación del usuario"
+    );
+
+    Ok(id)
+  }
+
+  async fn valida_creacion_usuario(
+    &self, usuario: &Usuario) -> Result<(), ServicioError> {
+    if usuario.nombre.trim().is_empty() ||
+      usuario.primer_apellido.trim().is_empty() ||
+      usuario.segundo_apellido.trim().is_empty() ||
+      usuario.dni.is_empty(){
+      const VALIDA_DESCRIPTORES: &str =
+        "El nombre, apellidos o DNI del usuario no puede estar vacío";
+
+      tracing::error!(usuario = ?usuario, VALIDA_DESCRIPTORES);
+
+      return Err(ServicioError::Validacion(VALIDA_DESCRIPTORES.to_string()));
+    }
+
+    if usuario.password.as_ref().unwrap().trim().is_empty() {
+      const VALIDA_PASS: &str = "La password del usuario no puede estar vacía";
+
+      tracing::error!(usuario = ?usuario, VALIDA_PASS);
+
+      return Err(ServicioError::Validacion(VALIDA_PASS.to_string()));
+    }
+
+    if self.repo.dni_duplicado(&self.cnfg.secreto, &usuario.dni)
+      .await.map_err(|err| {
+      tracing::error!(usuario = usuario.nombre, error = %err, "Validando DNI");
+      ServicioError::from(err)
+    })? {
+      const VALIDA_DNI: &str = "El DNI del usuario ya existe";
+
+      tracing::error!(usuario = ?usuario, VALIDA_DNI);
+
+      return Err(ServicioError::Validacion(VALIDA_DNI.to_string()));
+    }
+
+    Ok(())
+  }
+
+  /// Devuelve todos los usuarios existentes.
+  #[inline]
+  pub async fn usuarios(&self) -> Result<Vec<Usuario>, ServicioError> {
+    self.repo.usuarios(&self.cnfg.secreto).await.map_err(|err| {
+      tracing::error!(error = %err, "Obteniendo usuarios");
+      ServicioError::from(err)
+    })
+  }
+
+  /// Devuelve un usuario por su ID.
+  #[inline]
+  pub async fn usuario(&self, id: u32) -> Result<Usuario, ServicioError> {
+    self
+      .repo
+      .usuario(&self.cnfg.secreto, id)
+      .await
+      .map_err(|err| {
+        tracing::error!(id = id, error = %err, "Obteniendo usuario");
+        ServicioError::from(err)
+      })
+  }
+
   /// Devuelve los usuarios que tienen un rol específico.
   #[inline]
   pub async fn usuarios_por_rol(
     &self,
     rol: Rol,
   ) -> Result<Vec<DescriptorUsuario>, ServicioError> {
-    self
-      .horario_repo
-      .usuarios_por_rol(rol)
-      .await
-      .map_err(|err| {
-        tracing::error!(
+    self.repo.usuarios_por_rol(rol).await.map_err(|err| {
+      tracing::error!(
           rol = ?rol,
           error = %err,
-         "Consultando usuarios por rol");
-        ServicioError::from(err)
-      })
+         "Obteniendo usuarios por rol");
+      ServicioError::from(err)
+    })
   }
 
   /// Devuelve el horario del usuario.
@@ -49,14 +204,14 @@ impl UsuarioServicio {
   ) -> Result<Vec<Horario>, ServicioError> {
     match hora {
       None => self
-        .horario_repo
+        .repo
         .horarios_hoy_usuario(&self.cnfg.zona_horaria, usuario)
         .await
         .map_err(|err| {
           tracing::error!(
           usuario = usuario,
           error = %err,
-         "Consultando horario del usuario para el día actual");
+         "Obteniendo horario del usuario para el día actual");
           ServicioError::from(err)
         }),
       Some(hora) => self
@@ -68,7 +223,7 @@ impl UsuarioServicio {
           usuario = usuario,
           hora = ?hora,
           error = %err,
-         "Consultando horario del usuario para una fecha y hora concreta");
+         "Obteniendo horario del usuario para una fecha y hora concreta");
         }),
     }
   }
@@ -80,7 +235,7 @@ impl UsuarioServicio {
     hora: NaiveDateTime,
   ) -> Result<Horario, ServicioError> {
     self
-      .horario_repo
+      .repo
       .horario_cercano(usuario, hora)
       .await
       .map_err(ServicioError::from)

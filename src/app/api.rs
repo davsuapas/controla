@@ -15,7 +15,7 @@ use crate::{
     AppState,
     dto::{
       DescriptorUsuarioDTO, HorarioDTO, RegistroInDTO, RegistroOutDTO,
-      vec_dominio_to_dtos,
+      UsuarioDTO, vec_dominio_to_dtos,
     },
   },
   usuarios::Rol,
@@ -24,29 +24,54 @@ use crate::{
 /// Define las rutas de la aplicación.
 pub fn rutas(app: Arc<AppState>) -> Router {
   let api_rutas = Router::new()
-    .route("/registro", post(registrar))
-    .route("/usuario/{id}/ultimos_registros", get(ultimos_registros))
-    .route("/usuario/{id}/horario", get(horario_usuario))
+    .route("/usuarios", post(crear_usuario))
+    .route("/usuarios", get(usuarios))
+    .route("/usuarios/{id}", get(usuario))
+    .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
+    .route("/usuarios/{id}/horario", get(horario_usuario))
     .route(
-      "/usuario/{id}/horario/{fecha}",
+      "/usuarios/{id}/horario/{fecha}",
       get(horario_usuario_por_fecha),
     )
-    .route("/rol/{id}/usuarios", get(usuarios_por_rol));
+    .route("/roles/{id}/usuarios", get(usuarios_por_rol))
+    .route("/registros", post(registrar));
 
   Router::new().nest("/api", api_rutas).with_state(app)
 }
 
-/// Api para crear un nuevo registro de empleado completo.
-async fn registrar(
+/// Api para crear un nuevo usuario
+async fn crear_usuario(
   State(state): State<Arc<AppState>>,
-  Json(reg): Json<RegistroInDTO>,
+  Json(usuario): Json<UsuarioDTO>,
 ) -> impl IntoResponse {
   state
-    .reg_servicio
-    .agregar(&reg.into())
+    .usuario_servicio
+    .crear_usuario(&usuario.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|_| (StatusCode::OK, ""))
+    .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para obtener todos los usuarios
+async fn usuarios(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .usuarios()
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|usrs| Json(vec_dominio_to_dtos::<_, UsuarioDTO>(usrs)))
+}
+
+async fn usuario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .usuario(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|u| Json(UsuarioDTO::from(u)))
 }
 
 /// Api para obtener los últimos registros horarios de un usuario.
@@ -105,4 +130,17 @@ async fn usuarios_por_rol(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|usrs| Json(vec_dominio_to_dtos::<_, DescriptorUsuarioDTO>(usrs)))
+}
+
+/// Api para crear un nuevo registro de empleado completo.
+async fn registrar(
+  State(state): State<Arc<AppState>>,
+  Json(reg): Json<RegistroInDTO>,
+) -> impl IntoResponse {
+  state
+    .reg_servicio
+    .agregar(&reg.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|id| (StatusCode::CREATED, Json(id)))
 }

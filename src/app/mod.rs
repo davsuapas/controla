@@ -11,7 +11,8 @@ use crate::{
   config::ConfigTrabajo,
   infra::PoolConexion,
   registro::{RegistroRepo, RegistroServicio},
-  usuarios::{HorarioRepo, UsuarioServicio},
+  traza::{TrazaRepo, TrazaServicio},
+  usuarios::{UsuarioRepo, UsuarioServicio},
 };
 
 /// Estructura principal de la aplicación que contiene los servicios.
@@ -25,13 +26,18 @@ impl AppState {
   pub fn iniciar(cnfg: &ConfigTrabajo, pool: PoolConexion) -> Self {
     AppState {
       usuario_servicio: UsuarioServicio::new(
-        *cnfg,
-        HorarioRepo::new(pool.clone()),
+        cnfg.clone(),
+        UsuarioRepo::new(pool.clone()),
+        TrazaServicio::new(TrazaRepo::new()),
       ),
       reg_servicio: RegistroServicio::new(
-        *cnfg,
+        cnfg.clone(),
         RegistroRepo::new(pool.clone()),
-        UsuarioServicio::new(*cnfg, HorarioRepo::new(pool.clone())),
+        UsuarioServicio::new(
+          cnfg.clone(),
+          UsuarioRepo::new(pool.clone()),
+          TrazaServicio::new(TrazaRepo::new()),
+        ),
       ),
     }
   }

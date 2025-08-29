@@ -4,22 +4,166 @@ use sqlx::{Row, mysql::MySqlRow};
 use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
-  infra::{DBError, PoolConexion, ShortDateFormat, ShortDateTimeFormat},
-  usuarios::{DescriptorUsuario, Dia, Horario, Rol},
+  db_pool_getter,
+  infra::{
+    DBError, Dni, PoolConexion, ShortDateFormat, ShortDateTimeFormat,
+    Transaccion,
+  },
+  usuarios::{DescriptorUsuario, Dia, Horario, Rol, Usuario},
 };
 
-/// Implementación del repositorio de los horarios de usuario.
-pub struct HorarioRepo {
+/// Implementación del repositorio de los usuarios y horarios.
+pub struct UsuarioRepo {
   pool: PoolConexion,
 }
 
-impl HorarioRepo {
+impl UsuarioRepo {
   pub fn new(pool: PoolConexion) -> Self {
-    HorarioRepo { pool }
+    UsuarioRepo { pool }
   }
 }
 
-impl HorarioRepo {
+db_pool_getter!(UsuarioRepo);
+
+impl UsuarioRepo {
+  /// Añadir roles a un usuario.
+  pub(in crate::usuarios) async fn agregar_roles(
+    &self,
+    trans: &mut Transaccion<'_>,
+    id: u32,
+    roles: &[Rol],
+  ) -> Result<(), DBError> {
+    const QUERY: &str =
+      r"INSERT INTO roles_usuario (usuario, rol) VALUES (?, ?);";
+
+    for rol in roles {
+      sqlx::query(QUERY)
+        .bind(id)
+        .bind(*rol as u32)
+        .execute(&mut **trans.deref_mut())
+        .await
+        .map_err(DBError::consulta_from)?;
+    }
+
+    Ok(())
+  }
+
+  /// Crea un nuevo usuario.
+  ///
+  /// El secreto es necesario para encriptar el DNI y la password.
+  pub(in crate::usuarios) async fn crear_usuario(
+    &self,
+    trans: &mut Transaccion<'_>,
+    secreto: &str,
+    usuario: &Usuario,
+  ) -> Result<u32, DBError> {
+    const QUERY: &str = r"INSERT INTO usuarios 
+      (dni, dni_hash, nombre, primer_apellido, segundo_apellido,
+      password, activo, inicio) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+
+    let dni = usuario
+      .dni
+      .encriptar(secreto)
+      .map_err(DBError::cripto_from)?;
+
+    let password = usuario
+      .password
+      .as_ref()
+      .unwrap()
+      .encriptar(secreto)
+      .map_err(DBError::cripto_from)?;
+
+    let result = sqlx::query(QUERY)
+      .bind(&dni)
+      .bind(usuario.dni.hash_con_salt(secreto))
+      .bind(&usuario.nombre)
+      .bind(&usuario.primer_apellido)
+      .bind(&usuario.segundo_apellido)
+      .bind(&password)
+      .bind(usuario.activo)
+      .bind(usuario.inicio)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    Ok(result.last_insert_id() as u32)
+  }
+
+  /// Verifica que no exista un dni duplicado.
+  pub(in crate::usuarios) async fn dni_duplicado(
+    &self,
+    secreto: &str,
+    dni: &Dni,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = r"SELECT COUNT(*) 
+      FROM usuarios 
+      WHERE dni_hash = ?;";
+
+    let count: i8 = sqlx::query_scalar(QUERY)
+      .bind(dni.hash_con_salt(secreto))
+      .fetch_one(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    Ok(count > 0)
+  }
+
+  /// Obtiene todos los usuarios.
+  ///
+  /// El secreto es necesario para desencriptar el DNI.
+  pub(in crate::usuarios) async fn usuarios(
+    &self,
+    secreto: &str,
+  ) -> Result<Vec<Usuario>, DBError> {
+    const QUERY: &str = r"SELECT id, dni,
+      nombre, primer_apellido, segundo_apellido,
+      activo, inicio 
+      FROM usuarios;";
+
+    let rows = sqlx::query(QUERY)
+      .fetch_all(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    let mut usuarios = Vec::with_capacity(rows.len());
+
+    for row in rows {
+      usuarios.push(self.usuario_from_row(&row, secreto).await?);
+    }
+    Ok(usuarios)
+  }
+
+  /// Obtiene un usuario dado el id.
+  ///
+  /// El secreto es necesario para desencriptar el DNI.
+  pub(in crate::usuarios) async fn usuario(
+    &self,
+    secreto: &str,
+    id: u32,
+  ) -> Result<Usuario, DBError> {
+    const QUERY: &str = r"SELECT id, dni,
+      nombre, primer_apellido, segundo_apellido,
+      activo, inicio 
+      FROM usuarios
+      WHERE id = ?;";
+
+    let row = sqlx::query(QUERY)
+      .bind(id)
+      .fetch_optional(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    if let Some(row) = row {
+      self.usuario_from_row(&row, secreto).await
+    } else {
+      Err(DBError::registro_vacio(format!(
+        "No se ha encontrado ningún usuario con id: {}",
+        id
+      )))
+    }
+  }
+
   /// Obtiene los usuarios que tienen un rol específico.
   pub(in crate::usuarios) async fn usuarios_por_rol(
     &self,
@@ -48,6 +192,23 @@ impl HorarioRepo {
         })
         .collect(),
     )
+  }
+
+  pub(in crate::usuarios) async fn roles_por_usuario(
+    &self,
+    usuario: u32,
+  ) -> Result<Vec<Rol>, DBError> {
+    const QUERY: &str = r"SELECT rol 
+      FROM roles_usuario 
+      WHERE usuario = ?;";
+
+    let rows = sqlx::query_scalar::<_, u8>(QUERY)
+      .bind(usuario)
+      .fetch_all(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    Ok(rows.into_iter().map(Rol::from).collect())
   }
 
   /// Obtiene el horario más cercano a una hora dada para un usuario.
@@ -93,7 +254,7 @@ impl HorarioRepo {
       .map_err(DBError::consulta_from)?;
 
     if let Some(row) = result {
-      Ok(HorarioRepo::horario_from_row(&row))
+      Ok(UsuarioRepo::horario_from_row(&row))
     } else {
       // Si no encuentra un horario entre las horas de inicio y fin,
       // devuelve el más cercano al inicio
@@ -124,7 +285,7 @@ impl HorarioRepo {
         .map_err(DBError::consulta_from)?;
 
       if let Some(row) = result {
-        Ok(HorarioRepo::horario_from_row(&row))
+        Ok(UsuarioRepo::horario_from_row(&row))
       } else {
         Err(DBError::registro_vacio(format!(
           "No se ha encontrado ningún horario registrado en la fecha: {}, \
@@ -173,7 +334,7 @@ impl HorarioRepo {
     Ok(
       rows
         .into_iter()
-        .map(|row| HorarioRepo::horario_from_row(&row))
+        .map(|row| UsuarioRepo::horario_from_row(&row))
         .collect(),
     )
   }
@@ -213,5 +374,27 @@ impl HorarioRepo {
       hora_inicio: row.get("hora_inicio"),
       hora_fin: row.get("hora_fin"),
     }
+  }
+
+  async fn usuario_from_row(
+    &self,
+    row: &MySqlRow,
+    secreto: &str,
+  ) -> Result<Usuario, DBError> {
+    let dni = Dni::from_encriptado(row.get("dni"), secreto)
+      .map_err(DBError::cripto_from)?;
+    let roles = self.roles_por_usuario(row.get("id")).await?;
+
+    Ok(Usuario {
+      id: row.get("id"),
+      dni,
+      nombre: row.get("nombre"),
+      primer_apellido: row.get("primer_apellido"),
+      segundo_apellido: row.get("segundo_apellido"),
+      password: None,
+      activo: row.get("activo"),
+      inicio: row.get("inicio"),
+      roles,
+    })
   }
 }

@@ -19,6 +19,7 @@
 //! - Informes horrarios y de incidencias.
 //! - Registro automático y manual por el controlador.
 //! - Consultas por partede de un inspector.
+//! - Auditoría de acciones realizadas en el sistema.
 //!
 //! Se usará una base de datos mysql para almacenar los datos de la aplicación.
 //!
@@ -36,8 +37,8 @@ mod config;
 mod infra;
 
 mod registro;
+mod traza;
 mod usuarios;
-//mod traza;
 
 use config::*;
 use sqlx::mysql::MySqlPoolOptions;

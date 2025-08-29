@@ -45,7 +45,7 @@ impl RegistroServicio {
   ///   obtenido.
   ///
   /// Devuelve el ID del registro creado.
-  pub async fn agregar(&self, reg: &Registro) -> Result<u64, ServicioError> {
+  pub async fn agregar(&self, reg: &Registro) -> Result<u32, ServicioError> {
     tracing::info!(
       registro = ?reg,
       "Se ha iniciado el servicio para crear un registro horario de usuario");
@@ -92,7 +92,7 @@ impl RegistroServicio {
       horas_a_trabajar = horas_a_trabajar,
       "Horario más cercano al registro horario del usuario");
 
-    let reg_id = match self.repo.agregar(reg, horario_cercano.id).await {
+    let id = match self.repo.agregar(reg, horario_cercano.id).await {
       Ok(reg_id) => reg_id,
       Err(err) => {
         tracing::error!(
@@ -105,11 +105,11 @@ impl RegistroServicio {
     };
 
     tracing::debug!(
-      id_registro = reg_id,
+      id_registro = id,
       "Se ha completado satisfactoriamente el registro horario"
     );
 
-    Ok(reg_id)
+    Ok(id)
   }
 
   /// Obtiene los últimos registros horarios de un usuario.
