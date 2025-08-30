@@ -5,7 +5,7 @@ use axum::{
   extract::{Json, Path, State},
   http::StatusCode,
   response::IntoResponse,
-  routing::{get, post},
+  routing::{get, post, put},
 };
 use chrono::NaiveDateTime;
 use serde::Deserialize;
@@ -25,6 +25,7 @@ use crate::{
 pub fn rutas(app: Arc<AppState>) -> Router {
   let api_rutas = Router::new()
     .route("/usuarios", post(crear_usuario))
+    .route("/usuarios", put(actualizar_usuario))
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
@@ -50,6 +51,19 @@ async fn crear_usuario(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para actualizar un usuario existente
+async fn actualizar_usuario(
+  State(state): State<Arc<AppState>>,
+  Json(usuario): Json<UsuarioDTO>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .actualizar_usuario(&usuario.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
 }
 
 /// Api para obtener todos los usuarios

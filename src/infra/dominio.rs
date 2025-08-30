@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt::Display, ops::Deref};
 
 use data_encoding::HEXLOWER;
 use sha2::{Digest, Sha256};
@@ -6,13 +6,27 @@ use sha2::{Digest, Sha256};
 use crate::infra::{desencriptar, encriptar};
 
 /// Tipo que representa un valor encriptado
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct Crypto(String);
 
 impl Crypto {
   pub fn new(s: String) -> Self {
     Crypto(s)
+  }
+}
+
+impl Deref for Crypto {
+  type Target = String;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl Display for Crypto {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}", self.0)
   }
 }
 
@@ -50,14 +64,6 @@ impl Crypto {
   #[inline]
   pub fn is_empty(&self) -> bool {
     self.0.trim().is_empty()
-  }
-}
-
-impl Deref for Crypto {
-  type Target = String;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
   }
 }
 

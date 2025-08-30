@@ -4,7 +4,6 @@ use sqlx::{Row, mysql::MySqlRow};
 use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
-  db_pool_getter,
   infra::{
     DBError, Dni, PoolConexion, ShortDateFormat, ShortDateTimeFormat,
     Transaccion,
@@ -23,18 +22,31 @@ impl UsuarioRepo {
   }
 }
 
-db_pool_getter!(UsuarioRepo);
-
 impl UsuarioRepo {
+  pub(in crate::usuarios) fn conexion(&self) -> &PoolConexion {
+    &self.pool
+  }
+
   /// Añadir roles a un usuario.
+  ///
+  /// Si el usuario ya tiene roles, se eliminan antes de añadir los nuevos.
   pub(in crate::usuarios) async fn agregar_roles(
     &self,
     trans: &mut Transaccion<'_>,
     id: u32,
     roles: &[Rol],
   ) -> Result<(), DBError> {
-    const QUERY: &str =
-      r"INSERT INTO roles_usuario (usuario, rol) VALUES (?, ?);";
+    const DELETE_QUERY: &str = "DELETE FROM roles_usuario
+       WHERE usuario = ?;";
+
+    sqlx::query(DELETE_QUERY)
+      .bind(id)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    const QUERY: &str = "INSERT INTO roles_usuario (usuario, rol)
+       VALUES (?, ?);";
 
     for rol in roles {
       sqlx::query(QUERY)
@@ -88,6 +100,43 @@ impl UsuarioRepo {
       .map_err(DBError::consulta_from)?;
 
     Ok(result.last_insert_id() as u32)
+  }
+
+  /// Actualiza un usuario.
+  ///
+  /// Solo se puede actualizar el DNI, nombre, apellidos y activo.
+  ///
+  /// El secreto es necesario para encriptar el DNI.
+  pub(in crate::usuarios) async fn actualizar_usuario(
+    &self,
+    trans: &mut Transaccion<'_>,
+    secreto: &str,
+    usuario: &Usuario,
+  ) -> Result<(), DBError> {
+    const QUERY: &str = r"UPDATE usuarios SET
+      dni = ?, dni_hash = ?, nombre = ?,
+      primer_apellido = ?, segundo_apellido = ?,
+      activo = ?
+      WHERE id = ?;";
+
+    let dni = usuario
+      .dni
+      .encriptar(secreto)
+      .map_err(DBError::cripto_from)?;
+
+    sqlx::query(QUERY)
+      .bind(&dni)
+      .bind(usuario.dni.hash_con_salt(secreto))
+      .bind(&usuario.nombre)
+      .bind(&usuario.primer_apellido)
+      .bind(&usuario.segundo_apellido)
+      .bind(usuario.activo)
+      .bind(usuario.id)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    Ok(())
   }
 
   /// Verifica que no exista un dni duplicado.

@@ -5,14 +5,22 @@ use chrono::{NaiveDateTime, NaiveTime, TimeDelta};
 use crate::infra::{Dni, Password};
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Rol {
+  /// Empleado con permisos para registrar y consultar su registro.
   Empleado = 1,
+  /// Permisos de gestión de incidencias.
   Gestor = 2,
+  /// Permisos de administración de usuarios.
   Admin = 3,
+  /// Permisos de dirección y generación de informes.
   Director = 4,
+  /// Permisos para registrar registros horarios en nombre del empleado.
   Registrador = 5,
+  /// Permisos para inspeccionar y auditar registros.
   Inspector = 6,
+  /// Permisos para configurar el sistema.
+  Configurador = 7,
 }
 
 impl From<u8> for Rol {
@@ -24,6 +32,7 @@ impl From<u8> for Rol {
       4 => Rol::Director,
       5 => Rol::Registrador,
       6 => Rol::Inspector,
+      7 => Rol::Configurador,
       _ => panic!("Valor de Rol no válido"),
     }
   }
@@ -53,6 +62,29 @@ pub struct Usuario {
   pub activo: Option<NaiveDateTime>,
   pub inicio: Option<NaiveDateTime>,
   pub roles: Vec<Rol>,
+}
+
+impl Usuario {
+  pub fn eq_roles(&self, other: &Usuario) -> bool {
+    if self.roles.len() != other.roles.len() {
+      return false;
+    }
+
+    for rol in &self.roles {
+      if !other.roles.contains(rol) {
+        return false;
+      }
+    }
+
+    true
+  }
+
+  pub fn nombre_completo(&self) -> String {
+    format!(
+      "{} {} {}",
+      self.nombre, self.primer_apellido, self.segundo_apellido
+    )
+  }
 }
 
 impl Debug for Usuario {

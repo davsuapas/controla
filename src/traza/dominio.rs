@@ -6,6 +6,11 @@ use derive_builder::Builder;
 #[derive(Copy, Clone, Debug)]
 pub enum TipoTraza {
   CreacionUsuario = 1,
+  ActualizacionUsuario = 2,
+  UsrDniModificado = 3,
+  UsrNombreModificado = 4,
+  UsrRolesModificados = 5,
+  UsrActivoModificado = 6,
 }
 
 #[derive(Builder, Debug)]

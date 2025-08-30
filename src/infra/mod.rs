@@ -8,9 +8,6 @@ mod dominio;
 /// Módulo que contiene la loǵica de servicios general
 mod servicio;
 
-/// Módulo que contiene macros útiles para la infraestructura
-pub mod macros;
-
 //pub use app::*;
 pub use db::*;
 pub use dominio::*;
