@@ -5,7 +5,7 @@ use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
   infra::{
-    DBError, Dni, PoolConexion, ShortDateFormat, ShortDateTimeFormat,
+    DBError, Dni, Password, PoolConexion, ShortDateFormat, ShortDateTimeFormat,
     Transaccion,
   },
   usuarios::{DescriptorUsuario, Dia, Horario, Rol, Usuario},
@@ -132,6 +132,30 @@ impl UsuarioRepo {
       .bind(&usuario.segundo_apellido)
       .bind(usuario.activo)
       .bind(usuario.id)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    Ok(())
+  }
+
+  /// Actualiza la password.
+  ///
+  /// El secreto es necesario para encriptar la password.
+  pub(in crate::usuarios) async fn actualizar_password(
+    &self,
+    trans: &mut Transaccion<'_>,
+    secreto: &str,
+    id: u32,
+    password: &Password,
+  ) -> Result<(), DBError> {
+    const QUERY: &str = r"UPDATE usuarios SET password = ? WHERE id = ?;";
+
+    let pass = password.encriptar(secreto).map_err(DBError::cripto_from)?;
+
+    sqlx::query(QUERY)
+      .bind(&pass)
+      .bind(id)
       .execute(&mut **trans.deref_mut())
       .await
       .map_err(DBError::consulta_from)?;

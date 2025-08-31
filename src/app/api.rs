@@ -18,6 +18,7 @@ use crate::{
       UsuarioDTO, vec_dominio_to_dtos,
     },
   },
+  infra::Password,
   usuarios::Rol,
 };
 
@@ -26,6 +27,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
   let api_rutas = Router::new()
     .route("/usuarios", post(crear_usuario))
     .route("/usuarios", put(actualizar_usuario))
+    .route(
+      "/usuarios/{id}/password/{password}",
+      put(actualizar_passw_usuario),
+    )
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
@@ -61,6 +66,25 @@ async fn actualizar_usuario(
   state
     .usuario_servicio
     .actualizar_usuario(usuario.autor, &usuario.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
+}
+
+#[derive(Deserialize)]
+struct PasswordUsuarioParams {
+  id: u32,
+  password: String,
+}
+
+/// Api para actualizar la password de un usuario existente
+async fn actualizar_passw_usuario(
+  State(state): State<Arc<AppState>>,
+  Path(params): Path<PasswordUsuarioParams>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .actualizar_password(params.id, &Password::new(params.password))
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|_| StatusCode::NO_CONTENT)
