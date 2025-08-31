@@ -412,6 +412,24 @@ impl UsuarioRepo {
     )
   }
 
+  /// Obtiene el número de registros horarios de un usuario
+  pub(in crate::usuarios) async fn num_registros_horarios_usuario(
+    &self,
+    id: u32,
+  ) -> Result<u32, DBError> {
+    const QUERY: &str = r"SELECT COUNT(id) 
+        FROM registros
+        WHERE usuario = ?";
+
+    Ok(
+      sqlx::query_scalar(QUERY)
+        .bind(id)
+        .fetch_one(self.pool.conexion())
+        .await
+        .map_err(DBError::consulta_from),
+    )?
+  }
+
   /// Obtiene la fecha de creación del horario más reciente
   async fn fecha_creacion_horario(
     &self,

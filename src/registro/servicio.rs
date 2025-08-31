@@ -127,7 +127,7 @@ impl RegistroServicio {
       .await
       .map_err(|err| {
         tracing::error!(
-          usuario_id = usuario,
+          usuario = usuario,
           error = %err,
           "Obteniendo los últimos registros horarios del usuario"
         );

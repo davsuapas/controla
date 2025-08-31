@@ -185,6 +185,21 @@ impl UsuarioServicio {
     }
 
     if usr_persistido.dni != usuario.dni {
+      if self.repo.num_registros_horarios_usuario(usuario.id)
+        .await
+        .map_err(|err| {
+          tracing::error!(
+            usuario = usuario.id, error = %err,
+            "Obteniendo el número de resgistros horarios del \
+            usuario para valida DNI");
+          ServicioError::DB(err)
+          })? > 0 {
+            return Err(ServicioError::Usuario(
+              "No se puede modificar el DNI si existen registros \
+              horarios para este usuario. Consulte con el admistrador."
+              .to_string()));
+      }
+
       self.valida_dni_duplicado(usuario).await?;
 
       let traza = TrazaBuilder::with_usuario(
