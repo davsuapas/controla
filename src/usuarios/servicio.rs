@@ -140,15 +140,16 @@ impl UsuarioServicio {
       },
     )?;
 
-    let usr_pers_nombre = usr_persistido.nombre_completo();
-    let usr_nuevo_nombre = usuario.nombre_completo();
-    if usr_pers_nombre != usr_nuevo_nombre {
+    if usr_persistido.nombre != usuario.nombre || 
+      usr_persistido.primer_apellido != usuario.primer_apellido ||
+      usr_persistido.segundo_apellido != usuario.segundo_apellido {
+   
       let traza = TrazaBuilder::with_usuario(
         TipoTraza::UsrNombreModificado, usuario.id)
         .autor(Some(modificado_por))
         .motivo(Some(format!(
           "Nombre cambiado de {} a {}",
-          &usr_pers_nombre, &usr_nuevo_nombre
+          &usr_persistido.nombre_completo(), &usuario.nombre_completo()
         )))
         .build(&self.cnfg.zona_horaria)
         .map_err(|err| {
@@ -380,7 +381,7 @@ impl UsuarioServicio {
 
   fn valida_password(
       &self, usuario: u32, password: &Password) -> Result<(), ServicioError> {
-    if password.trim().is_empty() {
+    if password.is_empty() {
       const VALIDA_PASS: &str = "La password del usuario no puede estar vacía";
 
       tracing::error!(usuario = usuario, VALIDA_PASS);
@@ -485,9 +486,11 @@ impl UsuarioServicio {
 
   fn valida_ids_usuario(
     usuario: &Usuario) -> Result<(), ServicioError> {
-    if usuario.nombre.trim().is_empty() ||
-      usuario.primer_apellido.trim().is_empty() ||
-      usuario.segundo_apellido.trim().is_empty() ||
+    // No uso Trim() para evitar que cree cadenas imnecesarias
+    // ya que desde el interface de usuario se eliminan los espacios
+    if usuario.nombre.is_empty() ||
+      usuario.primer_apellido.is_empty() ||
+      usuario.segundo_apellido.is_empty() ||
       usuario.dni.is_empty(){
       const VALIDA_DESCRIPTORES: &str =
         "El nombre, apellidos o DNI del usuario no puede estar vacío";

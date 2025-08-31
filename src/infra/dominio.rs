@@ -27,6 +27,12 @@ impl Deref for Crypto {
   }
 }
 
+impl From<Crypto> for String {
+  fn from(dni: Dni) -> String {
+    dni.0
+  }
+}
+
 impl Display for Crypto {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.0)
@@ -66,7 +72,7 @@ impl Crypto {
   /// Devuelve true si el valor es una cadena vacía.
   #[inline]
   pub fn is_empty(&self) -> bool {
-    self.0.trim().is_empty()
+    self.0.is_empty()
   }
 }
 

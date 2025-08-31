@@ -79,8 +79,8 @@ impl RegistroServicio {
            para el usuario: {} y fecha: {}",
           reg.hora_inicio,
           hora_fin_previa,
-          reg.usuario.nombre,
-          reg.fecha.formato_corto()
+          &reg.usuario.nombre,
+          &reg.fecha.formato_corto()
         )));
       }
     }
@@ -150,8 +150,8 @@ impl RegistroServicio {
         con alguna hora de fin sin registrar \
         para el usuario: {} en la fecha: {}. \
         Por favor, registre antes la hora de fin.",
-        reg.usuario.nombre,
-        reg.fecha.formato_corto()
+        &reg.usuario.nombre,
+        &reg.fecha.formato_corto()
       )));
     }
 
@@ -165,8 +165,8 @@ impl RegistroServicio {
         "La hora de inicio: {} se encuentra entre un rango de horas \
         ya registrado para el usuario: {} en la fecha: {}",
         reg.hora_inicio,
-        reg.usuario.nombre,
-        reg.fecha.formato_corto()
+        &reg.usuario.nombre,
+        &reg.fecha.formato_corto()
       )));
     }
 
@@ -181,8 +181,8 @@ impl RegistroServicio {
         return Err(ServicioError::Usuario(format!(
           "Ya existe un rango horario que se solapa con el \
           registro del usuario: {} en la fecha: {} desde: {} hasta: {}",
-          reg.usuario.nombre,
-          reg.fecha.formato_corto(),
+          &reg.usuario.nombre,
+          &reg.fecha.formato_corto(),
           reg.hora_inicio,
           hora_fin
         )));

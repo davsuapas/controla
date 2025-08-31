@@ -36,15 +36,15 @@ impl ServicioError {
 
 /// Dada una fecha y hora, devuelve el día de la semana como una letra.
 /// Lunes es 'L', Martes es 'M', Miércoles es 'X' y así sucesivamente.
-pub fn letra_dia_semana(dia_semana: chrono::Weekday) -> char {
+pub fn letra_dia_semana(dia_semana: chrono::Weekday) -> &'static str {
   match dia_semana {
-    chrono::Weekday::Mon => 'L',
-    chrono::Weekday::Tue => 'M',
-    chrono::Weekday::Wed => 'X',
-    chrono::Weekday::Thu => 'J',
-    chrono::Weekday::Fri => 'V',
-    chrono::Weekday::Sat => 'S',
-    chrono::Weekday::Sun => 'D',
+    chrono::Weekday::Mon => "L",
+    chrono::Weekday::Tue => "M",
+    chrono::Weekday::Wed => "X",
+    chrono::Weekday::Thu => "J",
+    chrono::Weekday::Fri => "V",
+    chrono::Weekday::Sat => "S",
+    chrono::Weekday::Sun => "D",
   }
 }
 

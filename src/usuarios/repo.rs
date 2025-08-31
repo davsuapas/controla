@@ -1,4 +1,5 @@
 use chrono_tz::Tz;
+use smallvec::SmallVec;
 use sqlx::{Row, mysql::MySqlRow};
 
 use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
@@ -270,7 +271,7 @@ impl UsuarioRepo {
   pub(in crate::usuarios) async fn roles_por_usuario(
     &self,
     usuario: u32,
-  ) -> Result<Vec<Rol>, DBError> {
+  ) -> Result<SmallVec<[Rol; 7]>, DBError> {
     const QUERY: &str = r"SELECT rol 
       FROM roles_usuario 
       WHERE usuario = ?;";
@@ -298,7 +299,7 @@ impl UsuarioRepo {
   ) -> Result<Horario, DBError> {
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
 
-    let dia = crate::infra::letra_dia_semana(hora.weekday()).to_string();
+    let dia = crate::infra::letra_dia_semana(hora.weekday());
 
     // Busca un horario que esté entre las horas de inicio y fin
     // del día de la semana y que no esté ya asignado a un registro horario.
@@ -319,7 +320,7 @@ impl UsuarioRepo {
     let result = sqlx::query(QUERY)
       .bind(usuario)
       .bind(fecha_creacion)
-      .bind(&dia)
+      .bind(dia)
       .bind(hora.time())
       .bind(hora.date())
       .fetch_optional(self.pool.conexion())
@@ -350,7 +351,7 @@ impl UsuarioRepo {
       let result = sqlx::query(QUERY)
         .bind(usuario)
         .bind(fecha_creacion)
-        .bind(&dia)
+        .bind(dia)
         .bind(hora.time())
         .bind(hora.date())
         .fetch_optional(self.pool.conexion())
@@ -380,7 +381,7 @@ impl UsuarioRepo {
   ) -> Result<Vec<Horario>, DBError> {
     let hora = Utc::now().with_timezone(tz).naive_local();
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
-    let dia = crate::infra::letra_dia_semana(hora.weekday()).to_string();
+    let dia = crate::infra::letra_dia_semana(hora.weekday());
 
     const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
@@ -398,7 +399,7 @@ impl UsuarioRepo {
     let rows = sqlx::query(QUERY)
       .bind(usuario)
       .bind(fecha_creacion)
-      .bind(&dia)
+      .bind(dia)
       .bind(hora.date())
       .fetch_all(self.pool.conexion())
       .await
@@ -461,7 +462,7 @@ impl UsuarioRepo {
   fn horario_from_row(row: &MySqlRow) -> Horario {
     Horario {
       id: row.get("id"),
-      dia: Dia::from(row.get::<String, _>("dia").chars().next().unwrap()),
+      dia: Dia::from(row.get::<String, _>("dia").as_str()),
       hora_inicio: row.get("hora_inicio"),
       hora_fin: row.get("hora_fin"),
     }

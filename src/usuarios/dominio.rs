@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use chrono::{NaiveDateTime, NaiveTime, TimeDelta};
+use smallvec::SmallVec;
 
 use crate::infra::{Dni, Password};
 
@@ -61,7 +62,7 @@ pub struct Usuario {
   pub password: Option<Password>,
   pub activo: Option<NaiveDateTime>,
   pub inicio: Option<NaiveDateTime>,
-  pub roles: Vec<Rol>,
+  pub roles: SmallVec<[Rol; 7]>,
 }
 
 impl Usuario {
@@ -122,29 +123,29 @@ pub enum Dia {
 }
 
 impl Dia {
-  pub fn letra(&self) -> char {
+  pub fn letra(&self) -> &'static str {
     match self {
-      Dia::Lunes => 'L',
-      Dia::Martes => 'M',
-      Dia::Miercoles => 'X',
-      Dia::Jueves => 'J',
-      Dia::Viernes => 'V',
-      Dia::Sabado => 'S',
-      Dia::Domingo => 'D',
+      Dia::Lunes => "L",
+      Dia::Martes => "M",
+      Dia::Miercoles => "X",
+      Dia::Jueves => "J",
+      Dia::Viernes => "V",
+      Dia::Sabado => "S",
+      Dia::Domingo => "D",
     }
   }
 }
 
-impl From<char> for Dia {
-  fn from(dia: char) -> Self {
+impl From<&str> for Dia {
+  fn from(dia: &str) -> Self {
     match dia {
-      'L' => Dia::Lunes,
-      'M' => Dia::Martes,
-      'X' => Dia::Miercoles,
-      'J' => Dia::Jueves,
-      'V' => Dia::Viernes,
-      'S' => Dia::Sabado,
-      'D' => Dia::Domingo,
+      "L" => Dia::Lunes,
+      "M" => Dia::Martes,
+      "X" => Dia::Miercoles,
+      "J" => Dia::Jueves,
+      "V" => Dia::Viernes,
+      "S" => Dia::Sabado,
+      "D" => Dia::Domingo,
       _ => panic!("Día no válido"),
     }
   }

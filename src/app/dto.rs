@@ -27,7 +27,7 @@ impl From<Usuario> for UsuarioDTO {
     UsuarioDTO {
       id: usr.id,
       autor: 0, // El autor solo tiene efecto en las trazas
-      dni: usr.dni.clone(),
+      dni: usr.dni.into(),
       nombre: usr.nombre,
       primer_apellido: usr.primer_apellido,
       segundo_apellido: usr.segundo_apellido,
@@ -47,10 +47,10 @@ impl From<UsuarioDTO> for Usuario {
       nombre: usr.nombre,
       primer_apellido: usr.primer_apellido,
       segundo_apellido: usr.segundo_apellido,
-      password: usr.password.as_ref().map(|p| Password::new(p.clone())),
+      password: usr.password.map(Password::new),
       activo: usr.activo,
       inicio: usr.inicio,
-      roles: usr.roles.iter().map(|r| Rol::from(*r)).collect(),
+      roles: usr.roles.into_iter().map(Rol::from).collect(),
     }
   }
 }
@@ -112,7 +112,7 @@ impl From<DescriptorUsuario> for DescriptorUsuarioDTO {
 /// Define la entidad de intercambio para el horario
 #[derive(Serialize)]
 pub(in crate::app) struct HorarioDTO {
-  pub dia: char,
+  pub dia: &'static str,
   pub hora_inicio: NaiveTime,
   pub hora_fin: NaiveTime,
   pub horas_a_trabajar: u8,
@@ -168,7 +168,7 @@ impl From<Registro> for RegistroOutDTO {
     RegistroOutDTO {
       usuario: reg.usuario.into(),
       usuario_reg: reg.usuario_reg.map(Into::into),
-      horario: reg.horario.unwrap().into(),
+      horario: reg.horario.expect("Registro debe tener horario").into(),
       fecha: reg.fecha,
       hora_inicio: reg.hora_inicio,
       hora_fin: reg.hora_fin,

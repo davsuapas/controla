@@ -230,7 +230,7 @@ impl RegistroRepo {
           ),
           horario: Some(Horario {
             id: row.get("horario"),
-            dia: row.get::<String, _>("dia").chars().next().unwrap().into(),
+            dia: row.get::<String, _>("dia").as_str().into(),
             hora_inicio: row.get("h_hora_inicio"),
             hora_fin: row.get("h_hora_fin"),
           }),
