@@ -11,6 +11,7 @@ use crate::{
 #[derive(Serialize, Deserialize)]
 pub(in crate::app) struct UsuarioDTO {
   pub id: u32,
+  pub autor: u32, // Es el usuario que lo manipula y sirve para trazas
   pub dni: String,
   pub nombre: String,
   pub primer_apellido: String,
@@ -25,6 +26,7 @@ impl From<Usuario> for UsuarioDTO {
   fn from(usr: Usuario) -> Self {
     UsuarioDTO {
       id: usr.id,
+      autor: 0, // El autor solo tiene efecto en las trazas
       dni: usr.dni.clone(),
       nombre: usr.nombre,
       primer_apellido: usr.primer_apellido,

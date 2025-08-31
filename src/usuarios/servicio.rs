@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 
 use crate::{
-  agregar_traza, config::ConfigTrabajo, infra::ServicioError, traza::{TipoTraza, TrazaBuilder, TrazaServicio}, usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo}
+  agregar_traza, config::ConfigTrabajo, infra::{dni_valido, validar_password, ServicioError}, traza::{TipoTraza, TrazaBuilder, TrazaServicio}, usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo}
 };
 
 ///Servicio para manejar operaciones relacionadas con usuarios.
@@ -28,10 +28,12 @@ impl UsuarioServicio {
 impl UsuarioServicio {
   /// Crea un nuevo usuario.
   /// 
+  /// El usuario es creado por un usuario autor
   /// Valida los datos del usuario antes de proceder con la creación.
   /// Genera una traza de la operación.
   pub async fn crear_usuario(
     &self,
+    creado_por: u32,
     usuario: &Usuario,
   ) -> Result<u32, ServicioError> {
     tracing::info!(
@@ -39,7 +41,7 @@ impl UsuarioServicio {
       "Se ha iniciado el servicio para crear un nuevo usuario");
 
     valida_ids_usuario(usuario)?;
-    valida_password(usuario)?;
+    self.valida_password(usuario)?;
     self.valida_dni_duplicado(usuario).await?;
 
     let mut tr = self.repo.conexion().empezar_transaccion().await.map_err(
@@ -82,7 +84,8 @@ impl UsuarioServicio {
         return Err(ServicioError::from(err));
     }
 
-    let traza = TrazaBuilder::with_usuario(TipoTraza::CreacionUsuario, id)
+    let traza = TrazaBuilder::with_usuario(
+      creado_por, TipoTraza::CreacionUsuario, id)
       .build(&self.cnfg.zona_horaria)
       .map_err(|err| {
         tracing::error!(
@@ -111,10 +114,12 @@ impl UsuarioServicio {
 
   /// Actualiza un usuario existente.
   ///
+  /// El usuario es modificado por un usuario autor
   /// Valida los datos del usuario antes de proceder con la actualización.
   /// Genera trazas de las modificaciones.
   pub async fn actualizar_usuario(
     &self,
+    modificado_por: u32,
     usuario: &Usuario,
     ) -> Result<(), ServicioError> {
     tracing::info!(
@@ -138,7 +143,7 @@ impl UsuarioServicio {
     let usr_nuevo_nombre = usuario.nombre_completo();
     if usr_pers_nombre != usr_nuevo_nombre {
       let traza = TrazaBuilder::with_usuario(
-        TipoTraza::UsrNombreModificado, usuario.id)
+        modificado_por, TipoTraza::UsrNombreModificado, usuario.id)
         .motivo(Some(format!(
           "Nombre cambiado de {} a {}",
           &usr_pers_nombre, &usr_nuevo_nombre
@@ -158,7 +163,7 @@ impl UsuarioServicio {
 
     if usr_persistido.activo != usuario.activo {
       let traza = TrazaBuilder::with_usuario(
-        TipoTraza::UsrActivoModificado, usuario.id)
+        modificado_por, TipoTraza::UsrActivoModificado, usuario.id)
         .motivo(Some(format!(
           "Activo cambiado de {:?} a {:?}",
           usr_persistido.activo, usuario.activo
@@ -180,7 +185,7 @@ impl UsuarioServicio {
       self.valida_dni_duplicado(usuario).await?;
 
       let traza = TrazaBuilder::with_usuario(
-        TipoTraza::UsrDniModificado, usuario.id)
+        modificado_por, TipoTraza::UsrDniModificado, usuario.id)
         .build(&self.cnfg.zona_horaria)
         .map_err(|err| {
           tracing::error!(
@@ -196,7 +201,7 @@ impl UsuarioServicio {
 
     if !usr_persistido.eq_roles(usuario) {
       let traza = TrazaBuilder::with_usuario(
-        TipoTraza::UsrRolesModificados, usuario.id)
+        modificado_por, TipoTraza::UsrRolesModificados, usuario.id)
         .motivo(Some(format!(
           "Roles cambiados de {:?} a {:?}",
           usr_persistido.roles, usuario.roles
@@ -239,7 +244,7 @@ impl UsuarioServicio {
     }
 
     let traza = TrazaBuilder::with_usuario(
-      TipoTraza::ActualizacionUsuario, usuario.id)
+      modificado_por, TipoTraza::ActualizacionUsuario, usuario.id)
       .build(&self.cnfg.zona_horaria)
       .map_err(|err| {
         tracing::error!(
@@ -281,6 +286,26 @@ impl UsuarioServicio {
       tracing::error!(usuario = ?usuario, VALIDA_DNI);
   
       return Err(ServicioError::Validacion(VALIDA_DNI.to_string()));
+    }
+
+    Ok(())
+  }
+
+  fn valida_password(&self, usuario: &Usuario) -> Result<(), ServicioError> {
+    let pass = usuario.password.as_ref().unwrap();
+
+    if pass.is_empty() {
+      const VALIDA_PASS: &str = "La password del usuario no puede estar vacía";
+
+      tracing::error!(usuario = ?usuario, VALIDA_PASS);
+
+      return Err(ServicioError::Validacion(VALIDA_PASS.to_string()));
+    }
+
+    let res = validar_password(pass, &self.cnfg.passw);
+
+    if !res.es_valido {
+      return Err(ServicioError::Validacion(res.to_string()));
     }
 
     Ok(())
@@ -386,16 +411,12 @@ impl UsuarioServicio {
       return Err(ServicioError::Validacion(VALIDA_DESCRIPTORES.to_string()));
     }
 
-    Ok(())
-  }
+    if !dni_valido(&usuario.dni) {
+      const VALIDA_DNI: &str = "El DNI proporcionado no es válido";
 
-  fn valida_password(usuario: &Usuario) -> Result<(), ServicioError> {
-    if usuario.password.as_ref().unwrap().trim().is_empty() {
-      const VALIDA_PASS: &str = "La password del usuario no puede estar vacía";
+      tracing::error!(usuario = ?usuario, VALIDA_DNI);
 
-      tracing::error!(usuario = ?usuario, VALIDA_PASS);
-
-      return Err(ServicioError::Validacion(VALIDA_PASS.to_string()));
+      return Err(ServicioError::Validacion(VALIDA_DNI.to_string()));
     }
 
     Ok(())

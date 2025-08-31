@@ -4,10 +4,34 @@ use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
+use crate::infra::PasswordConfig;
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub struct Password {
+  pub longitud_minima: usize,
+  pub mayusculas: bool,
+  pub minusculas: bool,
+  pub digitos: bool,
+  pub caracteres_especiales: bool,
+}
+
+impl From<Password> for PasswordConfig {
+  fn from(pass: Password) -> Self {
+    PasswordConfig::new(
+      pass.longitud_minima,
+      pass.mayusculas,
+      pass.minusculas,
+      pass.digitos,
+      pass.caracteres_especiales,
+    )
+  }
+}
+
 /// Representa los límites del número de registros
 /// que se pueden obtener en las consultas.
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct Limites {
+  /// Número máximo de los últimos registros horarios a mostrar
   pub ultimos_registros: u8,
 }
 
@@ -64,6 +88,7 @@ pub struct Config {
   pub db: DB,
   pub log: Log,
   pub servidor: Servidor,
+  pub password: Password,
   pub zona_horaria: Tz,
   pub secreto: String,
 }
@@ -74,6 +99,7 @@ impl std::fmt::Debug for Config {
       .field("db", &self.db)
       .field("log", &self.log)
       .field("servidor", &self.servidor)
+      .field("password", &self.password)
       .field("zona_horaria", &self.zona_horaria)
       .field("secreto", &"[OCULTO]")
       .finish()
@@ -88,6 +114,7 @@ pub struct ConfigTrabajo {
   pub zona_horaria: Tz,
   pub secreto: String,
   pub limites: Limites,
+  pub passw: PasswordConfig,
 }
 
 impl Config {
@@ -119,6 +146,7 @@ impl Config {
       secreto: self.secreto.clone(),
       zona_horaria: self.zona_horaria,
       limites: self.db.limites,
+      passw: self.password.into(),
     }
   }
 }

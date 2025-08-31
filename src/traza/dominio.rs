@@ -16,6 +16,7 @@ pub enum TipoTraza {
 #[derive(Builder, Debug)]
 #[builder(pattern = "owned", build_fn(private, name = "final_build"))]
 pub struct Traza {
+  pub autor: Option<u32>,
   pub tipo: TipoTraza,
   pub usuario_id: u32,
   pub fecha: NaiveDateTime,
@@ -25,8 +26,13 @@ pub struct Traza {
 }
 
 impl TrazaBuilder {
-  pub fn with_usuario(tipo: TipoTraza, usuario_id: u32) -> TrazaBuilder {
+  pub fn with_usuario(
+    autor: u32,
+    tipo: TipoTraza,
+    usuario_id: u32,
+  ) -> TrazaBuilder {
     TrazaBuilder::default()
+      .autor(Some(autor))
       .tipo(tipo)
       .usuario_id(usuario_id)
       .registro_id(None)

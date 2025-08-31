@@ -47,7 +47,7 @@ async fn crear_usuario(
 ) -> impl IntoResponse {
   state
     .usuario_servicio
-    .crear_usuario(&usuario.into())
+    .crear_usuario(usuario.autor, &usuario.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|id| (StatusCode::CREATED, Json(id)))
@@ -60,7 +60,7 @@ async fn actualizar_usuario(
 ) -> impl IntoResponse {
   state
     .usuario_servicio
-    .actualizar_usuario(&usuario.into())
+    .actualizar_usuario(usuario.autor, &usuario.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|_| StatusCode::NO_CONTENT)
