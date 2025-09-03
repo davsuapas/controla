@@ -31,6 +31,7 @@ pub fn rutas(app: Arc<AppState>) -> Router {
       "/usuarios/{id}/password/{password}",
       put(actualizar_passw_usuario),
     )
+    .route("/usuarios/{id}/login/{password}", get(login))
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
@@ -88,6 +89,42 @@ async fn actualizar_passw_usuario(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|_| StatusCode::NO_CONTENT)
+}
+
+/// Api para logear el usuario
+///
+/// Verifica que se cumpla la clave y si es correcto envía
+/// la información del usuario. En caso contrario devuelve
+/// un estado: UNAUTHORIZED.
+async fn login(
+  State(state): State<Arc<AppState>>,
+  Path(params): Path<PasswordUsuarioParams>,
+) -> impl IntoResponse {
+  let validation_result = state
+    .usuario_servicio
+    .login_usuario(params.id, &Password::new(params.password))
+    .await;
+
+  match validation_result {
+    Ok(is_valid) => {
+      if is_valid {
+        state
+          .usuario_servicio
+          .usuario(params.id)
+          .await
+          .map_err(|err| {
+            (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())
+          })
+          .map(|u| Json(UsuarioDTO::from(u)))
+      } else {
+        Err((
+          StatusCode::UNAUTHORIZED,
+          "Usuario no autorizado".to_string(),
+        ))
+      }
+    }
+    Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())),
+  }
 }
 
 /// Api para obtener todos los usuarios

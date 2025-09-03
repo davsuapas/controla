@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 
 use crate::{
   agregar_traza, config::ConfigTrabajo, infra::{dni_valido, validar_password, Password, ServicioError}, traza::{TipoTraza, TrazaBuilder, TrazaServicio}, usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo}
@@ -47,7 +47,7 @@ impl UsuarioServicio {
     let mut tr = self.repo.conexion().empezar_transaccion().await.map_err(
       |err| {
         tracing::error!(
-           usuario = usuario.nombre_completo() , error = %err,
+           usuario = usuario.nombre_completo(), error = %err,
            "Iniciando transacción para creación de usuario");
         ServicioError::from(err)
       },
@@ -87,13 +87,7 @@ impl UsuarioServicio {
     let traza = TrazaBuilder::with_usuario(
       TipoTraza::CreacionUsuario, id)
       .autor(Some(creado_por))
-      .build(&self.cnfg.zona_horaria)
-      .map_err(|err| {
-        tracing::error!(
-           usuario = id, error = %err,
-           "Formando traza para creación de usuario");
-        ServicioError::Interno
-      })?;
+      .build(&self.cnfg.zona_horaria);
 
     agregar_traza!(
       self, tr, traza, "Creando traza creación de usuario", usuario = id);
@@ -143,6 +137,8 @@ impl UsuarioServicio {
     if usr_persistido.nombre != usuario.nombre || 
       usr_persistido.primer_apellido != usuario.primer_apellido ||
       usr_persistido.segundo_apellido != usuario.segundo_apellido {
+      tracing::debug!(
+        usuario = usuario.id, "Ha cambiado el nombre del usuario");
    
       let traza = TrazaBuilder::with_usuario(
         TipoTraza::UsrNombreModificado, usuario.id)
@@ -151,20 +147,19 @@ impl UsuarioServicio {
           "Nombre cambiado de {} a {}",
           &usr_persistido.nombre_completo(), &usuario.nombre_completo()
         )))
-        .build(&self.cnfg.zona_horaria)
-        .map_err(|err| {
-          tracing::error!(
-            usuario = usuario.id, error = %err,
-            "Formando traza modificación de nombre");
-          ServicioError::Interno
-        })?;
+        .build(&self.cnfg.zona_horaria);
 
       agregar_traza!(
         self, tr, traza,
         "Creando traza modificación de DNI", usuario = usuario.id);
     }
 
+    let mut inicio_log = None; 
+
     if usr_persistido.activo != usuario.activo {
+      tracing::debug!(
+        usuario = usuario.id, "Ha cambiado el campo activo del usuario");
+
       let traza = TrazaBuilder::with_usuario(
         TipoTraza::UsrActivoModificado, usuario.id)
         .autor(Some(modificado_por))
@@ -172,51 +167,72 @@ impl UsuarioServicio {
           "Activo cambiado de {:?} a {:?}",
           usr_persistido.activo, usuario.activo
         )))
-        .build(&self.cnfg.zona_horaria)
-        .map_err(|err| {
-          tracing::error!(
-            usuario = usuario.id, error = %err,
-            "Formando traza modificación de activo");
-          ServicioError::Interno
-        })?;
+        .build(&self.cnfg.zona_horaria);
 
       agregar_traza!(
         self, tr, traza,
         "Creando traza modificación de activo", usuario = usuario.id);
+
+      if usr_persistido.activo.is_none() && usuario.activo.is_some() {
+        // Si se activa el usuario se resetea el valor
+        // de inicio de log
+        inicio_log = usr_persistido.inicio;
+
+        tracing::debug!(
+          usuario = usuario.id,
+          "Se ha activado el usuario. Se reinicia el inicio");
+      }
     }
 
     if usr_persistido.dni != usuario.dni {
-      if self.repo.num_registros_horarios_usuario(usuario.id)
-        .await
-        .map_err(|err| {
-          tracing::error!(
-            usuario = usuario.id, error = %err,
-            "Obteniendo el número de resgistros horarios del \
-            usuario para valida DNI");
-          ServicioError::DB(err)
-          })? > 0 {
+      tracing::debug!(
+        usuario = usuario.id,
+        "Ha cambiado el DNI del usuario");
+
+      let reg_horarios = self.repo.num_registros_horarios_usuario(usuario.id)
+        .await;
+
+      match reg_horarios {
+        Ok(num) => {
+          if num > 0 {
             return Err(ServicioError::Usuario(
               "No se puede modificar el DNI si existen registros \
               horarios para este usuario. Consulte con el admistrador."
               .to_string()));
-      }
+          }
+        },
+        Err(err) => {
+          tracing::error!(
+            usuario = usuario.id, error = %err,
+            "Obteniendo el número de resgistros horarios del \
+            usuario para valida DNI");
+          tr.rollback().await.map_err(ServicioError::from)?;
+          return Err(ServicioError::DB(err))
+        }
+      } 
 
       self.valida_dni_duplicado(usuario).await?;
 
       let traza = TrazaBuilder::with_usuario(
         TipoTraza::UsrDniModificado, usuario.id)
         .autor(Some(modificado_por))
-        .build(&self.cnfg.zona_horaria)
-        .map_err(|err| {
-          tracing::error!(
-            usuario = usuario.id, error = %err,
-            "Formando traza modificación de DNI");
-          ServicioError::Interno
-        })?;
+        .build(&self.cnfg.zona_horaria);
 
       agregar_traza!(
         self, tr, traza,
         "Creando traza modificación de DNI", usuario = usuario.id);
+    }
+
+    if let Err(err) = self
+      .repo
+      .actualizar_usuario(&mut tr, &self.cnfg.secreto, usuario, inicio_log)
+      .await {
+        tracing::error!( 
+          usuario = usuario.id, error = %err,
+          "Actualizando usuario");
+        tr.rollback().await.map_err(ServicioError::from)?;
+
+        return Err(ServicioError::from(err));
     }
 
     if !usr_persistido.eq_roles(usuario) {
@@ -227,13 +243,7 @@ impl UsuarioServicio {
           "Roles cambiados de {:?} a {:?}",
           usr_persistido.roles, usuario.roles
         )))
-        .build(&self.cnfg.zona_horaria)
-        .map_err(|err| {
-          tracing::error!(
-            usuario = usuario.id, error = %err,
-            "Formando traza modificación de roles");
-          ServicioError::Interno
-        })?;
+        .build(&self.cnfg.zona_horaria);
 
       agregar_traza!(
         self, tr, traza,
@@ -252,28 +262,10 @@ impl UsuarioServicio {
       }
     }
 
-    if let Err(err) = self
-      .repo
-      .actualizar_usuario(&mut tr, &self.cnfg.secreto, usuario)
-      .await {
-        tracing::error!( 
-          usuario = usuario.id, error = %err,
-          "Actualizando usuario");
-        tr.rollback().await.map_err(ServicioError::from)?;
-
-        return Err(ServicioError::from(err));
-    }
-
     let traza = TrazaBuilder::with_usuario(
       TipoTraza::ActualizacionUsuario, usuario.id)
       .autor(Some(modificado_por))
-      .build(&self.cnfg.zona_horaria)
-      .map_err(|err| {
-        tracing::error!(
-           usuario = usuario.id, error = %err,
-           "Formando traza para actualización de usuario");
-        ServicioError::Interno
-      })?;
+      .build(&self.cnfg.zona_horaria);
 
     agregar_traza!(
       self, tr, traza,
@@ -320,13 +312,7 @@ impl UsuarioServicio {
 
     let traza = TrazaBuilder::with_usuario(
       TipoTraza::PasswordModificada, usuario)
-      .build(&self.cnfg.zona_horaria)
-      .map_err(|err| {
-        tracing::error!(
-          usuario = usuario, error = %err,
-          "Formando traza modificación password");
-        ServicioError::Interno
-      })?;
+      .build(&self.cnfg.zona_horaria);
 
     agregar_traza!(
       self, tr, traza,
@@ -397,6 +383,77 @@ impl UsuarioServicio {
 
     Ok(())
   }
+
+  /// Realiza el login de usuario
+  /// 
+  /// Si el usuario no inicio nunca sesión actualiza el inicio
+  /// en la base de datos y añade una traza.
+  /// Devuelve si la password proporcionada es correcta.
+  #[inline]
+  pub async fn login_usuario(
+      &self, usuario: u32, password: &Password
+    ) -> Result<bool, ServicioError> {
+    tracing::info!(
+      usuario = ?usuario,
+      "Se ha iniciado el servicio que valida el login de usuario");
+
+    let result = self.repo.password(&self.cnfg.secreto, usuario)
+      .await.map_err(|err| {
+      tracing::error!(error = %err, "Obteniendo password de usuario");
+      ServicioError::from(err)
+    })?;
+
+    if let Some(passw_inicio) = result {
+      if passw_inicio.1.is_none() {
+        let inicio = Utc::now()
+          .with_timezone(&self.cnfg.zona_horaria)
+          .naive_local();
+
+        tracing::debug!(
+          usuario = usuario, nuevo_inicio = %inicio,
+          "El usuario es el primer inicio de sesión que realiza");
+
+        let mut tr = self.repo.conexion().empezar_transaccion().await.map_err(
+          |err| {
+            tracing::error!(
+              usuario = usuario, error = %err,
+              "Iniciando transacción para atualizar el inicio sesión");
+            ServicioError::from(err)
+          },
+        )?;
+
+        if let Err(err) = self.repo.actualizar_inicio(
+            &mut tr, usuario, inicio).await {
+          tracing::error!(
+            usuario = usuario, error = %err, "Actualizando inicio sesión");
+          tr.rollback().await.map_err(ServicioError::from)?;
+          
+          return Err(ServicioError::from(err))
+        }
+
+        let traza = TrazaBuilder::with_usuario(
+          TipoTraza::PrimerInicio, usuario)
+          .build(&self.cnfg.zona_horaria);
+
+        agregar_traza!(
+          self, tr, traza, "Creando traza actualización inicio sesión",
+          usuario = usuario);
+
+        tr.commit().await.map_err(|err| {
+          tracing::error!(
+            usuario = usuario, error = %err,
+            "Commit transacción para actualización inicio sesión");
+          ServicioError::from(err)
+        })?;
+      }
+      Ok(passw_inicio.0 == *password)
+    } else {
+      tracing::debug!(
+        usuario = usuario, "No existe el usuario o no esta activado");
+
+      Ok(false)
+    }
+}
 
   /// Devuelve todos los usuarios existentes.
   #[inline]

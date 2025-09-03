@@ -12,8 +12,6 @@ use crate::infra::DBError;
 pub enum ServicioError {
   #[error("Error de acceso a la base de datos: {0}")]
   DB(#[from] DBError),
-  #[error("Error interno. Revise las trazas de error")]
-  Interno,
   #[error("Validación: {0}")]
   Validacion(String),
   #[error("{0}")]
@@ -29,7 +27,6 @@ impl ServicioError {
       ServicioError::Validacion(msg) => msg.clone(),
       ServicioError::DB(DBError::RegistroVacio(e)) => e.to_string(),
       ServicioError::DB(_) => "".to_string(),
-      _ => "".to_string(),
     }
   }
 }

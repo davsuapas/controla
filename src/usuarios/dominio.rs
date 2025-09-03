@@ -61,6 +61,7 @@ pub struct Usuario {
   pub segundo_apellido: String,
   pub password: Option<Password>,
   pub activo: Option<NaiveDateTime>,
+  // Inicio es la fecha que el usuario se logea por primera vez
   pub inicio: Option<NaiveDateTime>,
   pub roles: SmallVec<[Rol; 7]>,
 }

@@ -9,7 +9,7 @@ pub enum DBError {
   #[error("Error en la consulta: {0}")]
   Consulta(anyhow::Error),
 
-  #[error("No hay filas afectadas: {0}")]
+  #[error("Registro/s inexistente/s: {0}")]
   RegistroVacio(anyhow::Error),
 
   #[error("Error encriptando o desencriptando un campo: {0}")]

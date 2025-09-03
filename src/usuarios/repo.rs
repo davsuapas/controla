@@ -34,14 +34,14 @@ impl UsuarioRepo {
   pub(in crate::usuarios) async fn agregar_roles(
     &self,
     trans: &mut Transaccion<'_>,
-    id: u32,
+    usuario: u32,
     roles: &[Rol],
   ) -> Result<(), DBError> {
     const DELETE_QUERY: &str = "DELETE FROM roles_usuario
        WHERE usuario = ?;";
 
     sqlx::query(DELETE_QUERY)
-      .bind(id)
+      .bind(usuario)
       .execute(&mut **trans.deref_mut())
       .await
       .map_err(DBError::consulta_from)?;
@@ -51,7 +51,7 @@ impl UsuarioRepo {
 
     for rol in roles {
       sqlx::query(QUERY)
-        .bind(id)
+        .bind(usuario)
         .bind(*rol as u32)
         .execute(&mut **trans.deref_mut())
         .await
@@ -113,11 +113,12 @@ impl UsuarioRepo {
     trans: &mut Transaccion<'_>,
     secreto: &str,
     usuario: &Usuario,
+    inicio: Option<NaiveDateTime>,
   ) -> Result<(), DBError> {
     const QUERY: &str = r"UPDATE usuarios SET
       dni = ?, dni_hash = ?, nombre = ?,
       primer_apellido = ?, segundo_apellido = ?,
-      activo = ?
+      activo = ?, inicio = ?
       WHERE id = ?;";
 
     let dni = usuario
@@ -125,19 +126,24 @@ impl UsuarioRepo {
       .encriptar(secreto)
       .map_err(DBError::cripto_from)?;
 
-    sqlx::query(QUERY)
+    let res = sqlx::query(QUERY)
       .bind(&dni)
       .bind(usuario.dni.hash_con_salt(secreto))
       .bind(&usuario.nombre)
       .bind(&usuario.primer_apellido)
       .bind(&usuario.segundo_apellido)
       .bind(usuario.activo)
+      .bind(inicio)
       .bind(usuario.id)
       .execute(&mut **trans.deref_mut())
       .await
       .map_err(DBError::consulta_from)?;
 
-    Ok(())
+    if res.rows_affected() == 0 {
+      Err(DBError::registro_vacio("Actualizando usuario".to_string()))
+    } else {
+      Ok(())
+    }
   }
 
   /// Actualiza la password.
@@ -147,21 +153,50 @@ impl UsuarioRepo {
     &self,
     trans: &mut Transaccion<'_>,
     secreto: &str,
-    id: u32,
+    usuario: u32,
     password: &Password,
   ) -> Result<(), DBError> {
     const QUERY: &str = r"UPDATE usuarios SET password = ? WHERE id = ?;";
 
     let pass = password.encriptar(secreto).map_err(DBError::cripto_from)?;
 
-    sqlx::query(QUERY)
+    let res = sqlx::query(QUERY)
       .bind(&pass)
-      .bind(id)
+      .bind(usuario)
       .execute(&mut **trans.deref_mut())
       .await
       .map_err(DBError::consulta_from)?;
 
-    Ok(())
+    if res.rows_affected() == 0 {
+      Err(DBError::registro_vacio("Actualizando password".to_string()))
+    } else {
+      Ok(())
+    }
+  }
+
+  /// Actualizar la sesión de inicio
+  pub(in crate::usuarios) async fn actualizar_inicio(
+    &self,
+    trans: &mut Transaccion<'_>,
+    usuario: u32,
+    inicio: NaiveDateTime,
+  ) -> Result<(), DBError> {
+    const QUERY: &str = r"UPDATE usuarios SET inicio = ? WHERE id = ?;";
+
+    let res = sqlx::query(QUERY)
+      .bind(inicio)
+      .bind(usuario)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    if res.rows_affected() == 0 {
+      Err(DBError::registro_vacio(
+        "Actualizando inicio de usuario".to_string(),
+      ))
+    } else {
+      Ok(())
+    }
   }
 
   /// Verifica que no exista un dni duplicado.
@@ -181,6 +216,37 @@ impl UsuarioRepo {
       .map_err(DBError::consulta_from)?;
 
     Ok(count > 0)
+  }
+
+  /// Obtiene la password de un usuario y la fecha de inicio de sesión
+  ///
+  /// Si el usuario no esta activo devuelve None
+  /// La clave sirve para desencriptar las password
+  pub(in crate::usuarios) async fn password(
+    &self,
+    clave: &str,
+    usuario: u32,
+  ) -> Result<Option<(Password, Option<NaiveDateTime>)>, DBError> {
+    const QUERY: &str = r"SELECT password, inicio
+        FROM usuarios
+        WHERE id = ? AND activo IS NOT NULL";
+
+    let row = sqlx::query(QUERY)
+      .bind(usuario)
+      .fetch_optional(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    if let Some(r) = row {
+      let p: String = r.get("password");
+      Ok(Some((
+        Password::from_encriptado(Some(&p), clave)
+          .map_err(DBError::cripto_from)?,
+        r.get("inicio"),
+      )))
+    } else {
+      Ok(None)
+    }
   }
 
   /// Obtiene todos los usuarios.

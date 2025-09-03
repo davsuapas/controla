@@ -12,6 +12,7 @@ pub enum TipoTraza {
   UsrRolesModificados = 5,
   UsrActivoModificado = 6,
   PasswordModificada = 7,
+  PrimerInicio = 8,
 }
 
 #[derive(Builder, Debug)]
@@ -37,8 +38,8 @@ impl TrazaBuilder {
       .motivo(None)
   }
 
-  pub fn build(mut self, tz: &Tz) -> Result<Traza, TrazaBuilderError> {
+  pub fn build(mut self, tz: &Tz) -> Traza {
     self.fecha = Some(Utc::now().with_timezone(tz).naive_local());
-    self.final_build()
+    self.final_build().expect("Error al formar traza")
   }
 }
