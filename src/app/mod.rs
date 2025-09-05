@@ -5,11 +5,13 @@ mod api;
 /// Entidades de intercambio con la aplicación
 mod dto;
 
+use std::{sync::Arc, time::Duration};
+
 pub use api::*;
 
 use crate::{
   config::ConfigTrabajo,
-  infra::PoolConexion,
+  infra::{PoolConexion, middleware},
   registro::{RegistroRepo, RegistroServicio},
   traza::{TrazaRepo, TrazaServicio},
   usuarios::{UsuarioRepo, UsuarioServicio},
@@ -17,6 +19,7 @@ use crate::{
 
 /// Estructura principal de la aplicación que contiene los servicios.
 pub struct AppState {
+  pub manejador_sesion: Arc<middleware::ManejadorSesion>,
   pub reg_servicio: RegistroServicio,
   pub usuario_servicio: UsuarioServicio,
 }
@@ -25,6 +28,10 @@ impl AppState {
   /// Inicia la aplicación y devuelve una instancia de `App`.
   pub fn iniciar(cnfg: &ConfigTrabajo, pool: PoolConexion) -> Self {
     AppState {
+      manejador_sesion: Arc::new(middleware::ManejadorSesion::new(
+        cnfg.secreto.clone(),
+        Duration::from_secs(cnfg.caducidad_sesion),
+      )),
       usuario_servicio: UsuarioServicio::new(
         cnfg.clone(),
         UsuarioRepo::new(pool.clone()),

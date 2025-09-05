@@ -23,11 +23,17 @@ impl ServicioError {
   /// cadena con el mensaje si no devuelve una cadena vacía
   pub fn mensaje_usuario(&self) -> String {
     match self {
-      ServicioError::Usuario(msg) => msg.clone(),
-      ServicioError::Validacion(msg) => msg.clone(),
-      ServicioError::DB(DBError::RegistroVacio(e)) => e.to_string(),
+      ServicioError::Usuario(msg) => ServicioError::mensaje(msg),
+      ServicioError::Validacion(msg) => ServicioError::mensaje(msg),
+      ServicioError::DB(DBError::RegistroVacio(e)) => {
+        ServicioError::mensaje(&e.to_string())
+      }
       ServicioError::DB(_) => "".to_string(),
     }
+  }
+
+  fn mensaje(msg: &str) -> String {
+    format!("@@:{}", msg)
   }
 }
 

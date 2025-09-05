@@ -112,7 +112,7 @@ pub fn dni_valido(dni: &Dni) -> bool {
 
 /// Configuración para la validación de contraseñas
 #[derive(Debug, Clone)]
-pub struct PasswordConfig {
+pub struct PasswordLimites {
   pub longitud_minima: usize,
   pub mayusculas: bool,
   pub minusculas: bool,
@@ -122,7 +122,7 @@ pub struct PasswordConfig {
   pub password_comunes: HashSet<String>,
 }
 
-impl PasswordConfig {
+impl PasswordLimites {
   pub fn new(
     len: usize,
     mayus: bool,
@@ -201,7 +201,7 @@ impl PasswordValidationResult {
 /// según la configuración proporcionada
 pub fn validar_password(
   password: &Password,
-  config: &PasswordConfig,
+  config: &PasswordLimites,
 ) -> PasswordValidationResult {
   let mut errors = Vec::new();
   let mut score = 0;
@@ -301,7 +301,7 @@ mod tests {
 
   #[test]
   fn test_password_valida() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("Secure123!".to_string()), &config);
     assert!(result.es_valido);
@@ -310,7 +310,7 @@ mod tests {
 
   #[test]
   fn test_password_corta() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("Short1!".to_string()), &config);
     assert!(!result.es_valido);
@@ -319,7 +319,7 @@ mod tests {
 
   #[test]
   fn test_password_sin_mayusculas() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("password123!".to_string()), &config);
     assert!(!result.es_valido);
@@ -328,7 +328,7 @@ mod tests {
 
   #[test]
   fn test_password_sin_minúsculas() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("DEDF4!WSD!&".to_string()), &config);
     assert!(!result.es_valido);
@@ -337,7 +337,7 @@ mod tests {
 
   #[test]
   fn test_password_sin_digito() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("AwsDef$r&fr".to_string()), &config);
     assert!(!result.es_valido);
@@ -346,7 +346,7 @@ mod tests {
 
   #[test]
   fn test_password_sin_especiales() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("F3dEfrTGfRf43".to_string()), &config);
     assert!(!result.es_valido);
@@ -355,7 +355,7 @@ mod tests {
 
   #[test]
   fn test_password_comun() {
-    let config = PasswordConfig::new(8, true, true, true, true);
+    let config = PasswordLimites::new(8, true, true, true, true);
     let result =
       validar_password(&Password::new("password".to_string()), &config);
     assert!(!result.es_valido);

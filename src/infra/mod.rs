@@ -8,6 +8,9 @@ mod dominio;
 /// Módulo que contiene la loǵica de servicios general
 mod servicio;
 
+/// Módulo que contiene la loǵica de middlewares (Autenticación web, etc)
+pub mod middleware;
+
 //pub use app::*;
 pub use db::*;
 pub use dominio::*;

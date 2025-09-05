@@ -4,10 +4,10 @@ use std::fs::{self, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
-use crate::infra::PasswordConfig;
+use crate::infra::PasswordLimites;
 
 #[derive(Deserialize, Debug, Clone, Copy)]
-pub struct Password {
+pub struct PasswordConfig {
   pub longitud_minima: usize,
   pub mayusculas: bool,
   pub minusculas: bool,
@@ -15,9 +15,9 @@ pub struct Password {
   pub caracteres_especiales: bool,
 }
 
-impl From<Password> for PasswordConfig {
-  fn from(pass: Password) -> Self {
-    PasswordConfig::new(
+impl From<PasswordConfig> for PasswordLimites {
+  fn from(pass: PasswordConfig) -> Self {
+    PasswordLimites::new(
       pass.longitud_minima,
       pass.mayusculas,
       pass.minusculas,
@@ -88,9 +88,11 @@ pub struct Config {
   pub db: DB,
   pub log: Log,
   pub servidor: Servidor,
-  pub password: Password,
+  pub password: PasswordConfig,
   pub zona_horaria: Tz,
   pub secreto: String,
+  // Duración en segundos de la sesión cuando un usuario autentica
+  pub caducidad_sesion: u64,
 }
 
 impl std::fmt::Debug for Config {
@@ -102,6 +104,7 @@ impl std::fmt::Debug for Config {
       .field("password", &self.password)
       .field("zona_horaria", &self.zona_horaria)
       .field("secreto", &"[OCULTO]")
+      .field("caducidad_sesion", &self.caducidad_sesion)
       .finish()
   }
 }
@@ -114,7 +117,8 @@ pub struct ConfigTrabajo {
   pub zona_horaria: Tz,
   pub secreto: String,
   pub limites: Limites,
-  pub passw: PasswordConfig,
+  pub passw: PasswordLimites,
+  pub caducidad_sesion: u64,
 }
 
 impl Config {
@@ -147,6 +151,7 @@ impl Config {
       zona_horaria: self.zona_horaria,
       limites: self.db.limites,
       passw: self.password.into(),
+      caducidad_sesion: self.caducidad_sesion,
     }
   }
 }

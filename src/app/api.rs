@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-  Router,
+  Extension, Router,
   extract::{Json, Path, State},
   http::StatusCode,
   response::IntoResponse,
@@ -24,14 +24,19 @@ use crate::{
 
 /// Define las rutas de la aplicación.
 pub fn rutas(app: Arc<AppState>) -> Router {
-  let api_rutas = Router::new()
+  // Rutas públicas (sin autenticación)
+  let rutas_auth =
+    Router::new().route("/usuarios/{id}/login/{password}", get(login));
+
+  // Rutas seguras (con autenticación)
+  let rutas_privadas = Router::new()
+    .route("/usuarios/{id}/logout", get(logout))
     .route("/usuarios", post(crear_usuario))
     .route("/usuarios", put(actualizar_usuario))
     .route(
       "/usuarios/{id}/password/{password}",
       put(actualizar_passw_usuario),
     )
-    .route("/usuarios/{id}/login/{password}", get(login))
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
@@ -41,9 +46,99 @@ pub fn rutas(app: Arc<AppState>) -> Router {
       get(horario_usuario_por_fecha),
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
-    .route("/registros", post(registrar));
+    .route("/registros", post(registrar))
+    .layer(axum::middleware::from_fn(
+      crate::infra::middleware::autenticacion,
+    ));
 
-  Router::new().nest("/api", api_rutas).with_state(app)
+  Router::new()
+    .nest("/auth", rutas_auth)
+    .nest("/api", rutas_privadas)
+    .layer(Extension(app.manejador_sesion.clone()))
+    .with_state(app)
+}
+
+/// Api para des-logear al usuario
+///
+/// Elimina la cookie del cliente.
+async fn logout(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  tracing::info!("Logout para el usuario: {}", id);
+
+  (
+    [(
+      axum::http::header::SET_COOKIE,
+      state.manejador_sesion.eliminar_sesion().to_string(),
+    )],
+    StatusCode::NO_CONTENT,
+  )
+}
+
+/// Api para logear el usuario
+///
+/// Verifica que se cumpla la clave y si es correcto envía
+/// la información del usuario y la cookie de sesión.
+/// En caso contrario devuelve un estado: UNAUTHORIZED.
+async fn login(
+  State(state): State<Arc<AppState>>,
+  Path(params): Path<PasswordUsuarioParams>,
+) -> impl IntoResponse {
+  let validation_result = state
+    .usuario_servicio
+    .login_usuario(params.id, &Password::new(params.password))
+    .await;
+
+  match validation_result {
+    Ok(is_valid) => {
+      if is_valid {
+        // Obtener información del usuario
+        let usuario_result = state
+          .usuario_servicio
+          .usuario(params.id)
+          .await
+          .map_err(|err| {
+            (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())
+          });
+
+        match usuario_result {
+          Ok(usuario) => {
+            // Crear token de sesión
+            let token_cookie = match state.manejador_sesion.crear_sesion() {
+              Ok(token) => token,
+              Err(err) => {
+                tracing::error!(
+                  usuario = ?usuario, error = ?err,
+                  "Error al crear sesión");
+
+                return Err((
+                  StatusCode::INTERNAL_SERVER_ERROR,
+                  "@@:Error al crear sesión. \
+                  Intentelo de nuevo y si persiste el error \
+                  contacte con el administrador"
+                    .to_string(),
+                ));
+              }
+            };
+
+            // Devolver respuesta con cookie y datos del usuario
+            Ok((
+              [(axum::http::header::SET_COOKIE, token_cookie.to_string())],
+              Json(UsuarioDTO::from(usuario)),
+            ))
+          }
+          Err(err) => Err(err),
+        }
+      } else {
+        Err((
+          StatusCode::UNAUTHORIZED,
+          "Usuario no autorizado".to_string(),
+        ))
+      }
+    }
+    Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())),
+  }
 }
 
 /// Api para crear un nuevo usuario
@@ -89,42 +184,6 @@ async fn actualizar_passw_usuario(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|_| StatusCode::NO_CONTENT)
-}
-
-/// Api para logear el usuario
-///
-/// Verifica que se cumpla la clave y si es correcto envía
-/// la información del usuario. En caso contrario devuelve
-/// un estado: UNAUTHORIZED.
-async fn login(
-  State(state): State<Arc<AppState>>,
-  Path(params): Path<PasswordUsuarioParams>,
-) -> impl IntoResponse {
-  let validation_result = state
-    .usuario_servicio
-    .login_usuario(params.id, &Password::new(params.password))
-    .await;
-
-  match validation_result {
-    Ok(is_valid) => {
-      if is_valid {
-        state
-          .usuario_servicio
-          .usuario(params.id)
-          .await
-          .map_err(|err| {
-            (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())
-          })
-          .map(|u| Json(UsuarioDTO::from(u)))
-      } else {
-        Err((
-          StatusCode::UNAUTHORIZED,
-          "Usuario no autorizado".to_string(),
-        ))
-      }
-    }
-    Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())),
-  }
 }
 
 /// Api para obtener todos los usuarios

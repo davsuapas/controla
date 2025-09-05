@@ -1,7 +1,10 @@
 use chrono::{NaiveDateTime, Utc};
 
 use crate::{
-  agregar_traza, config::ConfigTrabajo, infra::{dni_valido, validar_password, Password, ServicioError}, traza::{TipoTraza, TrazaBuilder, TrazaServicio}, usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo}
+  agregar_traza, config::ConfigTrabajo,
+   infra::{dni_valido, validar_password, Password, ServicioError},
+   traza::{TipoTraza, TrazaBuilder, TrazaServicio},
+   usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo}
 };
 
 ///Servicio para manejar operaciones relacionadas con usuarios.
@@ -446,6 +449,10 @@ impl UsuarioServicio {
           ServicioError::from(err)
         })?;
       }
+      tracing::info!(
+        usuario = ?usuario,
+        "Se ha completado satisfactoriamente el login de usuario");
+
       Ok(passw_inicio.0 == *password)
     } else {
       tracing::debug!(
