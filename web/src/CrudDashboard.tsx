@@ -14,6 +14,7 @@ import {
   sidebarCustomizations,
   formInputCustomizations,
 } from './theme/customizations';
+import { NetProvider } from './net/usenet';
 
 const router = createHashRouter([
   {
@@ -57,7 +58,9 @@ export default function CrudDashboard(props: { disableCustomTheme?: boolean }) {
       <CssBaseline enableColorScheme />
       <NotificationsProvider>
         <DialogsProvider>
-          <RouterProvider router={router} />
+          <NetProvider>
+            <RouterProvider router={router} />
+          </NetProvider>
         </DialogsProvider>
       </NotificationsProvider>
     </AppTheme>
