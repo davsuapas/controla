@@ -1,10 +1,8 @@
 import CssBaseline from '@mui/material/CssBaseline';
-import { createHashRouter, RouterProvider } from 'react-router';
+import { createHashRouter, RouterProvider, useNavigate } from 'react-router';
 import DashboardLayout from './components/DashboardLayout';
-import EmployeeList from './components/EmployeeList';
-import EmployeeShow from './components/EmployeeShow';
-import EmployeeCreate from './components/EmployeeCreate';
-import EmployeeEdit from './components/EmployeeEdit';
+import UsuarioList from './components/UsuarioList';
+import UsuarioCrear from './components/UsuarioCrear';
 import NotificationsProvider from './hooks/useNotifications/NotificationsProvider';
 import DialogsProvider from './hooks/useDialogs/DialogsProvider';
 import AppTheme from './theme/AppTheme';
@@ -14,32 +12,51 @@ import {
   sidebarCustomizations,
   formInputCustomizations,
 } from './theme/customizations';
-import { NetProvider } from './net/usenet';
+import React from 'react';
+import { configurarUI } from './net/interceptor';
+import useNotifications from './hooks/useNotifications/useNotifications';
+import { useDialogs } from './hooks/useDialogs/useDialogs';
+import UsuarioEdit from './components/UsuarioEdit';
+import UsuarioPassword from './components/UsuarioPassword';
+
+// Permite configurar el interceptor de axios
+// con los componentes del UI
+export const Main = () => {
+  const dialogo = useDialogs();
+  const notifica = useNotifications();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    configurarUI(dialogo, notifica, () => navigate('/login'));
+  }, [notifica, navigate]);
+
+  return <DashboardLayout />;
+};
 
 const router = createHashRouter([
   {
-    Component: DashboardLayout,
+    Component: Main,
     children: [
       {
-        path: '/employees',
-        Component: EmployeeList,
+        path: '/usuarios',
+        Component: UsuarioList,
       },
       {
-        path: '/employees/:employeeId',
-        Component: EmployeeShow,
+        path: '/usuarios/nuevo',
+        Component: UsuarioCrear,
       },
       {
-        path: '/employees/new',
-        Component: EmployeeCreate,
+        path: '/usuarios/:id',
+        Component: UsuarioEdit,
       },
       {
-        path: '/employees/:employeeId/edit',
-        Component: EmployeeEdit,
+        path: '/usuarios/:id/password',
+        Component: UsuarioPassword,
       },
       // Fallback route for the example routes in dashboard sidebar items
       {
         path: '*',
-        Component: EmployeeList,
+        Component: UsuarioList,
       },
     ],
   },
@@ -58,9 +75,7 @@ export default function CrudDashboard(props: { disableCustomTheme?: boolean }) {
       <CssBaseline enableColorScheme />
       <NotificationsProvider>
         <DialogsProvider>
-          <NetProvider>
-            <RouterProvider router={router} />
-          </NetProvider>
+          <RouterProvider router={router} />
         </DialogsProvider>
       </NotificationsProvider>
     </AppTheme>

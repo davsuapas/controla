@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import Toolbar from '@mui/material/Toolbar';
-import type {} from '@mui/material/themeCssVarsAugmentation';
+import type { } from '@mui/material/themeCssVarsAugmentation';
 import PersonIcon from '@mui/icons-material/Person';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -57,7 +57,7 @@ export default function DashboardSidebar({
 
     setIsFullyExpanded(false);
 
-    return () => {};
+    return () => { };
   }, [expanded, theme.transitions.duration.enteringScreen]);
 
   React.useEffect(() => {
@@ -71,7 +71,7 @@ export default function DashboardSidebar({
 
     setIsFullyCollapsed(false);
 
-    return () => {};
+    return () => { };
   }, [expanded, theme.transitions.duration.leavingScreen]);
 
   const mini = !disableCollapsibleSidebar && !expanded;
@@ -89,8 +89,8 @@ export default function DashboardSidebar({
         setExpandedItemIds((previousValue) =>
           previousValue.includes(itemId)
             ? previousValue.filter(
-                (previousValueItemId) => previousValueItemId !== itemId,
-              )
+              (previousValueItemId) => previousValueItemId !== itemId,
+            )
             : [...previousValue, itemId],
         );
       } else if (!isOverSmViewport && !hasNestedNavigation) {
@@ -111,7 +111,6 @@ export default function DashboardSidebar({
           component="nav"
           aria-label={`${viewport.charAt(0).toUpperCase()}${viewport.slice(1)}`}
           sx={{
-            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -134,11 +133,11 @@ export default function DashboardSidebar({
           >
             <DashboardSidebarHeaderItem>Main items</DashboardSidebarHeaderItem>
             <DashboardSidebarPageItem
-              id="employees"
-              title="Employees"
+              id="usuarios"
+              title="Usuarios"
               icon={<PersonIcon />}
-              href="/employees"
-              selected={!!matchPath('/employees/*', pathname) || pathname === '/'}
+              href="/usuarios"
+              selected={!!matchPath('/usuarios/*', pathname) || pathname === '/'}
             />
             <DashboardSidebarDividerItem />
             <DashboardSidebarHeaderItem>Example items</DashboardSidebarHeaderItem>

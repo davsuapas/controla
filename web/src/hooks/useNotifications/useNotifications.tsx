@@ -46,7 +46,7 @@ export interface CloseNotification {
   (key: string): void;
 }
 
-interface UseNotifications {
+export interface UseNotifications {
   show: ShowNotification;
   close: CloseNotification;
 }

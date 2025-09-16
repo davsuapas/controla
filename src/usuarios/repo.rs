@@ -71,9 +71,9 @@ impl UsuarioRepo {
     usuario: &Usuario,
   ) -> Result<u32, DBError> {
     const QUERY: &str = r"INSERT INTO usuarios 
-      (dni, dni_hash, nombre, primer_apellido, segundo_apellido,
+      (dni, dni_hash, email, nombre, primer_apellido, segundo_apellido,
       password, activo, inicio) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     let dni = usuario
       .dni
@@ -90,6 +90,7 @@ impl UsuarioRepo {
     let result = sqlx::query(QUERY)
       .bind(&dni)
       .bind(usuario.dni.hash_con_salt(secreto))
+      .bind(&usuario.email)
       .bind(&usuario.nombre)
       .bind(&usuario.primer_apellido)
       .bind(&usuario.segundo_apellido)
@@ -116,7 +117,7 @@ impl UsuarioRepo {
     inicio: Option<NaiveDateTime>,
   ) -> Result<(), DBError> {
     const QUERY: &str = r"UPDATE usuarios SET
-      dni = ?, dni_hash = ?, nombre = ?,
+      dni = ?, dni_hash = ?, email = ?, nombre = ?,
       primer_apellido = ?, segundo_apellido = ?,
       activo = ?, inicio = ?
       WHERE id = ?;";
@@ -129,6 +130,7 @@ impl UsuarioRepo {
     let res = sqlx::query(QUERY)
       .bind(&dni)
       .bind(usuario.dni.hash_con_salt(secreto))
+      .bind(&usuario.email)
       .bind(&usuario.nombre)
       .bind(&usuario.primer_apellido)
       .bind(&usuario.segundo_apellido)
@@ -205,11 +207,11 @@ impl UsuarioRepo {
     secreto: &str,
     dni: &Dni,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"SELECT COUNT(*) 
+    const QUERY: &str = r"SELECT CAST(COUNT(*) AS UNSIGNED) 
       FROM usuarios 
       WHERE dni_hash = ?;";
 
-    let count: i8 = sqlx::query_scalar(QUERY)
+    let count: u32 = sqlx::query_scalar(QUERY)
       .bind(dni.hash_con_salt(secreto))
       .fetch_one(self.pool.conexion())
       .await
@@ -256,7 +258,7 @@ impl UsuarioRepo {
     &self,
     secreto: &str,
   ) -> Result<Vec<Usuario>, DBError> {
-    const QUERY: &str = r"SELECT id, dni,
+    const QUERY: &str = r"SELECT id, dni, email,
       nombre, primer_apellido, segundo_apellido,
       activo, inicio 
       FROM usuarios;";
@@ -282,7 +284,7 @@ impl UsuarioRepo {
     secreto: &str,
     id: u32,
   ) -> Result<Usuario, DBError> {
-    const QUERY: &str = r"SELECT id, dni,
+    const QUERY: &str = r"SELECT id, dni, email,
       nombre, primer_apellido, segundo_apellido,
       activo, inicio 
       FROM usuarios
@@ -484,7 +486,7 @@ impl UsuarioRepo {
     &self,
     id: u32,
   ) -> Result<u32, DBError> {
-    const QUERY: &str = r"SELECT COUNT(id) 
+    const QUERY: &str = r"SELECT CAST(COUNT(id) AS UNSIGNED) 
         FROM registros
         WHERE usuario = ?";
 
@@ -546,6 +548,7 @@ impl UsuarioRepo {
     Ok(Usuario {
       id: row.get("id"),
       dni,
+      email: row.get("email"),
       nombre: row.get("nombre"),
       primer_apellido: row.get("primer_apellido"),
       segundo_apellido: row.get("segundo_apellido"),

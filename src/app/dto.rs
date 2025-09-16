@@ -13,6 +13,7 @@ pub(in crate::app) struct UsuarioDTO {
   pub id: u32,
   pub autor: u32, // Es el usuario que lo manipula y sirve para trazas
   pub dni: String,
+  pub email: String,
   pub nombre: String,
   pub primer_apellido: String,
   pub segundo_apellido: String,
@@ -28,6 +29,7 @@ impl From<Usuario> for UsuarioDTO {
       id: usr.id,
       autor: 0, // El autor solo tiene efecto en las trazas
       dni: usr.dni.into(),
+      email: usr.email,
       nombre: usr.nombre,
       primer_apellido: usr.primer_apellido,
       segundo_apellido: usr.segundo_apellido,
@@ -44,6 +46,7 @@ impl From<UsuarioDTO> for Usuario {
     Usuario {
       id: usr.id,
       dni: Dni::new(usr.dni),
+      email: usr.email,
       nombre: usr.nombre,
       primer_apellido: usr.primer_apellido,
       segundo_apellido: usr.segundo_apellido,
@@ -107,6 +110,13 @@ impl From<DescriptorUsuario> for DescriptorUsuarioDTO {
       segundo_apellido: usr.segundo_apellido,
     }
   }
+}
+
+/// Define la entidad de intercambio para el cambio de contraseña
+#[derive(Deserialize)]
+pub struct PasswordUsuarioDTO {
+  pub id: u32,
+  pub password: String,
 }
 
 /// Define la entidad de intercambio para el horario

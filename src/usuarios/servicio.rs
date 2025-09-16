@@ -208,7 +208,7 @@ impl UsuarioServicio {
           tracing::error!(
             usuario = usuario.id, error = %err,
             "Obteniendo el número de resgistros horarios del \
-            usuario para valida DNI");
+            usuario para validar el DNI");
           tr.rollback().await.map_err(ServicioError::from)?;
           return Err(ServicioError::DB(err))
         }
@@ -358,7 +358,8 @@ impl UsuarioServicio {
         error = %err, "Validando DNI");
       ServicioError::from(err)
     })? {
-      const VALIDA_DNI: &str = "El DNI del usuario ya existe";
+      const VALIDA_DNI: &str = "El DNI del usuario ya existe. \
+      No puede haber dos DNI iguales para usuarios diferentes";
   
       tracing::error!(usuario = ?usuario, VALIDA_DNI);
   
@@ -552,12 +553,13 @@ impl UsuarioServicio {
     usuario: &Usuario) -> Result<(), ServicioError> {
     // No uso Trim() para evitar que cree cadenas imnecesarias
     // ya que desde el interface de usuario se eliminan los espacios
-    if usuario.nombre.is_empty() ||
+    if usuario.email.is_empty() ||
+      usuario.nombre.is_empty() ||
       usuario.primer_apellido.is_empty() ||
       usuario.segundo_apellido.is_empty() ||
-      usuario.dni.is_empty(){
+      usuario.dni.is_empty() {
       const VALIDA_DESCRIPTORES: &str =
-        "El nombre, apellidos o DNI del usuario no puede estar vacío";
+        "El email, nombre, apellidos o DNI del usuario no puede estar vacío";
 
       tracing::error!(usuario = ?usuario, VALIDA_DESCRIPTORES);
 

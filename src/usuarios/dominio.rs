@@ -56,6 +56,7 @@ pub struct DescriptorUsuario {
 pub struct Usuario {
   pub id: u32,
   pub dni: Dni,
+  pub email: String,
   pub nombre: String,
   pub primer_apellido: String,
   pub segundo_apellido: String,
@@ -94,6 +95,7 @@ impl Debug for Usuario {
     f.debug_struct("Usuario")
       .field("id", &self.id)
       .field("dni", &"[OCULTO]")
+      .field("email", &self.email)
       .field("nombre", &self.nombre)
       .field("primer_apellido", &self.primer_apellido)
       .field("segundo_apellido", &self.segundo_apellido)

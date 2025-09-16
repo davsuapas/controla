@@ -137,6 +137,30 @@ const generateId = () => {
   return id;
 };
 
+// Función para formatear mensajes con saltos de línea
+const formatMessageWithLineBreaks = (message: React.ReactNode): React.ReactNode => {
+  if (typeof message !== 'string') {
+    return message;
+  }
+
+  if (!message.includes('\n')) {
+    return message;
+  }
+
+  const lines = message.split('\n');
+
+  return (
+    <>
+      {lines.map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          {index < lines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </>
+  );
+};
+
 /**
  * Provider for Notifications. The subtree of this component can use the `useNotifications` hook to
  * access the notifications API. The notifications are shown in the same order they are requested.
@@ -146,6 +170,8 @@ export default function NotificationsProvider(props: NotificationsProviderProps)
   const [state, setState] = React.useState<NotificationsState>({ queue: [] });
 
   const show = React.useCallback<ShowNotification>((message, options = {}) => {
+    const formattedMessage = formatMessageWithLineBreaks(message);
+
     const notificationKey =
       options.key ?? `::toolpad-internal::notification::${generateId()}`;
     setState((prev) => {
@@ -155,7 +181,10 @@ export default function NotificationsProvider(props: NotificationsProviderProps)
       }
       return {
         ...prev,
-        queue: [...prev.queue, { message, options, notificationKey, open: true }],
+        queue: [...prev.queue, {
+          message: formattedMessage,
+          options, notificationKey, open: true
+        }],
       };
     });
     return notificationKey;

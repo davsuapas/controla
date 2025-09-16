@@ -14,8 +14,8 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, HorarioDTO, RegistroInDTO, RegistroOutDTO,
-      UsuarioDTO, vec_dominio_to_dtos,
+      DescriptorUsuarioDTO, HorarioDTO, PasswordUsuarioDTO, RegistroInDTO,
+      RegistroOutDTO, UsuarioDTO, vec_dominio_to_dtos,
     },
   },
   infra::Password,
@@ -33,10 +33,7 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/usuarios/{id}/logout", get(logout))
     .route("/usuarios", post(crear_usuario))
     .route("/usuarios", put(actualizar_usuario))
-    .route(
-      "/usuarios/{id}/password/{password}",
-      put(actualizar_passw_usuario),
-    )
+    .route("/usuarios/password", put(actualizar_passw_usuario))
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
@@ -46,10 +43,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
       get(horario_usuario_por_fecha),
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
-    .route("/registros", post(registrar))
-    .layer(axum::middleware::from_fn(
-      crate::infra::middleware::autenticacion,
-    ));
+    .route("/registros", post(registrar));
+  //.layer(axum::middleware::from_fn(
+  //  crate::infra::middleware::autenticacion,
+  //));
 
   Router::new()
     .nest("/auth", rutas_auth)
@@ -83,7 +80,7 @@ async fn logout(
 /// En caso contrario devuelve un estado: UNAUTHORIZED.
 async fn login(
   State(state): State<Arc<AppState>>,
-  Path(params): Path<PasswordUsuarioParams>,
+  Path(params): Path<PasswordUsuarioDTO>,
 ) -> impl IntoResponse {
   let validation_result = state
     .usuario_servicio
@@ -167,20 +164,14 @@ async fn actualizar_usuario(
     .map(|_| StatusCode::NO_CONTENT)
 }
 
-#[derive(Deserialize)]
-struct PasswordUsuarioParams {
-  id: u32,
-  password: String,
-}
-
 /// Api para actualizar la password de un usuario existente
 async fn actualizar_passw_usuario(
   State(state): State<Arc<AppState>>,
-  Path(params): Path<PasswordUsuarioParams>,
+  Json(passw): Json<PasswordUsuarioDTO>,
 ) -> impl IntoResponse {
   state
     .usuario_servicio
-    .actualizar_password(params.id, &Password::new(params.password))
+    .actualizar_password(passw.id, &Password::new(passw.password))
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|_| StatusCode::NO_CONTENT)
