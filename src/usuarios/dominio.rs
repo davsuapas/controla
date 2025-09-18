@@ -5,6 +5,7 @@ use smallvec::SmallVec;
 
 use crate::infra::{Dni, Password};
 
+// Si se cambia algún rol se debe actualizar en el web/src/modelos/usuarios.ts
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Rol {

@@ -114,6 +114,13 @@ impl From<DescriptorUsuario> for DescriptorUsuarioDTO {
 
 /// Define la entidad de intercambio para el cambio de contraseña
 #[derive(Deserialize)]
+pub struct PasswordDniDTO {
+  pub dni: String,
+  pub password: String,
+}
+
+/// Define la entidad de intercambio para el cambio de contraseña
+#[derive(Deserialize)]
 pub struct PasswordUsuarioDTO {
   pub id: u32,
   pub password: String,

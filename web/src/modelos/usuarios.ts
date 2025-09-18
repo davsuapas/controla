@@ -1,13 +1,24 @@
 import dayjs, { Dayjs } from 'dayjs';
 
-export const ROLES: Record<number, string> = {
-  1: 'Empleado',
-  2: 'Gestor',
-  3: 'Admin',
-  4: 'Director',
-  5: 'Registrador',
-  6: 'Inspector',
-  7: 'Configurador'
+// Si cambia el nombre cambiarlo en Login.tsx
+export enum RolID {
+  Empleado = 1,
+  Gestor = 2,
+  Admin = 3,
+  Director = 4,
+  Registrador = 5,
+  Inspector = 6,
+  Configurador = 7
+}
+
+export const ROLES: Record<RolID, string> = {
+  [RolID.Empleado]: 'Empleado',
+  [RolID.Gestor]: 'Gestor',
+  [RolID.Admin]: 'Admin',
+  [RolID.Director]: 'Director',
+  [RolID.Registrador]: 'Registrador',
+  [RolID.Inspector]: 'Inspector',
+  [RolID.Configurador]: 'Configurador'
 };
 
 export function nombresTodosRoles(): string[] {
@@ -29,7 +40,7 @@ export class Rol {
     public nombre: string
   ) { }
 
-  static desdeId(id: number): Rol {
+  static desdeId(id: RolID): Rol {
     return new Rol(id, ROLES[id]);
   }
 
@@ -70,6 +81,10 @@ export class Usuario {
 
   inicioToStr(): string {
     return this.inicio ? this.inicio.format('DD/MM/YYYY') : 'No logeado';
+  }
+
+  hayRol(id: RolID): boolean {
+    return this.roles.some(rol => rol.id === id);
   }
 
   static fromRequest(obj: any): Usuario {

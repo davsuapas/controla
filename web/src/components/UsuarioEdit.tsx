@@ -16,6 +16,7 @@ import { NetErrorControlado } from '../net/interceptor';
 import { Usuario } from '../modelos/usuarios';
 import { UsuarioDTO } from '../modelos/dto';
 import { api } from '../api/usuarios';
+import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
 
 function UsuarioEditForm({
@@ -136,6 +137,7 @@ function UsuarioEditForm({
 
 export default function UsuarioEdit() {
   const { id } = useParams();
+  const { getUsrLogeado } = useUsuarioLogeado()
 
   const [usuario, setUsuario] = React.useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -146,7 +148,7 @@ export default function UsuarioEdit() {
     setIsLoading(true);
 
     try {
-      const showData = await api().usuario.usuario(id ?? '');
+      const showData = await api().usuarios.usuario(id ?? '');
 
       setUsuario(showData);
     } catch (showDataError) {
@@ -161,8 +163,13 @@ export default function UsuarioEdit() {
 
   const handleSubmit = React.useCallback(
     async (formValues: UsuarioFormState['values']) => {
-      return api().usuario.actualizar_usuario(
-        UsuarioDTO.fromUsuario(formValues as Usuario),
+
+      const usrLog = getUsrLogeado()
+      let usr = formValues as Usuario
+      usr.autor = usrLog.id
+
+      return api().usuarios.actualizar_usuario(
+        UsuarioDTO.fromUsuario(usr),
       );
     },
     [],

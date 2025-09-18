@@ -16,6 +16,7 @@ import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/usuarios';
 import { UsuarioDTO } from '../modelos/dto';
 import { Usuario } from '../modelos/usuarios';
+import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
 const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
   activo: dayjs(),
@@ -25,6 +26,8 @@ const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 export default function UsuarioCreate() {
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const { getUsrLogeado } = useUsuarioLogeado()
+
 
   const [formState, setFormState] = React.useState<UsuarioFormState>(() => ({
     values: INITIAL_FORM_VALUES,
@@ -100,8 +103,12 @@ export default function UsuarioCreate() {
     setFormErrors({});
 
     try {
-      await api().usuario.crear_usuario(
-        UsuarioDTO.fromUsuario(formValues as Usuario),
+      const usrLog = getUsrLogeado()
+      let usr = formValues as Usuario
+      usr.autor = usrLog.id
+
+      await api().usuarios.crear_usuario(
+        UsuarioDTO.fromUsuario(usr),
       );
 
       notifica.show('Usuario creado satisfactóriamente.', {

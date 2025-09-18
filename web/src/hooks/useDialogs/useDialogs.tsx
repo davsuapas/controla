@@ -190,18 +190,18 @@ export interface AlertDialogPayload extends AlertOptions {
   msg: React.ReactNode;
 }
 
-export interface AlertDialogProps extends DialogProps<AlertDialogPayload, void> {}
+export interface AlertDialogProps extends DialogProps<AlertDialogPayload, void> { }
 
 export function AlertDialog({ open, payload, onClose }: AlertDialogProps) {
   const okButtonProps = useDialogLoadingButton(() => onClose());
 
   return (
     <Dialog maxWidth="xs" fullWidth open={open} onClose={() => onClose()}>
-      <DialogTitle>{payload.title ?? 'Alert'}</DialogTitle>
+      <DialogTitle>{payload.title ?? 'Alerta'}</DialogTitle>
       <DialogContent>{payload.msg}</DialogContent>
       <DialogActions>
         <Button disabled={!open} {...okButtonProps}>
-          {payload.okText ?? 'Ok'}
+          {payload.okText ?? 'ENTENDIDO'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -213,7 +213,7 @@ export interface ConfirmDialogPayload extends ConfirmOptions {
 }
 
 export interface ConfirmDialogProps
-  extends DialogProps<ConfirmDialogPayload, boolean> {}
+  extends DialogProps<ConfirmDialogPayload, boolean> { }
 
 export function ConfirmDialog({ open, payload, onClose }: ConfirmDialogProps) {
   const cancelButtonProps = useDialogLoadingButton(() => onClose(false));
@@ -221,14 +221,14 @@ export function ConfirmDialog({ open, payload, onClose }: ConfirmDialogProps) {
 
   return (
     <Dialog maxWidth="xs" fullWidth open={open} onClose={() => onClose(false)}>
-      <DialogTitle>{payload.title ?? 'Confirm'}</DialogTitle>
+      <DialogTitle>{payload.title ?? 'CONFIRMAR'}</DialogTitle>
       <DialogContent>{payload.msg}</DialogContent>
       <DialogActions>
         <Button autoFocus disabled={!open} {...cancelButtonProps}>
-          {payload.cancelText ?? 'Cancel'}
+          {payload.cancelText ?? 'CANCELAR  '}
         </Button>
         <Button color={payload.severity} disabled={!open} {...okButtonProps}>
-          {payload.okText ?? 'Ok'}
+          {payload.okText ?? 'ACPETAR'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -240,7 +240,7 @@ export interface PromptDialogPayload extends PromptOptions {
 }
 
 export interface PromptDialogProps
-  extends DialogProps<PromptDialogPayload, string | null> {}
+  extends DialogProps<PromptDialogPayload, string | null> { }
 
 export function PromptDialog({ open, payload, onClose }: PromptDialogProps) {
   const [input, setInput] = React.useState('');

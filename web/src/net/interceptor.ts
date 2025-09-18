@@ -3,21 +3,19 @@ import axios, { AxiosError } from 'axios';
 
 import { UseNotifications } from '../hooks/useNotifications/useNotifications';
 import { DialogHook } from '../hooks/useDialogs/useDialogs';
+import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
-// Variables globales para l interceptor
+// Variables globales para el interceptor
 let dialogo: DialogHook | null = null;
 let notifica: UseNotifications | null = null;
-let redirigirALogin: (() => void) | null = null;
 
 // Conecta el UI con el interceptor
-export const configurarUI = (
+export const configurarInterceptor = (
   dialogoParam: DialogHook,
-  notificaParam: UseNotifications,
-  redireccionFn: () => void
+  notificaParam: UseNotifications
 ) => {
   dialogo = dialogoParam;
   notifica = notificaParam;
-  redirigirALogin = redireccionFn;
 };
 
 axios.defaults.timeout = 10000; //10 sg
@@ -42,49 +40,45 @@ export interface ConfigRequest extends AxiosRequestConfig {
 axios.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    if (!error.response) {
-      // Error de red
-      if (notifica) {
-        await notifica.show(
-          'Error de conexión. Verifique su conexión a internet.');
-
-        return Promise.reject(new NetErrorControlado(error));
-      }
+    if (!notifica || !dialogo) {
+      // Si no hay sistema de notificaciones no se maneja el error
+      // por el interceptor, sino por el usuario
       return Promise.reject(error);
     }
 
-    const { status, data } = error.response;
-    const manejarAuth = (error.config as any)?.manejarAuth;
+    if (!error.response) {
+      // Error de red
+      await notifica.show(
+        'Error de conexión. Verifique su conexión a internet.');
 
-    let controlado = false;
+      return Promise.reject(new NetErrorControlado(error));
+    }
+
+    const { status, data } = error.response;
 
     switch (status) {
       case 400:
         console.log('Error 400:', data);
-        if (notifica) {
-          notifica.show(
-            'Información no legible. Contacte con el administrador',
-            {
-              severity: 'error',
-              autoHideDuration: 5000,
-            });
-          controlado = true;
-        }
+        notifica.show(
+          'Información no legible. Contacte con el administrador',
+          {
+            severity: 'error',
+            autoHideDuration: 5000,
+          });
+
         break;
 
       case 401:
-        if (!manejarAuth) {
-          if (dialogo) {
-            await dialogo.alert(
-              'La sesión ha caducado y la aplicación se cerrará. ' +
-              'Si desea continuar, vuelva a introducir sus credenciales');
-            controlado = true;
-          }
+        await dialogo.alert(
+          'La sesión ha caducado y la aplicación se cerrará. ' +
+          'Si desea continuar, vuelva a introducir sus credenciales');
 
-          if (redirigirALogin) {
-            redirigirALogin();
-          }
-        }
+        const { setUsrLogeado } = useUsuarioLogeado()
+        setUsrLogeado(null)
+
+        // Forzamos a eliminar caches. Liberamos memoria
+        window.location.replace('/');
+
         break;
 
       case 500:
@@ -93,54 +87,32 @@ axios.interceptors.response.use(
 
         if (typeof data === 'string' && data.startsWith('@@:')) {
           const mensajeUsuario = data.substring(3);
-          if (notifica) {
-            notifica.show(mensajeUsuario,
-              {
-                severity: 'error',
-                autoHideDuration: 10000,
-              });
-            controlado = true;
-          }
-        } else if (!data) {
-          if (notifica) {
-            notifica.show(msg_error_interno,
-              {
-                severity: 'error',
-                autoHideDuration: 5000,
-              });
-            controlado = true;
-          }
+          notifica.show(mensajeUsuario,
+            {
+              severity: 'error',
+              autoHideDuration: 10000,
+            });
         } else {
           console.log('Error 500 interno:', data);
-          if (notifica) {
-            notifica.show(msg_error_interno,
-              {
-                severity: 'error',
-                autoHideDuration: 5000,
-              });
-            controlado = true;
-          }
-        }
-        break;
-      default:
-        console.log('Error ${status}:', data);
-        if (notifica) {
-          notifica.show(
-            'Error inesperado. Contacte con el administrador',
+          notifica.show(msg_error_interno,
             {
               severity: 'error',
               autoHideDuration: 5000,
             });
-          controlado = true;
         }
+
         break;
+      default:
+        console.log('Error ${status}:', data);
+        notifica.show(
+          'Error inesperado. Contacte con el administrador',
+          {
+            severity: 'error',
+            autoHideDuration: 5000,
+          });
     }
 
-    if (controlado) {
-      return Promise.reject(new NetErrorControlado(error));
-    }
-
-    return Promise.reject(error);
+    return Promise.reject(new NetErrorControlado(error));
   }
 );
 

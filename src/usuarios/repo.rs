@@ -220,16 +220,15 @@ impl UsuarioRepo {
     Ok(count > 0)
   }
 
-  /// Obtiene la password de un usuario y la fecha de inicio de sesión
+  /// Obtiene la password de un usuario
   ///
-  /// Si el usuario no esta activo devuelve None
   /// La clave sirve para desencriptar las password
   pub(in crate::usuarios) async fn password(
     &self,
     clave: &str,
     usuario: u32,
-  ) -> Result<Option<(Password, Option<NaiveDateTime>)>, DBError> {
-    const QUERY: &str = r"SELECT password, inicio
+  ) -> Result<Option<Password>, DBError> {
+    const QUERY: &str = r"SELECT password
         FROM usuarios
         WHERE id = ? AND activo IS NOT NULL";
 
@@ -241,11 +240,10 @@ impl UsuarioRepo {
 
     if let Some(r) = row {
       let p: String = r.get("password");
-      Ok(Some((
+      Ok(Some(
         Password::from_encriptado(Some(&p), clave)
           .map_err(DBError::cripto_from)?,
-        r.get("inicio"),
-      )))
+      ))
     } else {
       Ok(None)
     }
@@ -302,6 +300,36 @@ impl UsuarioRepo {
       Err(DBError::registro_vacio(format!(
         "No se ha encontrado ningún usuario con id: {}",
         id
+      )))
+    }
+  }
+
+  /// Obtiene un usuario dado el dni.
+  ///
+  /// El secreto es necesario para desencriptar el DNI.
+  pub(in crate::usuarios) async fn usuario_por_dni(
+    &self,
+    secreto: &str,
+    dni: &Dni,
+  ) -> Result<Usuario, DBError> {
+    const QUERY: &str = r"SELECT id, dni, email,
+      nombre, primer_apellido, segundo_apellido,
+      activo, inicio 
+      FROM usuarios
+      WHERE dni_hash = ?;";
+
+    let row = sqlx::query(QUERY)
+      .bind(dni.hash_con_salt(secreto))
+      .fetch_optional(self.pool.conexion())
+      .await
+      .map_err(DBError::consulta_from)?;
+
+    if let Some(row) = row {
+      self.usuario_from_row(&row, secreto).await
+    } else {
+      Err(DBError::registro_vacio(format!(
+        "No se ha encontrado ningún usuario con dni: {}",
+        &dni
       )))
     }
   }

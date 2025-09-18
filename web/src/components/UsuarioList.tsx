@@ -41,7 +41,7 @@ export default function UsuarioList() {
     let listData: Usuario[] = [];
 
     try {
-      listData = await api().usuario.usuarios();
+      listData = await api().usuarios.usuarios();
     } catch (e) {
       if (!(e instanceof NetErrorControlado)) {
         notifica.show(

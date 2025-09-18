@@ -14,19 +14,18 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, HorarioDTO, PasswordUsuarioDTO, RegistroInDTO,
-      RegistroOutDTO, UsuarioDTO, vec_dominio_to_dtos,
+      DescriptorUsuarioDTO, HorarioDTO, PasswordDniDTO, PasswordUsuarioDTO,
+      RegistroInDTO, RegistroOutDTO, UsuarioDTO, vec_dominio_to_dtos,
     },
   },
-  infra::Password,
+  infra::{Dni, Password},
   usuarios::Rol,
 };
 
 /// Define las rutas de la aplicación.
 pub fn rutas(app: Arc<AppState>) -> Router {
   // Rutas públicas (sin autenticación)
-  let rutas_auth =
-    Router::new().route("/usuarios/{id}/login/{password}", get(login));
+  let rutas_auth = Router::new().route("/usuarios/login", post(login));
 
   // Rutas seguras (con autenticación)
   let rutas_privadas = Router::new()
@@ -80,53 +79,39 @@ async fn logout(
 /// En caso contrario devuelve un estado: UNAUTHORIZED.
 async fn login(
   State(state): State<Arc<AppState>>,
-  Path(params): Path<PasswordUsuarioDTO>,
+  Json(params): Json<PasswordDniDTO>,
 ) -> impl IntoResponse {
-  let validation_result = state
+  let result = state
     .usuario_servicio
-    .login_usuario(params.id, &Password::new(params.password))
+    .login_usuario(&Dni::new(params.dni), &Password::new(params.password))
     .await;
 
-  match validation_result {
-    Ok(is_valid) => {
-      if is_valid {
-        // Obtener información del usuario
-        let usuario_result = state
-          .usuario_servicio
-          .usuario(params.id)
-          .await
-          .map_err(|err| {
-            (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())
-          });
+  match result {
+    Ok(usuario) => {
+      if let Some(usr) = usuario {
+        // Crear token de sesión
+        let token_cookie = match state.manejador_sesion.crear_sesion() {
+          Ok(token) => token,
+          Err(err) => {
+            tracing::error!(
+              usuario = ?usr, error = ?err,
+              "Error al crear sesión");
 
-        match usuario_result {
-          Ok(usuario) => {
-            // Crear token de sesión
-            let token_cookie = match state.manejador_sesion.crear_sesion() {
-              Ok(token) => token,
-              Err(err) => {
-                tracing::error!(
-                  usuario = ?usuario, error = ?err,
-                  "Error al crear sesión");
-
-                return Err((
-                  StatusCode::INTERNAL_SERVER_ERROR,
-                  "@@:Error al crear sesión. \
-                  Intentelo de nuevo y si persiste el error \
-                  contacte con el administrador"
-                    .to_string(),
-                ));
-              }
-            };
-
-            // Devolver respuesta con cookie y datos del usuario
-            Ok((
-              [(axum::http::header::SET_COOKIE, token_cookie.to_string())],
-              Json(UsuarioDTO::from(usuario)),
-            ))
+            return Err((
+              StatusCode::INTERNAL_SERVER_ERROR,
+              "@@:Error al crear la sesión. \
+              Intentelo de nuevo y si persiste el error \
+              contacte con el administrador"
+                .to_string(),
+            ));
           }
-          Err(err) => Err(err),
-        }
+        };
+
+        // Devolver respuesta con cookie y datos del usuario
+        Ok((
+          [(axum::http::header::SET_COOKIE, token_cookie.to_string())],
+          Json(UsuarioDTO::from(usr)),
+        ))
       } else {
         Err((
           StatusCode::UNAUTHORIZED,
@@ -134,7 +119,10 @@ async fn login(
         ))
       }
     }
-    Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())),
+    Err(_) => Err((
+      StatusCode::UNAUTHORIZED,
+      "Usuario no autorizado".to_string(),
+    )),
   }
 }
 

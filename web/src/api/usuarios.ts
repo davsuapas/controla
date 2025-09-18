@@ -8,10 +8,11 @@ export interface UsuariosApi {
   actualizar_usuario(usuario: UsuarioDTO): Promise<void>;
   crear_usuario(usuario: UsuarioDTO): Promise<void>;
   actualizar_password(usuarioId: number, passw: string): Promise<void>;
+  login(dni: string, passw: string): Promise<Usuario>;
 }
 
 export class ContextoApi {
-  constructor(public usuario: UsuariosApi) {
+  constructor(public usuarios: UsuariosApi) {
   }
 }
 
@@ -59,9 +60,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
 
   async usuario(id: string): Promise<Usuario> {
     const response = await this.axios.get('api/usuarios/' + id);
-    const usuarioData = response.data;
-
-    return Usuario.fromRequest(usuarioData)
+    return Usuario.fromRequest(response.data)
   }
 
   async actualizar_usuario(usuario: UsuarioDTO): Promise<void> {
@@ -79,7 +78,24 @@ export class UsuariosAxiosApi implements UsuariosApi {
       {
         id: usuarioId,
         password: passw
-      });
+      }
+    );
+  }
+
+  async login(dni: string, passw: string): Promise<Usuario> {
+    const response = await this.axios.post(
+      'auth/usuarios/login',
+      {
+        dni: dni,
+        password: passw
+      }
+    );
+
+    if (response.status == 401 || response.status == 500) {
+      throw new Error(response.data);
+    }
+
+    return Usuario.fromRequest(response.data)
   }
 }
 
@@ -163,5 +179,19 @@ export class UsuariosTestApi implements UsuariosApi {
 
   async actualizar_password(_: number, __: string): Promise<void> {
     return;
+  }
+
+  async login(_: string, __: string): Promise<Usuario> {
+    return Usuario.fromRequest({
+      id: 1,
+      dni: '12345678A',
+      email: 'M0q6T@example.com',
+      nombre: 'Juan',
+      primer_apellido: 'Pérez',
+      segundo_apellido: 'Gómez',
+      activo: '2024-01-15',
+      inicio: '2024-01-10',
+      roles: [1, 2, 3, 4, 5, 6, 7]
+    })
   }
 }

@@ -1,3 +1,4 @@
+import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
 import { formatDateForServer, Usuario } from "./usuarios";
 
 // La entidad UsuarioDTO se usa para enviar a el servidor
@@ -18,10 +19,11 @@ export class UsuarioDTO {
   ) {
   }
 
+  // No se olvide de propor el autor si procede
   static fromUsuario(usr: Usuario): UsuarioDTO {
     return new UsuarioDTO(
       usr.id,
-      12, // TODO: Cambiar por el usuario logueado
+      usr.autor!,
       usr.dni,
       usr.email,
       usr.nombre,
