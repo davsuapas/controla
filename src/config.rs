@@ -77,6 +77,8 @@ pub struct Servidor {
   pub host: String,
   /// Puerto
   pub puerto: u32,
+  /// Producción o desarrollo
+  pub produccion: bool,
 }
 
 /// Representa la configuración de la aplicación.
@@ -119,6 +121,7 @@ pub struct ConfigTrabajo {
   pub limites: Limites,
   pub passw: PasswordLimites,
   pub caducidad_sesion: u64,
+  pub produccion: bool,
 }
 
 impl Config {
@@ -152,6 +155,7 @@ impl Config {
       limites: self.db.limites,
       passw: self.password.into(),
       caducidad_sesion: self.caducidad_sesion,
+      produccion: self.servidor.produccion,
     }
   }
 }

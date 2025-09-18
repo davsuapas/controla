@@ -107,14 +107,15 @@ function UsuarioEditForm({
       });
 
       navegar('/usuarios');
-    } catch (editError) {
-      if (editError instanceof NetErrorControlado) {
+    } catch (error) {
+      if (error instanceof NetErrorControlado) {
         return;
       }
 
+      console.error(error);
+
       notifica.show(
-        `Error inesperado al actualizado el usuario. 
-        Razón: ${(editError as Error).message}`,
+        'Error inesperado al actualizar el usuario',
         {
           severity: 'error',
           autoHideDuration: 5000,
@@ -149,10 +150,13 @@ export default function UsuarioEdit() {
 
     try {
       const showData = await api().usuarios.usuario(id ?? '');
-
       setUsuario(showData);
-    } catch (showDataError) {
-      setError(showDataError as Error);
+    } catch (error) {
+      if (!(error instanceof NetErrorControlado)) {
+        console.error(error);
+      }
+
+      setError(Error('Error inesperado al crear el usuario'));
     }
     setIsLoading(false);
   }, [id]);

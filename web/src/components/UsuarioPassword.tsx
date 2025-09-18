@@ -101,14 +101,15 @@ export default function UsuarioPassword() {
       });
 
       navegar('/usuarios');
-    } catch (e) {
-      if (e instanceof NetErrorControlado) {
+    } catch (error) {
+      if (error instanceof NetErrorControlado) {
         return;
       }
 
+      console.error(error);
+
       notifica.show(
-        `Error inesperado al cambiar las password. 
-        Razón: ${(e as Error).message}`,
+        'Error inesperado al modificar las password de el usuario',
         {
           severity: 'error',
           autoHideDuration: 5000,

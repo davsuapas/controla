@@ -3,19 +3,22 @@ import axios, { AxiosError } from 'axios';
 
 import { UseNotifications } from '../hooks/useNotifications/useNotifications';
 import { DialogHook } from '../hooks/useDialogs/useDialogs';
-import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { UseUsuarioLogeado } from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
 // Variables globales para el interceptor
 let dialogo: DialogHook | null = null;
 let notifica: UseNotifications | null = null;
+let usrLogeado: UseUsuarioLogeado | null = null;
 
 // Conecta el UI con el interceptor
 export const configurarInterceptor = (
   dialogoParam: DialogHook,
-  notificaParam: UseNotifications
+  notificaParam: UseNotifications,
+  usrLogeadoParam: UseUsuarioLogeado
 ) => {
   dialogo = dialogoParam;
   notifica = notificaParam;
+  usrLogeado = usrLogeadoParam;
 };
 
 axios.defaults.timeout = 10000; //10 sg
@@ -23,6 +26,7 @@ axios.defaults.timeout = 10000; //10 sg
 const protocol = window.location.protocol;
 const currentDomain = window.location.hostname;
 axios.defaults.baseURL = `${protocol}//${currentDomain}:8080`;
+axios.defaults.withCredentials = true; // Incluye cookies HttpOnly
 
 // Error controlado
 //
@@ -73,8 +77,9 @@ axios.interceptors.response.use(
           'La sesión ha caducado y la aplicación se cerrará. ' +
           'Si desea continuar, vuelva a introducir sus credenciales');
 
-        const { setUsrLogeado } = useUsuarioLogeado()
-        setUsrLogeado(null)
+        if (usrLogeado) {
+          usrLogeado.setUsrLogeado(null);
+        }
 
         // Forzamos a eliminar caches. Liberamos memoria
         window.location.replace('/');

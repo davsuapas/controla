@@ -31,6 +31,7 @@ impl AppState {
       manejador_sesion: Arc::new(middleware::ManejadorSesion::new(
         cnfg.secreto.clone(),
         Duration::from_secs(cnfg.caducidad_sesion),
+        cnfg.produccion,
       )),
       usuario_servicio: UsuarioServicio::new(
         cnfg.clone(),

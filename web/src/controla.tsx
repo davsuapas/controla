@@ -1,5 +1,5 @@
 import CssBaseline from '@mui/material/CssBaseline';
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
 import DashboardLayout from './components/DashboardLayout';
 import UsuarioList from './components/UsuarioList';
 import UsuarioCrear from './components/UsuarioCrear';
@@ -21,6 +21,7 @@ import UsuarioPassword from './components/UsuarioPassword';
 import Login from './components/Login';
 import UsuarioLogeadoProvider from './hooks/useUsuarioLogeado/UsuarioLogeadoProvider';
 import useUsuarioLogeado from './hooks/useUsuarioLogeado/useUsuarioLogeado';
+import Logout from './components/Logout';
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
@@ -55,9 +56,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 export const Dashboard = () => {
   const dialogo = useDialogs();
   const notifica = useNotifications();
+  const usrLogeado = useUsuarioLogeado();
 
   React.useEffect(() => {
-    configurarInterceptor(dialogo, notifica);
+    configurarInterceptor(dialogo, notifica, usrLogeado);
   }, []);
 
   return <DashboardLayout />;
@@ -82,7 +84,7 @@ const rutas = [
         Component: Login,
       },
       {
-        Component: ProtectedDashboard, // Aquí usamos el wrapper
+        Component: ProtectedDashboard,
         children: [
           {
             path: 'usuarios',
@@ -102,6 +104,10 @@ const rutas = [
               {
                 path: ':id/password',
                 Component: UsuarioPassword,
+              },
+              {
+                path: 'logout',
+                Component: Logout,
               },
             ]
           }

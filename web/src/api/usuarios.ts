@@ -9,6 +9,7 @@ export interface UsuariosApi {
   crear_usuario(usuario: UsuarioDTO): Promise<void>;
   actualizar_password(usuarioId: number, passw: string): Promise<void>;
   login(dni: string, passw: string): Promise<Usuario>;
+  logout(id: string): Promise<void>;
 }
 
 export class ContextoApi {
@@ -96,6 +97,10 @@ export class UsuariosAxiosApi implements UsuariosApi {
     }
 
     return Usuario.fromRequest(response.data)
+  }
+
+  async logout(id: string): Promise<void> {
+    return this.axios.get(`api/usuarios/${id}/logout`);
   }
 }
 
@@ -193,5 +198,9 @@ export class UsuariosTestApi implements UsuariosApi {
       inicio: '2024-01-10',
       roles: [1, 2, 3, 4, 5, 6, 7]
     })
+  }
+
+  async logout(id: string): Promise<void> {
+    return;
   }
 }

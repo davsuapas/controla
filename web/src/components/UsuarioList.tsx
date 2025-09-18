@@ -16,7 +16,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useNavigate } from 'react-router';
 import PageContainer from './PageContainer';
 import { Rol, Usuario } from '../modelos/usuarios';
-import { api, crearAPI } from '../api/usuarios';
+import { api } from '../api/usuarios';
 import Chip from '@mui/material/Chip';
 import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
@@ -37,16 +37,16 @@ export default function UsuarioList() {
   // Carga los usuarios
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
-
     let listData: Usuario[] = [];
 
     try {
       listData = await api().usuarios.usuarios();
-    } catch (e) {
-      if (!(e instanceof NetErrorControlado)) {
+    } catch (error) {
+      if (!(error instanceof NetErrorControlado)) {
+        console.error(error)
+
         notifica.show(
-          `Error inesperado al cargar la lista de usuarios. 
-          Razón: ${(e as Error).message}`,
+          'Error inesperado al cargar la lista de usuarios',
           {
             severity: 'error',
             autoHideDuration: 5000,

@@ -24,6 +24,7 @@ pub struct DatosSesion {
 pub struct ManejadorSesion {
   clave_secreta: String,
   duracion_sesion: Duration,
+  produccion: bool,
 }
 
 /// Errores de sesión
@@ -37,10 +38,15 @@ pub enum ErrorSesion {
 type HmacSha256 = Hmac<Sha256>;
 
 impl ManejadorSesion {
-  pub fn new(clave_secreta: String, duracion_sesion: Duration) -> Self {
+  pub fn new(
+    clave_secreta: String,
+    duracion_sesion: Duration,
+    produccion: bool,
+  ) -> Self {
     Self {
       clave_secreta,
       duracion_sesion,
+      produccion,
     }
   }
 
@@ -61,8 +67,8 @@ impl ManejadorSesion {
       Cookie::build((NOMBRE_COOKIE_SESION, token))
         .path("/")
         .http_only(true)
-        .secure(true)
-        .same_site(SameSite::Strict)
+        .secure(self.produccion)
+        .same_site(self.lax())
         .max_age(time::Duration::seconds(
           self.duracion_sesion.as_secs() as i64
         ))
@@ -75,10 +81,18 @@ impl ManejadorSesion {
     Cookie::build((NOMBRE_COOKIE_SESION, ""))
       .path("/")
       .http_only(true)
-      .secure(true)
-      .same_site(SameSite::Strict)
+      .secure(self.produccion)
+      .same_site(self.lax())
       .max_age(time::Duration::seconds(0))
       .build()
+  }
+
+  fn lax(&self) -> SameSite {
+    if self.produccion {
+      SameSite::Strict
+    } else {
+      SameSite::Lax
+    }
   }
 
   /// Valida un token de sesión

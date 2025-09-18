@@ -42,10 +42,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
       get(horario_usuario_por_fecha),
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
-    .route("/registros", post(registrar));
-  //.layer(axum::middleware::from_fn(
-  //  crate::infra::middleware::autenticacion,
-  //));
+    .route("/registros", post(registrar))
+    .layer(axum::middleware::from_fn(
+      crate::infra::middleware::autenticacion,
+    ));
 
   Router::new()
     .nest("/auth", rutas_auth)

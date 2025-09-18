@@ -117,14 +117,15 @@ export default function UsuarioCreate() {
       });
 
       navegar('/usuarios');
-    } catch (e) {
-      if (e instanceof NetErrorControlado) {
+    } catch (error) {
+      if (error instanceof NetErrorControlado) {
         return;
       }
 
+      console.error(error);
+      
       notifica.show(
-        `Error inesperado al crear el usuario. 
-        Razón: ${(e as Error).message}`,
+        'Error inesperado al crear el usuario',
         {
           severity: 'error',
           autoHideDuration: 5000,
