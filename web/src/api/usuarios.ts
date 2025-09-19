@@ -200,7 +200,7 @@ export class UsuariosTestApi implements UsuariosApi {
     })
   }
 
-  async logout(id: string): Promise<void> {
+  async logout(_: string): Promise<void> {
     return;
   }
 }

@@ -28,13 +28,11 @@ export default function UsuarioCreate() {
   const notifica = useNotifications();
   const { getUsrLogeado } = useUsuarioLogeado()
 
-
   const [formState, setFormState] = React.useState<UsuarioFormState>(() => ({
     values: INITIAL_FORM_VALUES,
     errors: {},
   }));
   const formValues = formState.values;
-  const formErrors = formState.errors;
 
   // Maneja los cambios en los campos
   const setFormValues = React.useCallback(
@@ -61,31 +59,41 @@ export default function UsuarioCreate() {
   // Evento que lanza el cambio de un campo y la validación
   const handleFormFieldChange = React.useCallback(
     (name: keyof UsuarioFormState['values'], value: FormFieldValue) => {
-      const newFormValues = {
-        ...formValues, [name]: setPropGeneralesUsuario(name, value)
-      };
+      setFormState((currentState) => {
+        const newFormValues = {
+          ...currentState.values,
+          [name]: setPropGeneralesUsuario(name, value)
+        };
 
-      setFormValues(newFormValues);
+        const validateAndUpdateErrors = () => {
+          const { issues } = concatenarValidaciones(
+            validaUsuario(newFormValues),
+            validaUsuarioPass(newFormValues)
+          );
 
-      const validateField = async (
-        values: Partial<UsuarioFormState['values']>) => {
-        const { issues } = concatenarValidaciones(
-          validaUsuario(values), validaUsuarioPass(values));
+          setFormState((prevState) => ({
+            ...prevState,
+            errors: {
+              ...prevState.errors,
+              [name]: issues?.find((issue) => issue.path?.[0] === name)?.message,
+            }
+          }));
+        };
 
-        setFormErrors({
-          ...formErrors,
-          [name]: issues?.find((issue) => issue.path?.[0] === name)?.message,
-        });
-      };
+        validateAndUpdateErrors();
 
-      validateField(newFormValues);
+        return {
+          ...currentState,
+          values: newFormValues,
+        };
+      });
     },
-    [formValues, formErrors, setFormErrors, setFormValues],
-  )
+    [],
+  );
 
   const handleFormReset = React.useCallback(() => {
     setFormValues(INITIAL_FORM_VALUES);
-  }, [setFormValues]);
+  }, []);
 
   // Maneja el envío del formulario
   const handleFormSubmit = React.useCallback(async () => {
@@ -123,7 +131,7 @@ export default function UsuarioCreate() {
       }
 
       console.error(error);
-      
+
       notifica.show(
         'Error inesperado al crear el usuario',
         {
@@ -132,7 +140,7 @@ export default function UsuarioCreate() {
         },
       );
     }
-  }, [formValues, navegar, notifica, setFormErrors]);
+  }, [formValues]);
 
   return (
     <PageContainer

@@ -12,7 +12,7 @@ import {
   sidebarCustomizations,
   formInputCustomizations,
 } from './theme/customizations';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { configurarInterceptor } from './net/interceptor';
 import useNotifications from './hooks/useNotifications/useNotifications';
 import { useDialogs } from './hooks/useDialogs/useDialogs';
@@ -22,6 +22,12 @@ import Login from './components/Login';
 import UsuarioLogeadoProvider from './hooks/useUsuarioLogeado/UsuarioLogeadoProvider';
 import useUsuarioLogeado from './hooks/useUsuarioLogeado/useUsuarioLogeado';
 import Logout from './components/Logout';
+import { crearAPI } from './api/usuarios';
+import UsuarioShow from './components/UsuarioShow';
+
+
+crearAPI(true);
+
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
@@ -105,6 +111,19 @@ const rutas = [
                 path: ':id/password',
                 Component: UsuarioPassword,
               },
+            ]
+          },
+          {
+            path: 'miarea',
+            children: [
+              {
+                path: 'password',
+                Component: UsuarioPassword,
+              },
+              {
+                path: 'perfil',
+                Component: UsuarioShow,
+              },
               {
                 path: 'logout',
                 Component: Logout,
@@ -118,19 +137,6 @@ const rutas = [
 ];
 
 const router = createBrowserRouter(rutas);
-
-// Hook personalizado para obtener rutas del Dashboard
-export function useRutasDashboard(): string[] {
-  return useMemo(() => {
-    const dashboardRoute = rutas[0].children?.find(
-      (child: any) => child.Component === ProtectedDashboard // Cambiar aquí también
-    );
-    if (!dashboardRoute?.children) return [];
-    return dashboardRoute.children
-      .map((child: any) => child.path)
-      .filter(Boolean);
-  }, []);
-}
 
 const themeComponents = {
   ...dataGridCustomizations,

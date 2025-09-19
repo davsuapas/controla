@@ -19,6 +19,8 @@ import { nombresRoles, nombresTodosRoles, Rol, Usuario } from '../modelos/usuari
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Chip from '@mui/material/Chip';
 import { useTheme } from '@mui/material/styles';
+import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
+
 
 export interface UsuarioFormState {
   values: Partial<Usuario>;
@@ -297,10 +299,7 @@ export default function UsuarioForm(props: UsuarioFormProps) {
       noValidate
       autoComplete="off"
       onReset={handleReset}
-      sx={{
-        height: 'calc(100vh - 180px)',
-        width: '100%',
-      }}
+      sx={FULL_HEIGHT_WIDTH}
     >
       <FormGroup>
         <Grid container spacing={2} sx={{ mb: 2, width: '100%' }}>

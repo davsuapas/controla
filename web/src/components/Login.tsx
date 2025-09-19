@@ -13,10 +13,9 @@ import SitemarkIcon from './SitemarkIcon';
 import { api } from '../api/usuarios';
 import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useLocation, useNavigate } from 'react-router';
-import { RolID } from '../modelos/usuarios';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { AxiosError } from 'axios';
-import { useRutasDashboard } from '../controla';
+import { ROLES, RolID } from '../modelos/usuarios';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -60,15 +59,6 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-const navegacionPorRol = new Map<RolID, string>([
-  [RolID.Admin, '/usuarios'],
-  [RolID.Empleado, '/usuarios'],
-  [RolID.Gestor, '/usuarios'],
-  [RolID.Director, '/usuarios'],
-  [RolID.Registrador, '/usuarios'],
-  [RolID.Inspector, '/usuarios'],
-  [RolID.Configurador, '/usuarios'],
-]);
 
 // Logea el usuario y lo redirige a la pantalla correspondiente
 // de acuerdo a su rol
@@ -76,7 +66,6 @@ export default function Login() {
   const { setUsrLogeado } = useUsuarioLogeado()
   const dialogo = useDialogs();
   const navegar = useNavigate();
-  const rutasDashboard = useRutasDashboard();
   const location = useLocation();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -92,23 +81,30 @@ export default function Login() {
 
       // Obtener la ruta de destino desde el estado de navegación
       // Extraer el primer segmento de la ruta
-      const paginaOrigen = location.state?.redirect || '/';
-      const primerSegmento = paginaOrigen.split('/')[1];
+      const paginaOrigen = location.state?.redirect;
 
       // Verificar si viene de una ruta del Dashboard
-      if (primerSegmento === '' || !rutasDashboard.includes(primerSegmento)) {
-        for (const [rol_id, ruta] of navegacionPorRol.entries()) {
-          if (usr.hayRol(rol_id)) {
+      if (paginaOrigen) {
+        if (!usr.acceso_a_ruta(paginaOrigen)) {
+          dialogo.alert(
+            'El usuario no tiene acceso a esta página. ' +
+            'Consulte con el administrador.', { title: 'DNI: ' + dni });
+          return;
+        }
+
+        // Redirigir a la página que originó la navegación al login
+        setUsrLogeado(usr);
+        navegar(paginaOrigen, { replace: true });
+        return;
+      } else {
+        for (const [rolId, rolInfo] of Object.entries(ROLES)) {
+          if (usr.anyRoles([Number(rolId) as RolID])) {
             setUsrLogeado(usr);
-            navegar(ruta, { replace: true });
+            navegar(rolInfo.ruta_login, { replace: true });
+
             return;
           }
         }
-      } else {
-        // Redirigir a la página que originó la navegación al login
-        setUsrLogeado(usr);
-        navegar(primerSegmento, { replace: true });
-        return;
       }
 
       dialogo.alert(

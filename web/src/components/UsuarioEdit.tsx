@@ -34,7 +34,6 @@ function UsuarioEditForm({
     errors: {},
   }));
   const formValues = formState.values;
-  const formErrors = formState.errors;
 
   // Maneja los cambios en los campos
   const setFormValues = React.useCallback(
@@ -61,28 +60,42 @@ function UsuarioEditForm({
   // Evento que lanza el cambio de un campo y la validación
   const handleFormFieldChange = React.useCallback(
     (name: keyof UsuarioFormState['values'], value: FormFieldValue) => {
-      const newFormValues = {
-        ...formValues, [name]: setPropGeneralesUsuario(name, value)
-      };
+      setFormState((currentState) => {
+        const newFormValues = {
+          ...currentState.values,
+          [name]: setPropGeneralesUsuario(name, value)
+        };
 
-      setFormValues(newFormValues);
+        // Validación asíncrona sin afectar el estado actual
+        const validateField = () => {
+          const { issues } = validaUsuario(newFormValues);
+          const fieldError = issues?.find(
+            (issue) => issue.path?.[0] === name)?.message;
 
-      const validateField = async (values: Partial<UsuarioFormState['values']>) => {
-        const { issues } = validaUsuario(values);
-        setFormErrors({
-          ...formErrors,
-          [name]: issues?.find((issue) => issue.path?.[0] === name)?.message,
-        });
-      };
+          setFormState((prevState) => ({
+            ...prevState,
+            errors: {
+              ...prevState.errors,
+              [name]: fieldError,
+            }
+          }));
+        };
 
-      validateField(newFormValues);
+        validateField();
+
+        // Actualizar valores inmediatamente
+        return {
+          ...currentState,
+          values: newFormValues,
+        };
+      });
     },
-    [formValues, formErrors, setFormErrors, setFormValues],
+    [],
   );
 
   const handleFormReset = React.useCallback(() => {
     setFormValues(initialValues);
-  }, [initialValues, setFormValues]);
+  }, []);
 
   // Maneja el envío del formulario
   const handleFormSubmit = React.useCallback(async () => {
@@ -122,7 +135,7 @@ function UsuarioEditForm({
         },
       );
     }
-  }, [formValues, navegar, notifica, onSubmit, setFormErrors]);
+  }, [formValues]);
 
   return (
     <UsuarioForm
@@ -163,7 +176,7 @@ export default function UsuarioEdit() {
 
   React.useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, []);
 
   const handleSubmit = React.useCallback(
     async (formValues: UsuarioFormState['values']) => {
@@ -208,7 +221,7 @@ export default function UsuarioEdit() {
     return usuario ? (
       <UsuarioEditForm initialValues={usuario} onSubmit={handleSubmit} />
     ) : null;
-  }, [isLoading, error, usuario, handleSubmit]);
+  }, [isLoading, error, usuario]);
 
   return (
     <PageContainer

@@ -27,6 +27,7 @@ export interface DashboardSidebarPageItemProps {
   selected?: boolean;
   disabled?: boolean;
   nestedNavigation?: React.ReactNode;
+  visible?: boolean;
 }
 
 export default function DashboardSidebarPageItem({
@@ -40,11 +41,17 @@ export default function DashboardSidebarPageItem({
   selected = false,
   disabled = false,
   nestedNavigation,
+  visible = true,
 }: DashboardSidebarPageItemProps) {
   const sidebarContext = React.useContext(DashboardSidebarContext);
   if (!sidebarContext) {
     throw new Error('Sidebar context was used without a provider.');
   }
+
+  if (!visible) {
+    return null;
+  }
+
   const {
     onPageItemClick,
     mini = false,

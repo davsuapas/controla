@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { api } from "../api/usuarios";
 import { useEffect } from "react";
 import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";

@@ -1,4 +1,6 @@
 import dayjs, { Dayjs } from 'dayjs';
+import { matchPath } from 'react-router';
+
 
 // Si cambia el nombre cambiarlo en Login.tsx
 export enum RolID {
@@ -11,18 +13,52 @@ export enum RolID {
   Configurador = 7
 }
 
-export const ROLES: Record<RolID, string> = {
-  [RolID.Empleado]: 'Empleado',
-  [RolID.Gestor]: 'Gestor',
-  [RolID.Admin]: 'Admin',
-  [RolID.Director]: 'Director',
-  [RolID.Registrador]: 'Registrador',
-  [RolID.Inspector]: 'Inspector',
-  [RolID.Configurador]: 'Configurador'
+// El orden es imporante para establece la ruta del login
+export const ROLES: Record<RolID, {
+  nombre: string;
+  ruta_login: string;
+  rutas_acceso: string[];
+  // otras propiedades que necesites
+}> = {
+  [RolID.Director]: {
+    nombre: 'Empleado',
+    ruta_login: '/usuarios',
+    rutas_acceso: ['/usuarios/*']
+  },
+  [RolID.Admin]: {
+    nombre: 'Empleado',
+    ruta_login: '/usuarios',
+    rutas_acceso: ['/usuarios/*']
+  },
+  [RolID.Configurador]: {
+    nombre: 'Empleado',
+    ruta_login: '',
+    rutas_acceso: []
+  },
+  [RolID.Gestor]: {
+    nombre: 'Empleado',
+    ruta_login: '',
+    rutas_acceso: []
+  },
+  [RolID.Registrador]: {
+    nombre: 'Empleado',
+    ruta_login: '',
+    rutas_acceso: []
+  },
+  [RolID.Empleado]: {
+    nombre: 'Empleado',
+    ruta_login: '',
+    rutas_acceso: []
+  },
+  [RolID.Inspector]: {
+    nombre: 'Empleado',
+    ruta_login: '',
+    rutas_acceso: []
+  },
 };
 
 export function nombresTodosRoles(): string[] {
-  return Object.values(ROLES);
+  return Object.values(ROLES).map(rol => rol.nombre);
 }
 
 export function nombresRoles(roles: Rol[]): string[] {
@@ -30,7 +66,9 @@ export function nombresRoles(roles: Rol[]): string[] {
 }
 
 export function idRolPorNombre(nombre: string): number {
-  const entry = Object.entries(ROLES).find(([_, value]) => value === nombre);
+  const entry = Object.entries(ROLES).find(
+    ([_, value]) => value.nombre === nombre);
+
   return entry ? parseInt(entry[0]) : 0;
 }
 
@@ -41,7 +79,7 @@ export class Rol {
   ) { }
 
   static desdeId(id: RolID): Rol {
-    return new Rol(id, ROLES[id]);
+    return new Rol(id, ROLES[id].nombre);
   }
 
   static desdeNombre(nombre: string): Rol {
@@ -83,8 +121,19 @@ export class Usuario {
     return this.inicio ? this.inicio.format('DD/MM/YYYY') : 'No logeado';
   }
 
-  hayRol(id: RolID): boolean {
-    return this.roles.some(rol => rol.id === id);
+  anyRoles(ids: RolID[]): boolean {
+    return this.roles.some(rol => ids.includes(rol.id));
+  }
+
+  acceso_a_ruta(ruta: string): boolean {
+    return this.roles.some(rol => {
+      const rolInfo = ROLES[rol.id as RolID];
+      if (!rolInfo) return false;
+
+      return rolInfo.rutas_acceso.some(rutaAcceso =>
+        matchPath(rutaAcceso, ruta) !== null
+      );
+    });
   }
 
   static fromRequest(obj: any): Usuario {

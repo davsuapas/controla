@@ -1,3 +1,5 @@
+# Es necesario ejecutar el servidor
+
 curl -i -X POST http://localhost:8080/api/usuarios \
   -H "Content-Type: application/json" \
   -d '{

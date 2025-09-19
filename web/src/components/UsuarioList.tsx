@@ -21,6 +21,7 @@ import Chip from '@mui/material/Chip';
 import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import PasswordIcon from '@mui/icons-material/Password';
+import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 
 export default function UsuarioList() {
   const navegar = useNavigate();
@@ -64,21 +65,21 @@ export default function UsuarioList() {
 
   React.useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, []);
 
   // Refresca la lista
   const handleRefresh = React.useCallback(() => {
     if (!isLoading) {
       loadData();
     }
-  }, [isLoading, loadData]);
+  }, [isLoading]);
 
   // Edita un usuario
   const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
     ({ row }) => {
       navegar(`/usuarios/${row.id}`);
     },
-    [navegar],
+    [],
   );
 
   // Navega para el cambio de password
@@ -86,13 +87,13 @@ export default function UsuarioList() {
     (usuario: Usuario) => () => {
       navegar(`/usuarios/${usuario.id}/password`);
     },
-    [navegar],
+    [],
   );
 
   // Crea un nuevo usuario
   const handleCreateClick = React.useCallback(() => {
     navegar('/usuarios/nuevo');
-  }, [navegar]);
+  }, []);
 
   const columns = React.useMemo<GridColDef[]>(
     () => [
@@ -236,10 +237,7 @@ export default function UsuarioList() {
         </Stack>
       }
     >
-      <Box sx={{
-        height: 'calc(100vh - 180px)',
-        width: '100%',
-      }}>
+      <Box sx={FULL_HEIGHT_WIDTH}>
         <DataGrid
           rows={rowsState.rows}
           columns={columns}

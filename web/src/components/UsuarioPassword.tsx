@@ -10,8 +10,7 @@ import UsuarioForm, {
 import PageContainer from './PageContainer';
 import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/usuarios';
-import { UsuarioDTO } from '../modelos/dto';
-import { Usuario } from '../modelos/usuarios';
+import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
 const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 };
@@ -19,6 +18,9 @@ const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 
 export default function UsuarioPassword() {
   const { id } = useParams();
+  const { getUsrLogeado } = useUsuarioLogeado()
+
+  const usuarioId = Number(id) || getUsrLogeado().id;
 
   const navegar = useNavigate();
   const notifica = useNotifications();
@@ -55,27 +57,40 @@ export default function UsuarioPassword() {
   // Evento que lanza el cambio de un campo y la validación
   const handleFormFieldChange = React.useCallback(
     (name: keyof UsuarioFormState['values'], value: FormFieldValue) => {
-      const validateField = async (
-        values: Partial<UsuarioFormState['values']>) => {
-        const { issues } = validaUsuarioPass(values);
+      setFormState((currentState) => {
+        const newFormValues = {
+          ...currentState.values,
+          [name]: value
+        };
 
-        setFormErrors({
-          ...formErrors,
-          [name]: issues?.find((issue) => issue.path?.[0] === name)?.message,
-        });
-      };
+        const validateField = () => {
+          const { issues } = validaUsuarioPass(newFormValues);
+          const fieldError = issues?.find((issue) => issue.path?.[0] === name)?.message;
 
-      const newFormValues = { ...formValues, [name]: value };
+          setFormState((prevState) => ({
+            ...prevState,
+            errors: {
+              ...prevState.errors,
+              [name]: fieldError,
+            }
+          }));
+        };
 
-      setFormValues(newFormValues);
-      validateField(newFormValues);
+        validateField();
+
+        // Actualizar valores inmediatamente
+        return {
+          ...currentState,
+          values: newFormValues,
+        };
+      });
     },
-    [formValues, formErrors, setFormErrors, setFormValues],
-  )
+    [],
+  );
 
   const handleFormReset = React.useCallback(() => {
     setFormValues(INITIAL_FORM_VALUES);
-  }, [setFormValues]);
+  }, []);
 
   // Maneja el envío del formulario
   const handleFormSubmit = React.useCallback(async () => {
@@ -93,7 +108,7 @@ export default function UsuarioPassword() {
 
     try {
       await api().usuarios.actualizar_password(
-        Number(id!), formValues.password!);
+        usuarioId, formValues.password!);
 
       notifica.show('Password cambiada satisfactóriamente.', {
         severity: 'success',
@@ -116,11 +131,11 @@ export default function UsuarioPassword() {
         },
       );
     }
-  }, [formValues, navegar, notifica, setFormErrors, id]);
+  }, [formValues, usuarioId]);
 
   return (
     <PageContainer
-      title={`Cambio de password del usuario: ${id}`}
+      title={`Cambio de password del usuario: ${usuarioId}`}
       breadcrumbs={
         [{ title: 'Usuarios', path: '/usuarios' }, { title: 'Passworrd' }]
       }

@@ -9,3 +9,8 @@ const DashboardSidebarContext = React.createContext<{
 } | null>(null);
 
 export default DashboardSidebarContext;
+
+export const FULL_HEIGHT_WIDTH = {
+  height: 'calc(100vh - 180px)',
+  width: '100%',
+};

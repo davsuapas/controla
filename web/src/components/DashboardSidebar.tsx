@@ -8,6 +8,8 @@ import Toolbar from '@mui/material/Toolbar';
 import type { } from '@mui/material/themeCssVarsAugmentation';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
+import PasswordIcon from '@mui/icons-material/Password';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -18,6 +20,7 @@ import {
   getDrawerSxTransitionMixin,
   getDrawerWidthTransitionMixin,
 } from '../mixins';
+import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
 export interface DashboardSidebarProps {
   expanded?: boolean;
@@ -43,6 +46,21 @@ export default function DashboardSidebar({
 
   const [isFullyExpanded, setIsFullyExpanded] = React.useState(expanded);
   const [isFullyCollapsed, setIsFullyCollapsed] = React.useState(!expanded);
+
+  React.useEffect(() => {
+    if (expanded) {
+      const drawerWidthTransitionTimeout = setTimeout(() => {
+        setIsFullyExpanded(true);
+      }, theme.transitions.duration.enteringScreen);
+
+      return () => clearTimeout(drawerWidthTransitionTimeout);
+    }
+
+    setIsFullyExpanded(false);
+
+    return () => { };
+  }, [expanded, theme.transitions.duration.enteringScreen]);
+
 
   React.useEffect(() => {
     if (expanded) {
@@ -101,6 +119,8 @@ export default function DashboardSidebar({
   const hasDrawerTransitions =
     isOverSmViewport && (!disableCollapsibleSidebar || isOverMdViewport);
 
+  const user = useUsuarioLogeado().getUsrLogeado();
+
   const getDrawerContent = React.useCallback(
     (viewport: 'phone' | 'tablet' | 'desktop') => (
       <React.Fragment>
@@ -131,11 +151,25 @@ export default function DashboardSidebar({
           >
             <DashboardSidebarHeaderItem>MI ÁREA</DashboardSidebarHeaderItem>
             <DashboardSidebarPageItem
+              id="perfil"
+              title="Perfil"
+              icon={<AssignmentIndIcon />}
+              href="miarea/perfil"
+              selected={!!matchPath('/miarea/perfil', pathname)}
+            />
+            <DashboardSidebarPageItem
+              id="password"
+              title="Cambiar contraseña"
+              icon={<PasswordIcon />}
+              href="miarea/password"
+              selected={!!matchPath('/miarea/password', pathname)}
+            />
+            <DashboardSidebarPageItem
               id="logout"
               title="Cerrar sesión"
               icon={<LogoutIcon />}
-              href="usuarios/logout"
-              selected={!!matchPath('/usuarios/logout', pathname)}
+              href="miarea/logout"
+              selected={!!matchPath('/miarea/logout', pathname)}
             />
             <DashboardSidebarDividerItem />
             <DashboardSidebarHeaderItem>MENÚ</DashboardSidebarHeaderItem>
@@ -144,6 +178,7 @@ export default function DashboardSidebar({
               title="Usuarios"
               icon={<PersonIcon />}
               href="/usuarios"
+              visible={user.acceso_a_ruta(pathname)}
               selected={!!matchPath('/usuarios/*', pathname)}
             />
           </List>
