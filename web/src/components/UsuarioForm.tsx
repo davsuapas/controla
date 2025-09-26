@@ -113,18 +113,18 @@ export function validaUsuario(usuario: Partial<Usuario>): ValidationResult {
     ];
   }
 
-  if (!usuario.primer_apellido) {
+  if (!usuario.primerApellido) {
     issues = [
       ...issues, {
-        message: 'El primer apellido es requerido', path: ['primer_apellido']
+        message: 'El primer apellido es requerido', path: ['primerApellido']
       }
     ];
   }
 
-  if (!usuario.segundo_apellido) {
+  if (!usuario.segundoApellido) {
     issues = [
       ...issues, {
-        message: 'El segundo apellido es requerido', path: ['segundo_apellido']
+        message: 'El segundo apellido es requerido', path: ['segundoApellido']
       }
     ];
   }
@@ -330,23 +330,23 @@ export default function UsuarioForm(props: UsuarioFormProps) {
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>
                   <TextField
-                    value={formValues.primer_apellido ?? ''}
+                    value={formValues.primerApellido ?? ''}
                     onChange={handleTextFieldChange}
-                    name="primer_apellido"
+                    name="primerApellido"
                     label="Primer apellido"
-                    error={!!formErrors.primer_apellido}
-                    helperText={formErrors.primer_apellido ?? ' '}
+                    error={!!formErrors.primerApellido}
+                    helperText={formErrors.primerApellido ?? ' '}
                     fullWidth
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>
                   <TextField
-                    value={formValues.segundo_apellido ?? ''}
+                    value={formValues.segundoApellido ?? ''}
                     onChange={handleTextFieldChange}
-                    name="segundo_apellido"
+                    name="segundoApellido"
                     label="Segundo apellido"
-                    error={!!formErrors.segundo_apellido}
-                    helperText={formErrors.segundo_apellido ?? ' '}
+                    error={!!formErrors.segundoApellido}
+                    helperText={formErrors.segundoApellido ?? ' '}
                     fullWidth
                   />
                 </Grid>

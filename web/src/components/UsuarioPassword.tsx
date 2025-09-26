@@ -9,8 +9,9 @@ import UsuarioForm, {
 } from './UsuarioForm';
 import PageContainer from './PageContainer';
 import { NetErrorControlado } from '../net/interceptor';
-import { api } from '../api/usuarios';
+import { api } from '../api/fabrica';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { logError } from '../error';
 
 const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 };
@@ -30,7 +31,6 @@ export default function UsuarioPassword() {
     errors: {},
   }));
   const formValues = formState.values;
-  const formErrors = formState.errors;
 
   // Maneja los cambios en los campos
   const setFormValues = React.useCallback(
@@ -121,7 +121,7 @@ export default function UsuarioPassword() {
         return;
       }
 
-      console.error(error);
+      logError('usuariopassword.actualizar', error);
 
       notifica.show(
         'Error inesperado al modificar las password de el usuario',
@@ -134,12 +134,7 @@ export default function UsuarioPassword() {
   }, [formValues, usuarioId]);
 
   return (
-    <PageContainer
-      title={`Cambio de password del usuario: ${usuarioId}`}
-      breadcrumbs={
-        [{ title: 'Usuarios', path: '/usuarios' }, { title: 'Passworrd' }]
-      }
-    >
+    <PageContainer title={`Cambio de password del usuario: ${usuarioId}`}>
       <UsuarioForm
         formState={formState}
         onFieldChange={handleFormFieldChange}

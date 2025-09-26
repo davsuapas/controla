@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use chrono::{NaiveDateTime, NaiveTime, TimeDelta};
+use chrono::{NaiveDateTime, NaiveTime};
 use smallvec::SmallVec;
 
 use crate::infra::{Dni, Password};
@@ -38,12 +38,6 @@ impl From<u8> for Rol {
       _ => panic!("Valor de Rol no válido"),
     }
   }
-}
-
-#[derive(Debug)]
-pub struct UsuarioNombre {
-  pub id: u32,
-  pub nombre: String,
 }
 
 #[derive(Debug)]
@@ -166,7 +160,8 @@ pub struct Horario {
 
 impl Horario {
   #[inline]
-  pub fn horas_a_trabajar(&self) -> TimeDelta {
-    self.hora_fin - self.hora_inicio
+  pub fn horas_a_trabajar(&self) -> f64 {
+    let diferencia = self.hora_fin - self.hora_inicio;
+    diferencia.num_milliseconds() as f64 / 3_600_000.0
   }
 }

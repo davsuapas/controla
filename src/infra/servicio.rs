@@ -1,5 +1,5 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use ring::{
   aead, hkdf,
   rand::{self, SecureRandom},
@@ -51,9 +51,17 @@ pub fn letra_dia_semana(dia_semana: chrono::Weekday) -> &'static str {
   }
 }
 
-pub trait ShortDateFormat {
-  /// Devuelve la fecha en formato corto "dd/mm/yyyy".
-  fn formato_corto(&self) -> String;
+/// Dado el día devuelve el día en formato largo
+pub fn dia_semana_formato_largo(dia_semana: chrono::Weekday) -> &'static str {
+  match dia_semana {
+    chrono::Weekday::Mon => "Lunes",
+    chrono::Weekday::Tue => "Martes",
+    chrono::Weekday::Wed => "Miércoles",
+    chrono::Weekday::Thu => "Jueves",
+    chrono::Weekday::Fri => "Viernes",
+    chrono::Weekday::Sat => "Sábado",
+    chrono::Weekday::Sun => "Domingo",
+  }
 }
 
 pub trait ShortDateTimeFormat {
@@ -61,7 +69,7 @@ pub trait ShortDateTimeFormat {
   fn formato_corto(&self) -> String;
 }
 
-impl ShortDateFormat for NaiveDate {
+impl ShortDateTimeFormat for NaiveDate {
   fn formato_corto(&self) -> String {
     self.format("%d/%m/%Y").to_string()
   }
@@ -70,6 +78,12 @@ impl ShortDateFormat for NaiveDate {
 impl ShortDateTimeFormat for NaiveDateTime {
   fn formato_corto(&self) -> String {
     self.format("%d/%m/%Y %H:%M").to_string()
+  }
+}
+
+impl ShortDateTimeFormat for NaiveTime {
+  fn formato_corto(&self) -> String {
+    self.format("%H:%M").to_string()
   }
 }
 

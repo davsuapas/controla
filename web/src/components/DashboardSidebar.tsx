@@ -10,6 +10,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PasswordIcon from '@mui/icons-material/Password';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -178,8 +179,16 @@ export default function DashboardSidebar({
               title="Usuarios"
               icon={<PersonIcon />}
               href="/usuarios"
-              visible={user.acceso_a_ruta(pathname)}
+              visible={user.acceso_a_ruta('/usuarios')}
               selected={!!matchPath('/usuarios/*', pathname)}
+            />
+            <DashboardSidebarPageItem
+              id="registro_manual"
+              title="Registro manual"
+              icon={<AppRegistrationIcon />}
+              href="/registro/manual"
+              visible={user.acceso_a_ruta('/registro/manual')}
+              selected={!!matchPath('/registro/manual', pathname)}
             />
           </List>
         </Box>

@@ -5,7 +5,7 @@ use sqlx::Row;
 use crate::{
   infra::{DBError, PoolConexion},
   registro::Registro,
-  usuarios::{DescriptorUsuario, Horario, UsuarioNombre},
+  usuarios::{DescriptorUsuario, Horario},
 };
 
 /// Implementación del repositorio de registros.
@@ -33,7 +33,7 @@ impl RegistroRepo {
       VALUES (?, ?, ?, ?, ?, ?)";
 
     let result = sqlx::query(QUERY)
-      .bind(reg.usuario.id)
+      .bind(reg.usuario)
       .bind(reg.fecha)
       .bind(horario)
       .bind(reg.hora_inicio)
@@ -174,7 +174,7 @@ impl RegistroRepo {
   ) -> Result<Vec<Registro>, DBError> {
     const SELECT: &str = r"SELECT r.id, r.fecha, r.hora_inicio, r.hora_fin,
         r.usuario, r.usuario_registrador, r.horario,
-        u.nombre AS u_nombre,
+        u.id AS u_id,
         ur.nombre AS ur_nombre, ur.primer_apellido AS ur_primer_apellido,
         ur.segundo_apellido AS ur_segundo_apellido,
         h.dia, h.hora_inicio AS h_hora_inicio, h.hora_fin AS h_hora_fin
@@ -216,10 +216,7 @@ impl RegistroRepo {
       rows
         .iter()
         .map(|row| Registro {
-          usuario: UsuarioNombre {
-            id: row.get("usuario"),
-            nombre: row.get("u_nombre"),
-          },
+          usuario: row.get("u_id"),
           usuario_reg: row.try_get::<u32, _>("usuario_registrador").ok().map(
             |id| DescriptorUsuario {
               id,

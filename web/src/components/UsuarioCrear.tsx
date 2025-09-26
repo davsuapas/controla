@@ -13,10 +13,11 @@ import UsuarioForm, {
 import PageContainer from './PageContainer';
 import dayjs from 'dayjs';
 import { NetErrorControlado } from '../net/interceptor';
-import { api } from '../api/usuarios';
-import { UsuarioDTO } from '../modelos/dto';
+import { api } from '../api/fabrica';
+import { UsuarioOutDTO } from '../modelos/dto';
 import { Usuario } from '../modelos/usuarios';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { logError } from '../error';
 
 const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
   activo: dayjs(),
@@ -105,6 +106,15 @@ export default function UsuarioCreate() {
         Object.fromEntries(
           issues.map((issue) => [issue.path?.[0], issue.message])),
       );
+
+      notifica.show(
+        'Imposible crear el usuario. Corriga los errores',
+        {
+          severity: 'warning',
+          autoHideDuration: 5000,
+        },
+      );
+
       return;
     }
 
@@ -116,7 +126,7 @@ export default function UsuarioCreate() {
       usr.autor = usrLog.id
 
       await api().usuarios.crear_usuario(
-        UsuarioDTO.fromUsuario(usr),
+        UsuarioOutDTO.fromUsuario(usr),
       );
 
       notifica.show('Usuario creado satisfactóriamente.', {
@@ -130,7 +140,7 @@ export default function UsuarioCreate() {
         return;
       }
 
-      console.error(error);
+      logError('usuariocrear.crear', error);
 
       notifica.show(
         'Error inesperado al crear el usuario',

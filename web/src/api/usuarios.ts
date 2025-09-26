@@ -1,45 +1,27 @@
-import axios, { AxiosInstance } from 'axios';
-import { Usuario } from '../modelos/usuarios';
-import { UsuarioDTO } from '../modelos/dto';
+import { AxiosInstance } from 'axios';
+import { DescriptorUsuario, Horario, RolID, Usuario } from '../modelos/usuarios';
+import { UsuarioOutDTO } from '../modelos/dto';
+import { Dayjs } from 'dayjs';
+import { formatDateTimeForServer } from '../modelos/formatos';
 
 export interface UsuariosApi {
   usuarios(): Promise<Usuario[]>;
   usuario(id: string): Promise<Usuario>;
-  actualizar_usuario(usuario: UsuarioDTO): Promise<void>;
-  crear_usuario(usuario: UsuarioDTO): Promise<void>;
+  actualizar_usuario(usuario: UsuarioOutDTO): Promise<void>;
+  crear_usuario(usuario: UsuarioOutDTO): Promise<void>;
   actualizar_password(usuarioId: number, passw: string): Promise<void>;
   login(dni: string, passw: string): Promise<Usuario>;
   logout(id: string): Promise<void>;
+  // Si no se proporciona fechaHora se obtiene
+  // el horario del día actual de todos aquellos que no
+  // se encuentren asignados.
+  horario(usuarioId: string, fechaHora: Dayjs | undefined): Promise<Horario[]>;
+  usuarios_por_rol(id: RolID): Promise<DescriptorUsuario[]>
 }
 
 export class ContextoApi {
   constructor(public usuarios: UsuariosApi) {
   }
-}
-
-// Variable global para el api (singleton)
-let _api: ContextoApi | null = null;
-
-export function api(): ContextoApi {
-  if (_api == null) {
-    throw Error('No se ha inicializado el API');
-  }
-
-  return _api;
-}
-
-// Crea el API de acceso a los servicios y lo inicializa
-export function crearAPI(modoTest: boolean = false) {
-  let usuarioApi: UsuariosApi;
-
-  if (modoTest) {
-    usuarioApi = new UsuariosTestApi();
-  } else {
-    usuarioApi = new UsuariosAxiosApi(axios);
-  }
-
-  const contexto = new ContextoApi(usuarioApi);
-  _api = contexto;
 }
 
 // Implementación de UsuariosApi en modo producción
@@ -64,11 +46,11 @@ export class UsuariosAxiosApi implements UsuariosApi {
     return Usuario.fromRequest(response.data)
   }
 
-  async actualizar_usuario(usuario: UsuarioDTO): Promise<void> {
+  async actualizar_usuario(usuario: UsuarioOutDTO): Promise<void> {
     return this.axios.put('api/usuarios', usuario);
   }
 
-  async crear_usuario(usuario: UsuarioDTO): Promise<void> {
+  async crear_usuario(usuario: UsuarioOutDTO): Promise<void> {
     usuario.id = 0; // Los nuevos usuarios asignan el id en el backend
     return this.axios.post('api/usuarios', usuario);
   }
@@ -101,6 +83,32 @@ export class UsuariosAxiosApi implements UsuariosApi {
 
   async logout(id: string): Promise<void> {
     return this.axios.get(`api/usuarios/${id}/logout`);
+  }
+
+  async horario(
+    usuarioId: string, fechaHora: Dayjs | undefined): Promise<Horario[]> {
+    let response;
+
+    if (fechaHora) {
+      response = await this.axios.get(
+        `api/usuarios/${usuarioId}/horario/${formatDateTimeForServer(fechaHora)}`);
+    } else {
+      response = await this.axios.get(
+        `api/usuarios/${usuarioId}/horario_hoy`);
+    }
+
+    return Array.isArray(response.data)
+      ? response.data.map(Horario.fromRequest)
+      : [];
+  }
+
+  async usuarios_por_rol(id: RolID): Promise<DescriptorUsuario[]> {
+    const response = await this.axios.get(`api/roles/${id}/usuarios`);
+    const usuariosData = response.data;
+
+    return Array.isArray(usuariosData)
+      ? usuariosData.map(DescriptorUsuario.fromRequest)
+      : [];
   }
 }
 
@@ -174,11 +182,11 @@ export class UsuariosTestApi implements UsuariosApi {
     })
   }
 
-  async actualizar_usuario(_: UsuarioDTO): Promise<void> {
+  async actualizar_usuario(_: UsuarioOutDTO): Promise<void> {
     return;
   }
 
-  async crear_usuario(_: UsuarioDTO): Promise<void> {
+  async crear_usuario(_: UsuarioOutDTO): Promise<void> {
     return;
   }
 
@@ -202,5 +210,43 @@ export class UsuariosTestApi implements UsuariosApi {
 
   async logout(_: string): Promise<void> {
     return;
+  }
+
+  async horario(_: string, __: Dayjs | undefined): Promise<Horario[]> {
+    const horariosFicticios = [
+      {
+        dia: 'L',
+        hora_inicio: '08:00',
+        hora_fin: '10:00',
+        horas_a_trabajar: 2
+      },
+      {
+        dia: 'L',
+        hora_inicio: '12:00',
+        hora_fin: '13:00',
+        horas_a_trabajar: 1
+      },
+    ]
+
+    return horariosFicticios.map(Horario.fromRequest);
+  }
+
+  async usuarios_por_rol(_: RolID): Promise<DescriptorUsuario[]> {
+    const usuariosFicticios = [
+      {
+        id: 1,
+        nombre: 'Juan',
+        primer_apellido: 'Pérez',
+        segundo_apellido: 'Gómez',
+      },
+      {
+        id: 2,
+        nombre: 'María',
+        primer_apellido: 'López',
+        segundo_apellido: 'Martínez',
+      },
+    ]
+
+    return usuariosFicticios.map(DescriptorUsuario.fromRequest);
   }
 }

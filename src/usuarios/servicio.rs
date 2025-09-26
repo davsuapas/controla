@@ -163,7 +163,7 @@ impl UsuarioServicio {
         "Creando traza modificación de DNI", usuario = usuario.id);
     }
 
-    let mut inicio_log = None; 
+    let mut inicio_log = usr_persistido.inicio; 
 
     if usr_persistido.activo != usuario.activo {
       tracing::debug!(
@@ -185,7 +185,7 @@ impl UsuarioServicio {
       if usr_persistido.activo.is_none() && usuario.activo.is_some() {
         // Si se activa el usuario se resetea el valor
         // de inicio de log
-        inicio_log = usr_persistido.inicio;
+        inicio_log = None;
 
         tracing::debug!(
           usuario = usuario.id,
@@ -530,6 +530,7 @@ impl UsuarioServicio {
   /// Devuelve el horario del usuario.
   ///
   /// Si no se proporciona una hora, devuelve el horario del día actual.
+  /// simpre que no este asignado.
   /// Si se proporciona una hora, devuelve el horario más cercano a esa hora.
   pub async fn horario_usuario(
     &self,

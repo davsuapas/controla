@@ -6,8 +6,7 @@ use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
   infra::{
-    DBError, Dni, Password, PoolConexion, ShortDateFormat, ShortDateTimeFormat,
-    Transaccion,
+    DBError, Dni, Password, PoolConexion, ShortDateTimeFormat, Transaccion,
   },
   usuarios::{DescriptorUsuario, Dia, Horario, Rol, Usuario},
 };
@@ -383,7 +382,7 @@ impl UsuarioRepo {
 
   /// Obtiene el horario más cercano a una hora dada para un usuario.
   ///
-  /// Busca un horario que esté entre las horas de inicio y fin
+  /// Busca un horario que este entre las horas de inicio y fin
   /// del día de la semana y que no esté ya asignado a un registro horario.
   /// Si no encuentra un horario entre las horas de inicio y fin,
   /// devuelve el más cercano al inicio y que no esté ya asignado
@@ -458,18 +457,20 @@ impl UsuarioRepo {
         Ok(UsuarioRepo::horario_from_row(&row))
       } else {
         Err(DBError::registro_vacio(format!(
-          "No se ha encontrado ningún horario registrado en la fecha: {}, \
+          "No se ha encontrado ningún horario en la fecha: {}, \
             para el usuario en la fecha: {} y día de la seamana: {}. \
             Verifique que los horarios no estén ya asignados a un registro.",
           fecha_creacion.formato_corto(),
           hora,
-          &dia
+          crate::infra::dia_semana_formato_largo(hora.weekday())
         )))
       }
     }
   }
 
   /// Obtiene el horario asignado al usuario para el día actual.
+  ///
+  /// Si ya se encuentra asignado se omite
   pub(in crate::usuarios) async fn horarios_hoy_usuario(
     &self,
     tz: &Tz,
@@ -490,7 +491,8 @@ impl UsuarioRepo {
             FROM registros r
             WHERE r.usuario = uh.usuario
              AND r.fecha = ?
-             AND r.horario = h.id);";
+             AND r.horario = h.id)
+        ORDER BY h.hora_inicio;";
 
     let rows = sqlx::query(QUERY)
       .bind(usuario)

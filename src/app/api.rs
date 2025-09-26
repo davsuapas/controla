@@ -14,7 +14,7 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, HorarioDTO, PasswordDniDTO, PasswordUsuarioDTO,
+      DescriptorUsuarioDTO, HorarioOutDTO, PasswordDniDTO, PasswordUsuarioDTO,
       RegistroInDTO, RegistroOutDTO, UsuarioDTO, vec_dominio_to_dtos,
     },
   },
@@ -36,7 +36,7 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
-    .route("/usuarios/{id}/horario", get(horario_usuario))
+    .route("/usuarios/{id}/horario_hoy", get(horario_usuario))
     .route(
       "/usuarios/{id}/horario/{fecha}",
       get(horario_usuario_por_fecha),
@@ -210,7 +210,7 @@ async fn horario_usuario(
     .horario_usuario(usuario, None)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
+    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioOutDTO>(horarios)))
 }
 
 #[derive(Deserialize)]
@@ -229,7 +229,7 @@ async fn horario_usuario_por_fecha(
     .horario_usuario(params.id, Some(params.fecha))
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
+    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioOutDTO>(horarios)))
 }
 
 /// Api para obtener los usuarios que tienen un rol específico.

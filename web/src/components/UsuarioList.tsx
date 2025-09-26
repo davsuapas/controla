@@ -16,12 +16,13 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useNavigate } from 'react-router';
 import PageContainer from './PageContainer';
 import { Rol, Usuario } from '../modelos/usuarios';
-import { api } from '../api/usuarios';
+import { api } from '../api/fabrica';
 import Chip from '@mui/material/Chip';
 import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import PasswordIcon from '@mui/icons-material/Password';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
+import { logError } from '../error';
 
 export default function UsuarioList() {
   const navegar = useNavigate();
@@ -44,7 +45,7 @@ export default function UsuarioList() {
       listData = await api().usuarios.usuarios();
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        console.error(error)
+        logError('usuariolistar.cargar', error);
 
         notifica.show(
           'Error inesperado al cargar la lista de usuarios',

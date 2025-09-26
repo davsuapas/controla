@@ -2,9 +2,9 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  infra::{Dni, Password},
+  infra::{Dni, Password, ShortDateTimeFormat},
   registro::Registro,
-  usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioNombre},
+  usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
 };
 
 /// Define la entidad de intercambio para el usuario
@@ -59,30 +59,6 @@ impl From<UsuarioDTO> for Usuario {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(in crate::app) struct UsuarioNombreDTO {
-  pub id: u32,
-  pub nombre: String,
-}
-
-impl From<UsuarioNombreDTO> for UsuarioNombre {
-  fn from(usr: UsuarioNombreDTO) -> Self {
-    UsuarioNombre {
-      id: usr.id,
-      nombre: usr.nombre,
-    }
-  }
-}
-
-impl From<UsuarioNombre> for UsuarioNombreDTO {
-  fn from(usr: UsuarioNombre) -> Self {
-    UsuarioNombreDTO {
-      id: usr.id,
-      nombre: usr.nombre,
-    }
-  }
-}
-
-#[derive(Serialize, Deserialize)]
 pub(in crate::app) struct DescriptorUsuarioDTO {
   pub id: u32,
   pub nombre: String,
@@ -128,20 +104,20 @@ pub struct PasswordUsuarioDTO {
 
 /// Define la entidad de intercambio para el horario
 #[derive(Serialize)]
-pub(in crate::app) struct HorarioDTO {
+pub(in crate::app) struct HorarioOutDTO {
   pub dia: &'static str,
-  pub hora_inicio: NaiveTime,
-  pub hora_fin: NaiveTime,
-  pub horas_a_trabajar: u8,
+  pub hora_inicio: String,
+  pub hora_fin: String,
+  pub horas_a_trabajar: f64,
 }
 
-impl From<Horario> for HorarioDTO {
+impl From<Horario> for HorarioOutDTO {
   fn from(horario: Horario) -> Self {
-    HorarioDTO {
+    HorarioOutDTO {
       dia: horario.dia.letra(),
-      hora_inicio: horario.hora_inicio,
-      hora_fin: horario.hora_fin,
-      horas_a_trabajar: horario.horas_a_trabajar().num_hours() as u8,
+      hora_inicio: horario.hora_inicio.formato_corto(),
+      hora_fin: horario.hora_fin.formato_corto(),
+      horas_a_trabajar: horario.horas_a_trabajar(),
     }
   }
 }
@@ -149,7 +125,7 @@ impl From<Horario> for HorarioDTO {
 /// Define la entidad de intercambio para el registro
 #[derive(Deserialize)]
 pub(in crate::app) struct RegistroInDTO {
-  pub usuario: UsuarioNombreDTO,
+  pub usuario: u32,
   pub usuario_reg: Option<DescriptorUsuarioDTO>,
   pub fecha: NaiveDate,
   pub hora_inicio: NaiveTime,
@@ -159,7 +135,7 @@ pub(in crate::app) struct RegistroInDTO {
 impl From<RegistroInDTO> for Registro {
   fn from(reg: RegistroInDTO) -> Self {
     Registro {
-      usuario: reg.usuario.into(),
+      usuario: reg.usuario,
       usuario_reg: reg.usuario_reg.map(Into::into),
       fecha: reg.fecha,
       hora_inicio: reg.hora_inicio,
@@ -172,23 +148,25 @@ impl From<RegistroInDTO> for Registro {
 /// Define la entidad de intercambio para el registro
 #[derive(Serialize)]
 pub(in crate::app) struct RegistroOutDTO {
-  pub usuario: UsuarioNombreDTO,
   pub usuario_reg: Option<DescriptorUsuarioDTO>,
-  pub horario: HorarioDTO,
+  pub horario: HorarioOutDTO,
   pub fecha: NaiveDate,
-  pub hora_inicio: NaiveTime,
-  pub hora_fin: Option<NaiveTime>,
+  pub hora_inicio: String,
+  pub hora_fin: Option<String>,
+  pub hora_trabajadas: Option<f64>,
 }
 
 impl From<Registro> for RegistroOutDTO {
   fn from(reg: Registro) -> Self {
+    let horas_trabajadas = reg.horas_trabajadas();
+
     RegistroOutDTO {
-      usuario: reg.usuario.into(),
       usuario_reg: reg.usuario_reg.map(Into::into),
       horario: reg.horario.expect("Registro debe tener horario").into(),
       fecha: reg.fecha,
-      hora_inicio: reg.hora_inicio,
-      hora_fin: reg.hora_fin,
+      hora_inicio: reg.hora_inicio.formato_corto(),
+      hora_fin: reg.hora_fin.map(|hf| hf.formato_corto()),
+      hora_trabajadas: horas_trabajadas,
     }
   }
 }

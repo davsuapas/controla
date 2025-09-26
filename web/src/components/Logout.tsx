@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { api } from "../api/usuarios";
+import { api } from "../api/fabrica";
 import { useEffect } from "react";
 import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
 import { NetErrorControlado } from "../net/interceptor";
@@ -8,6 +8,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import PageContainer from "./PageContainer";
+import { logError } from "../error";
 
 export default function Logout() {
   const navigate = useNavigate();
@@ -27,13 +28,13 @@ export default function Logout() {
       setUsrLogeado(null);
       setIsLoading(false);
 
-      navigate('/');
+      // Forzamos a eliminar caches. Liberamos memoria
+      window.location.replace('/');
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        console.error(error);
+        logError('logout', error);
+        setError(Error('Error inesperado al cerrar la sesión'));
       }
-
-      setError(Error('Error inesperado al cerrar la sesión'));
     }
 
     setIsLoading(false);

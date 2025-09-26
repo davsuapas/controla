@@ -22,11 +22,12 @@ import Login from './components/Login';
 import UsuarioLogeadoProvider from './hooks/useUsuarioLogeado/UsuarioLogeadoProvider';
 import useUsuarioLogeado from './hooks/useUsuarioLogeado/useUsuarioLogeado';
 import Logout from './components/Logout';
-import { crearAPI } from './api/usuarios';
 import UsuarioShow from './components/UsuarioShow';
+import RegistroManual from './components/RegistroManual';
+import { crearAPI } from './api/fabrica';
 
 
-crearAPI(true);
+crearAPI(false);
 
 
 // Layout raíz que permite usar los hooks
@@ -127,6 +128,15 @@ const rutas = [
               {
                 path: 'logout',
                 Component: Logout,
+              },
+            ]
+          },
+          {
+            path: 'registro',
+            children: [
+              {
+                path: 'manual',
+                Component: RegistroManual,
               },
             ]
           }

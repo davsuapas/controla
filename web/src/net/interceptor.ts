@@ -4,6 +4,7 @@ import axios, { AxiosError } from 'axios';
 import { UseNotifications } from '../hooks/useNotifications/useNotifications';
 import { DialogHook } from '../hooks/useDialogs/useDialogs';
 import { UseUsuarioLogeado } from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { logError } from '../error';
 
 // Variables globales para el interceptor
 let dialogo: DialogHook | null = null;
@@ -108,7 +109,8 @@ axios.interceptors.response.use(
 
         break;
       default:
-        console.log('Error ${status}:', data);
+        logError('interceptor:', error);
+
         notifica.show(
           'Error inesperado. Contacte con el administrador',
           {

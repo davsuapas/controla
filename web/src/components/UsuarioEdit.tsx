@@ -14,9 +14,10 @@ import UsuarioForm, {
 import PageContainer from './PageContainer';
 import { NetErrorControlado } from '../net/interceptor';
 import { Usuario } from '../modelos/usuarios';
-import { UsuarioDTO } from '../modelos/dto';
-import { api } from '../api/usuarios';
+import { UsuarioOutDTO } from '../modelos/dto';
+import { api } from '../api/fabrica';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { logError } from '../error';
 
 
 function UsuarioEditForm({
@@ -66,7 +67,6 @@ function UsuarioEditForm({
           [name]: setPropGeneralesUsuario(name, value)
         };
 
-        // Validación asíncrona sin afectar el estado actual
         const validateField = () => {
           const { issues } = validaUsuario(newFormValues);
           const fieldError = issues?.find(
@@ -106,6 +106,15 @@ function UsuarioEditForm({
         Object.fromEntries(
           issues.map((issue) => [issue.path?.[0], issue.message])),
       );
+
+      notifica.show(
+        'Imposible actualizar el usuario. Corriga los errores',
+        {
+          severity: 'warning',
+          autoHideDuration: 5000,
+        },
+      );
+
       return;
     }
 
@@ -125,7 +134,7 @@ function UsuarioEditForm({
         return;
       }
 
-      console.error(error);
+      logError('usuarioeditar.actualizar', error);
 
       notifica.show(
         'Error inesperado al actualizar el usuario',
@@ -166,17 +175,16 @@ export default function UsuarioEdit() {
       setUsuario(showData);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        console.error(error);
+        logError('usuarioeditar.cargar', error);
+        setError(Error('Error inesperado al crear el usuario'));
       }
-
-      setError(Error('Error inesperado al crear el usuario'));
     }
     setIsLoading(false);
   }, [id]);
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleSubmit = React.useCallback(
     async (formValues: UsuarioFormState['values']) => {
@@ -186,7 +194,7 @@ export default function UsuarioEdit() {
       usr.autor = usrLog.id
 
       return api().usuarios.actualizar_usuario(
-        UsuarioDTO.fromUsuario(usr),
+        UsuarioOutDTO.fromUsuario(usr),
       );
     },
     [],

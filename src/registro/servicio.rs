@@ -1,6 +1,6 @@
 use crate::{
   config::ConfigTrabajo,
-  infra::{ServicioError, ShortDateFormat},
+  infra::{ServicioError, ShortDateTimeFormat},
   registro::{Registro, RegistroRepo},
   usuarios::UsuarioServicio,
 };
@@ -45,6 +45,10 @@ impl RegistroServicio {
   ///   obtenido.
   ///
   /// Devuelve el ID del registro creado.
+  // TODO(entrada: 11, salida 12, hora entrar 10, salir 11)
+  // entrada: 10, salida 10:01, hora entrar 12, salir 13)
+  // Esta ma: Si la entrada es menor a la hora a entrar
+  // de un horario ya registrado, no se puede.
   pub async fn agregar(&self, reg: &Registro) -> Result<u32, ServicioError> {
     tracing::info!(
       registro = ?reg,
@@ -54,7 +58,7 @@ impl RegistroServicio {
 
     let horario_cercano = self
       .usuario_servico
-      .horario_cercano(reg.usuario.id, reg.hora_inicio_completa())
+      .horario_cercano(reg.usuario, reg.hora_inicio_completa())
       .await
       .inspect_err(|err| {
         tracing::error!(
@@ -68,7 +72,7 @@ impl RegistroServicio {
     // obtenido.
     if let Some(hora_fin_previa) = self
       .repo
-      .hora_fin_previa(reg.usuario.id, reg.fecha, horario_cercano.hora_inicio)
+      .hora_fin_previa(reg.usuario, reg.fecha, horario_cercano.hora_inicio)
       .await
       .map_err(ServicioError::from)?
     {
@@ -79,17 +83,17 @@ impl RegistroServicio {
            para el usuario: {} y fecha: {}",
           reg.hora_inicio,
           hora_fin_previa,
-          &reg.usuario.nombre,
+          &reg.usuario,
           &reg.fecha.formato_corto()
         )));
       }
     }
 
-    let horas_a_trabajar = horario_cercano.horas_a_trabajar().num_hours() as u8;
+    let horas_a_trabajar = horario_cercano.horas_a_trabajar();
 
     tracing::debug!(
       horario = ?horario_cercano,
-      horas_a_trabajar = horas_a_trabajar,
+      horas_a_trabajar = format!("{:.2}", horas_a_trabajar),
       "Horario más cercano al registro horario del usuario");
 
     let id = match self.repo.agregar(reg, horario_cercano.id).await {
@@ -141,7 +145,7 @@ impl RegistroServicio {
   ) -> Result<(), ServicioError> {
     if self
       .repo
-      .hora_fin_vacia(reg.usuario.id, reg.fecha)
+      .hora_fin_vacia(reg.usuario, reg.fecha)
       .await
       .map_err(ServicioError::from)?
     {
@@ -150,14 +154,14 @@ impl RegistroServicio {
         con alguna hora de fin sin registrar \
         para el usuario: {} en la fecha: {}. \
         Por favor, registre antes la hora de fin.",
-        &reg.usuario.nombre,
+        &reg.usuario,
         &reg.fecha.formato_corto()
       )));
     }
 
     if self
       .repo
-      .hora_asignada(reg.usuario.id, reg.fecha, reg.hora_inicio)
+      .hora_asignada(reg.usuario, reg.fecha, reg.hora_inicio)
       .await
       .map_err(ServicioError::from)?
     {
@@ -165,7 +169,7 @@ impl RegistroServicio {
         "La hora de inicio: {} se encuentra entre un rango de horas \
         ya registrado para el usuario: {} en la fecha: {}",
         reg.hora_inicio,
-        &reg.usuario.nombre,
+        &reg.usuario,
         &reg.fecha.formato_corto()
       )));
     }
@@ -173,7 +177,7 @@ impl RegistroServicio {
     if let Some(hora_fin) = reg.hora_fin {
       let hora_asignada = self
         .repo
-        .horas_solapadas(reg.usuario.id, reg.fecha, reg.hora_inicio, hora_fin)
+        .horas_solapadas(reg.usuario, reg.fecha, reg.hora_inicio, hora_fin)
         .await
         .map_err(ServicioError::from)?;
 
@@ -181,7 +185,7 @@ impl RegistroServicio {
         return Err(ServicioError::Usuario(format!(
           "Ya existe un rango horario que se solapa con el \
           registro del usuario: {} en la fecha: {} desde: {} hasta: {}",
-          &reg.usuario.nombre,
+          &reg.usuario,
           &reg.fecha.formato_corto(),
           reg.hora_inicio,
           hora_fin

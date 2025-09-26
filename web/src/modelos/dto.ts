@@ -1,8 +1,9 @@
-import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
-import { formatDateForServer, Usuario } from "./usuarios";
+import dayjs from "dayjs";
+import { formatDateForServer, formatDateTimeForServer, formatTimeForServer } from "./formatos";
+import { DescriptorUsuario, Usuario } from "./usuarios";
 
 // La entidad UsuarioDTO se usa para enviar a el servidor
-export class UsuarioDTO {
+export class UsuarioOutDTO {
   public inicio = null;
 
   constructor(
@@ -20,18 +21,48 @@ export class UsuarioDTO {
   }
 
   // No se olvide de propor el autor si procede
-  static fromUsuario(usr: Usuario): UsuarioDTO {
-    return new UsuarioDTO(
+  static fromUsuario(usr: Usuario): UsuarioOutDTO {
+    return new UsuarioOutDTO(
       usr.id,
       usr.autor!,
       usr.dni,
       usr.email,
       usr.nombre,
-      usr.primer_apellido,
-      usr.segundo_apellido,
+      usr.primerApellido,
+      usr.segundoApellido,
       usr.password!,
-      formatDateForServer(usr.activo),
+      formatDateTimeForServer(usr.activo),
       usr.roles.map((r) => r.id),
+    );
+  }
+}
+
+// DTO para enviar registros al servidor
+export class RegistroOutDTO {
+  constructor(
+    public usuario: number,
+    public usuario_reg: DescriptorUsuario | null,
+    public fecha: string,
+    public hora_inicio: string,
+    public hora_fin: string | null,
+  ) { }
+
+  // Método estático para crear desde los datos del formulario
+  static new(
+    usuarioId: number,
+    usuarioLogeado: DescriptorUsuario,
+    fecha: dayjs.Dayjs,
+    horaInicio: dayjs.Dayjs,
+    horaFin: dayjs.Dayjs | undefined,
+  ): RegistroOutDTO {
+    const usuarioReg = usuarioId == usuarioLogeado.id ? null : usuarioLogeado
+
+    return new RegistroOutDTO(
+      usuarioId,
+      usuarioReg,
+      formatDateForServer(fecha)!,
+      formatTimeForServer(horaInicio)!,
+      formatTimeForServer(horaFin)
     );
   }
 }

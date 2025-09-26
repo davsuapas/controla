@@ -8,10 +8,11 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import PageContainer from './PageContainer';
 import { Usuario } from '../modelos/usuarios';
-import { api } from '../api/usuarios';
+import { api } from '../api/fabrica';
 import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
 import { NetErrorControlado } from '../net/interceptor';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
+import { logError } from '../error';
 
 export default function UsuarioShow() {
   const { getUsrLogeado } = useUsuarioLogeado();
@@ -30,10 +31,9 @@ export default function UsuarioShow() {
       setUsuario(showData);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        console.error(error);
+        logError('usuariovisualizar.cargar', error);
+        setError(Error('Error inesperado al visualizar el usuario'));
       }
-
-      setError(Error('Error inesperado al visualizar el usuario'));
     }
 
     setIsLoading(false);
@@ -74,7 +74,7 @@ export default function UsuarioShow() {
         <Grid container spacing={2} sx={{ width: '100%' }}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">ID</Typography>
+              <Typography variant="h5">ID</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
                 {usuario.id}
               </Typography>
@@ -82,7 +82,7 @@ export default function UsuarioShow() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">DNI</Typography>
+              <Typography variant="h5">DNI</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
                 {usuario.dni}
               </Typography>
@@ -90,7 +90,7 @@ export default function UsuarioShow() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">Nombre</Typography>
+              <Typography variant="h5">NOMBRE</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
                 {usuario.nombre}
               </Typography>
@@ -98,23 +98,23 @@ export default function UsuarioShow() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">Primer apellido</Typography>
+              <Typography variant="h5">PRIMER APELLIDO</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
-                {usuario.primer_apellido}
+                {usuario.primerApellido}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">Segundo apellido</Typography>
+              <Typography variant="h5">SEGUNDO APELLIDO</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
-                {usuario.segundo_apellido}
+                {usuario.segundoApellido}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">Email</Typography>
+              <Typography variant="h5">EMAIL</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
                 {usuario.email}
               </Typography>
@@ -122,7 +122,7 @@ export default function UsuarioShow() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">Roles</Typography>
+              <Typography variant="h5">ROLES</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
                 {usuario.roles.map((rol) => (
                   <Chip
@@ -137,7 +137,7 @@ export default function UsuarioShow() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="overline">Primer acceso</Typography>
+              <Typography variant="h5">PRIMER ACCESO</Typography>
               <Typography variant="body1" sx={{ mb: 1 }}>
                 {usuario.inicioToStr()}
               </Typography>

@@ -10,7 +10,7 @@ import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import ColorModeSelect from '../theme/ColorModeSelect';
 import SitemarkIcon from './SitemarkIcon';
-import { api } from '../api/usuarios';
+import { api } from '../api/fabrica';
 import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useLocation, useNavigate } from 'react-router';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
@@ -81,13 +81,13 @@ export default function Login() {
 
       // Obtener la ruta de destino desde el estado de navegación
       // Extraer el primer segmento de la ruta
-      const paginaOrigen = location.state?.redirect;
+      const paginaOrigen: string = location.state?.redirect;
 
       // Verificar si viene de una ruta del Dashboard
       if (paginaOrigen) {
         if (!usr.acceso_a_ruta(paginaOrigen)) {
           dialogo.alert(
-            'El usuario no tiene acceso a esta página. ' +
+            `El usuario no tiene acceso a esta página: ${paginaOrigen}. ` +
             'Consulte con el administrador.', { title: 'DNI: ' + dni });
           return;
         }
@@ -95,15 +95,16 @@ export default function Login() {
         // Redirigir a la página que originó la navegación al login
         setUsrLogeado(usr);
         navegar(paginaOrigen, { replace: true });
-        return;
-      } else {
-        for (const [rolId, rolInfo] of Object.entries(ROLES)) {
-          if (usr.anyRoles([Number(rolId) as RolID])) {
-            setUsrLogeado(usr);
-            navegar(rolInfo.ruta_login, { replace: true });
 
-            return;
-          }
+        return;
+      }
+
+      for (const [rolId, rolInfo] of ROLES.entries()) {
+        if (usr.anyRoles([Number(rolId) as RolID])) {
+          setUsrLogeado(usr);
+          navegar(rolInfo.ruta_login, { replace: true });
+
+          return;
         }
       }
 
