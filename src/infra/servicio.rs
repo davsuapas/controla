@@ -51,27 +51,20 @@ pub fn letra_dia_semana(dia_semana: chrono::Weekday) -> &'static str {
   }
 }
 
-/// Dado el día devuelve el día en formato largo
-pub fn dia_semana_formato_largo(dia_semana: chrono::Weekday) -> &'static str {
-  match dia_semana {
-    chrono::Weekday::Mon => "Lunes",
-    chrono::Weekday::Tue => "Martes",
-    chrono::Weekday::Wed => "Miércoles",
-    chrono::Weekday::Thu => "Jueves",
-    chrono::Weekday::Fri => "Viernes",
-    chrono::Weekday::Sat => "Sábado",
-    chrono::Weekday::Sun => "Domingo",
-  }
-}
-
 pub trait ShortDateTimeFormat {
-  /// Devuelve la fecha y hora en formato corto "dd/mm/yyyy HH:MM".
+  /// Devuelve la fecha y hora en formato corto".
   fn formato_corto(&self) -> String;
+  /// Devuelve la fecha y hora en formato compatible con SQL
+  fn formato_sql(&self) -> String;
 }
 
 impl ShortDateTimeFormat for NaiveDate {
   fn formato_corto(&self) -> String {
     self.format("%d/%m/%Y").to_string()
+  }
+
+  fn formato_sql(&self) -> String {
+    self.format("%Y-%m-%d").to_string()
   }
 }
 
@@ -79,10 +72,18 @@ impl ShortDateTimeFormat for NaiveDateTime {
   fn formato_corto(&self) -> String {
     self.format("%d/%m/%Y %H:%M").to_string()
   }
+
+  fn formato_sql(&self) -> String {
+    self.format("%Y-%m-%d %H:%M:%S").to_string()
+  }
 }
 
 impl ShortDateTimeFormat for NaiveTime {
   fn formato_corto(&self) -> String {
+    self.format("%H:%M").to_string()
+  }
+
+  fn formato_sql(&self) -> String {
     self.format("%H:%M").to_string()
   }
 }

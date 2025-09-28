@@ -96,7 +96,7 @@ axios.interceptors.response.use(
           notifica.show(mensajeUsuario,
             {
               severity: 'error',
-              autoHideDuration: 10000,
+              autoHideDuration: 15000,
             });
         } else {
           console.log('Error 500 interno:', data);

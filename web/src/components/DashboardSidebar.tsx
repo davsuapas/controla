@@ -184,11 +184,11 @@ export default function DashboardSidebar({
             />
             <DashboardSidebarPageItem
               id="registro_manual"
-              title="Registro manual"
+              title="Marcaje manual"
               icon={<AppRegistrationIcon />}
-              href="/registro/manual"
-              visible={user.acceso_a_ruta('/registro/manual')}
-              selected={!!matchPath('/registro/manual', pathname)}
+              href="/marcaje/manual"
+              visible={user.acceso_a_ruta('/marcaje/manual')}
+              selected={!!matchPath('/marcaje/manual', pathname)}
             />
           </List>
         </Box>

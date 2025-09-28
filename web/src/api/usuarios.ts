@@ -12,10 +12,8 @@ export interface UsuariosApi {
   actualizar_password(usuarioId: number, passw: string): Promise<void>;
   login(dni: string, passw: string): Promise<Usuario>;
   logout(id: string): Promise<void>;
-  // Si no se proporciona fechaHora se obtiene
-  // el horario del día actual de todos aquellos que no
-  // se encuentren asignados.
-  horario(usuarioId: string, fechaHora: Dayjs | undefined): Promise<Horario[]>;
+  horarioSinAsignar(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
+  horarioCercano(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
   usuarios_por_rol(id: RolID): Promise<DescriptorUsuario[]>
 }
 
@@ -85,17 +83,24 @@ export class UsuariosAxiosApi implements UsuariosApi {
     return this.axios.get(`api/usuarios/${id}/logout`);
   }
 
-  async horario(
-    usuarioId: string, fechaHora: Dayjs | undefined): Promise<Horario[]> {
+  async horarioSinAsignar(
+    usuarioId: string, fechaHora: Dayjs): Promise<Horario[]> {
     let response;
 
-    if (fechaHora) {
-      response = await this.axios.get(
-        `api/usuarios/${usuarioId}/horario/${formatDateTimeForServer(fechaHora)}`);
-    } else {
-      response = await this.axios.get(
-        `api/usuarios/${usuarioId}/horario_hoy`);
-    }
+    response = await this.axios.get(
+      `api/usuarios/${usuarioId}/horario_sin_asignar/${formatDateTimeForServer(fechaHora)}`);
+
+    return Array.isArray(response.data)
+      ? response.data.map(Horario.fromRequest)
+      : [];
+  }
+
+  async horarioCercano(
+    usuarioId: string, fechaHora: Dayjs): Promise<Horario[]> {
+    let response;
+
+    response = await this.axios.get(
+      `api/usuarios/${usuarioId}/horario_cercano/${formatDateTimeForServer(fechaHora)}`);
 
     return Array.isArray(response.data)
       ? response.data.map(Horario.fromRequest)
@@ -212,7 +217,7 @@ export class UsuariosTestApi implements UsuariosApi {
     return;
   }
 
-  async horario(_: string, __: Dayjs | undefined): Promise<Horario[]> {
+  async horarioSinAsignar(_: string, __: Dayjs): Promise<Horario[]> {
     const horariosFicticios = [
       {
         dia: 'L',
@@ -231,6 +236,24 @@ export class UsuariosTestApi implements UsuariosApi {
     return horariosFicticios.map(Horario.fromRequest);
   }
 
+  async horarioCercano(_: string, __: Dayjs): Promise<Horario[]> {
+    const horariosFicticios = [
+      {
+        dia: 'L',
+        hora_inicio: '08:00',
+        hora_fin: '10:00',
+        horas_a_trabajar: 2
+      },
+      {
+        dia: 'L',
+        hora_inicio: '12:00',
+        hora_fin: '13:00',
+        horas_a_trabajar: 1
+      },
+    ]
+
+    return horariosFicticios.map(Horario.fromRequest);
+  }
   async usuarios_por_rol(_: RolID): Promise<DescriptorUsuario[]> {
     const usuariosFicticios = [
       {

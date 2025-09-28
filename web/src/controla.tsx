@@ -132,7 +132,7 @@ const rutas = [
             ]
           },
           {
-            path: 'registro',
+            path: 'marcaje',
             children: [
               {
                 path: 'manual',

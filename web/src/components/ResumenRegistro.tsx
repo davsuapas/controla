@@ -15,14 +15,18 @@ import { api } from '../api/fabrica';
 import { logError } from '../error';
 
 interface ResumenRegistrosProps {
+  ultimosRegistros: boolean,
   usuarioId: string | undefined;
-  fechaHora: dayjs.Dayjs | undefined;
+  fecha: dayjs.Dayjs | undefined;
+  horaInicio: dayjs.Dayjs | undefined;
   refreshTrigger?: number;
 }
 
 // Muestra en una tabla los últimos registros de un usuario
-// y el horario más cercano si se proporciona una fecha y hora,
-// si no se devuelve el horario del día no asignado
+// si la propierdad ultimos_registros es true, si no muestra
+// el registro por usuario y fecha.
+// También, muestra el horario más cercano si se proporciona
+// una fecha y hora, si no se devuelve el horario según la fecha
 export default function ResumenRegistros(props: ResumenRegistrosProps) {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
@@ -30,37 +34,64 @@ export default function ResumenRegistros(props: ResumenRegistrosProps) {
   const notifica = useNotifications();
 
   // Carga los últimos registros (solo depende de usuarioId)
-  const cargarRegistros = React.useCallback(async (usuarioId: string) => {
-    setIsLoading(true);
+  const cargarRegistros = React.useCallback(
+    async (
+      ultimosRegistros: boolean,
+      usuarioId: string,
+      fecha: dayjs.Dayjs | undefined) => {
+      setIsLoading(true);
 
-    try {
-      const registrosData = await api().registros.ultimos_marcajes(usuarioId);
-      setRegistros(registrosData);
-    } catch (error) {
-      if (!(error instanceof NetErrorControlado)) {
-        logError('resumenregistro.cargar.registros', error);
-        notifica.show(
-          'Error inesperado al cargar los últimos registros',
-          {
-            severity: 'error',
-            autoHideDuration: 5000,
-          },
-        );
+      try {
+        let registrosData: Registro[] = [];
+        if (ultimosRegistros || (!ultimosRegistros && !fecha)) {
+          registrosData = await api().registros.ultimos_registros(usuarioId);
+        } else {
+          registrosData = await api().registros.marcajes_por_fecha(
+            usuarioId, fecha!);
+        }
+        setRegistros(registrosData);
+      } catch (error) {
+        if (!(error instanceof NetErrorControlado)) {
+          logError('resumenregistro.cargar.registros', error);
+          notifica.show(
+            'Error inesperado al cargar los últimos marcajes',
+            {
+              severity: 'error',
+              autoHideDuration: 5000,
+            },
+          );
+        }
+        setRegistros([]);
       }
-      setRegistros([]);
-    }
 
-    setIsLoading(false);
-  }, []);
+      setIsLoading(false);
+    }, []);
 
-  // Carga los horarios (depende de usuarioId y fechaHora)
+  // Carga los horarios (depende de usuarioId, fecha y horaInicio)
+  // La horaIinicio trae la fecha de hoy, pero la que vale es la fecha 
+  // el registrador asigna en el form
   const cargarHorarios = React.useCallback(
-    async (usuarioId: string, fechaHora: dayjs.Dayjs | undefined) => {
+    async (
+      usuarioId: string,
+      fecha: dayjs.Dayjs | undefined,
+      horaInicio: dayjs.Dayjs | undefined) => {
+
+      let horario: Horario[] = [];
+
       setIsLoading(false);
 
       try {
-        const horariosData = await api().usuarios.horario(usuarioId, fechaHora);
-        setHorarios(horariosData);
+        if (fecha && horaInicio) {
+          const hora: dayjs.Dayjs = fecha
+            .set('hour', horaInicio.hour())
+            .set('minute', horaInicio.minute());
+          horario = await api().usuarios.horarioCercano(usuarioId, hora);
+        } else {
+          if (fecha) {
+            horario = await api().usuarios.horarioSinAsignar(usuarioId, fecha);
+          }
+        }
+        setHorarios(horario);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
           logError('resumenregistro.cargar.horarios', error);
@@ -79,20 +110,20 @@ export default function ResumenRegistros(props: ResumenRegistrosProps) {
   // Efecto para cargar registros (solo cuando cambia usuarioId)
   React.useEffect(() => {
     if (props.usuarioId) {
-      cargarRegistros(props.usuarioId);
+      cargarRegistros(props.ultimosRegistros, props.usuarioId, props.fecha);
     } else {
       setRegistros([]);
     }
-  }, [props.usuarioId, props.refreshTrigger]);
+  }, [props.ultimosRegistros, props.usuarioId, props.fecha, props.refreshTrigger]);
 
   // Efecto para cargar horarios (cuando cambia usuarioId o fechaHora)
   React.useEffect(() => {
     if (props.usuarioId) {
-      cargarHorarios(props.usuarioId, props.fechaHora);
+      cargarHorarios(props.usuarioId, props.fecha, props.horaInicio);
     } else {
       setHorarios([]);
     }
-  }, [props.usuarioId, props.fechaHora]);
+  }, [props.usuarioId, props.fecha, props.horaInicio]);
 
   if (isLoading) {
     return (

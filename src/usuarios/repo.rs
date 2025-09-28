@@ -1,8 +1,7 @@
-use chrono_tz::Tz;
 use smallvec::SmallVec;
 use sqlx::{Row, mysql::MySqlRow};
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
 
 use crate::{
   infra::{
@@ -387,17 +386,18 @@ impl UsuarioRepo {
   /// Si no encuentra un horario entre las horas de inicio y fin,
   /// devuelve el más cercano al inicio y que no esté ya asignado
   /// a un registro horario.
+  /// Además, la hora que se busca, tiene que ser mayor de la hora
+  /// final del registro del horario anterior asignado.
   pub(in crate::usuarios) async fn horario_cercano(
     &self,
     usuario: u32,
     hora: NaiveDateTime,
   ) -> Result<Horario, DBError> {
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
-
     let dia = crate::infra::letra_dia_semana(hora.weekday());
 
     // Busca un horario que esté entre las horas de inicio y fin
-    // del día de la semana y que no esté ya asignado a un registro horario.
+    // del día de la semana.
     const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
          JOIN usuario_horarios uh ON h.id = uh.horario
@@ -406,18 +406,30 @@ impl UsuarioRepo {
          AND h.dia = ?
          AND ? BETWEEN h.hora_inicio AND h.hora_fin
          AND NOT EXISTS 
-         ( SELECT r.id
+         (SELECT r.id
             FROM registros r
             WHERE r.usuario = uh.usuario
              AND r.fecha = ?
-             AND r.horario = h.id);";
+             AND r.horario = h.id)
+         AND ? > COALESCE((
+            SELECT MAX(r2.hora_fin)
+            FROM registros r2
+            JOIN horarios h2 ON r2.horario = h2.id
+            WHERE r2.usuario = uh.usuario
+              AND r2.fecha = ?
+              AND h2.hora_inicio < h.hora_inicio), '00:00:00')";
+
+    let fecha = hora.date();
+    let hora_buscar = hora.time();
 
     let result = sqlx::query(QUERY)
       .bind(usuario)
       .bind(fecha_creacion)
       .bind(dia)
-      .bind(hora.time())
-      .bind(hora.date())
+      .bind(hora_buscar)
+      .bind(fecha)
+      .bind(hora_buscar)
+      .bind(fecha)
       .fetch_optional(self.pool.conexion())
       .await
       .map_err(DBError::consulta_from)?;
@@ -426,8 +438,7 @@ impl UsuarioRepo {
       Ok(UsuarioRepo::horario_from_row(&row))
     } else {
       // Si no encuentra un horario entre las horas de inicio y fin,
-      // devuelve el más cercano al inicio
-      // y que no esté ya asignado a un registro horario.
+      // devuelve el más cercano al inicio.
       const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
             FROM horarios h
             JOIN usuario_horarios uh ON h.id = uh.horario
@@ -441,14 +452,23 @@ impl UsuarioRepo {
                  WHERE r.usuario = uh.usuario
                   AND r.fecha = ?
                   AND r.horario = h.id)
+            AND ? > COALESCE((
+                SELECT MAX(r2.hora_fin)
+                FROM registros r2
+                JOIN horarios h2 ON r2.horario = h2.id
+                WHERE r2.usuario = uh.usuario
+                  AND r2.fecha = ?
+                  AND h2.hora_inicio < h.hora_inicio), '00:00:00')
              LIMIT 1;";
 
       let result = sqlx::query(QUERY)
         .bind(usuario)
         .bind(fecha_creacion)
         .bind(dia)
-        .bind(hora.time())
-        .bind(hora.date())
+        .bind(hora_buscar)
+        .bind(fecha)
+        .bind(hora_buscar)
+        .bind(fecha)
         .fetch_optional(self.pool.conexion())
         .await
         .map_err(DBError::consulta_from)?;
@@ -457,26 +477,24 @@ impl UsuarioRepo {
         Ok(UsuarioRepo::horario_from_row(&row))
       } else {
         Err(DBError::registro_vacio(format!(
-          "No se ha encontrado ningún horario en la fecha: {}, \
-            para el usuario en la fecha: {} y día de la seamana: {}. \
-            Verifique que los horarios no estén ya asignados a un registro.",
-          fecha_creacion.formato_corto(),
+          "No se ha encontrado ningún horario próximo a la fecha: {}, \
+           que no este ya asignado. \
+           Verifique sus horarios creados en la fecha: {}",
           hora,
-          crate::infra::dia_semana_formato_largo(hora.weekday())
+          fecha_creacion.formato_corto()
         )))
       }
     }
   }
 
-  /// Obtiene el horario asignado al usuario para el día actual.
+  /// Obtiene el horario asignado al usuario para la fecha dada.
   ///
   /// Si ya se encuentra asignado se omite
-  pub(in crate::usuarios) async fn horarios_hoy_usuario(
+  pub(in crate::usuarios) async fn horarios_usuario_sin_asignar(
     &self,
-    tz: &Tz,
     usuario: u32,
+    hora: NaiveDateTime,
   ) -> Result<Vec<Horario>, DBError> {
-    let hora = Utc::now().with_timezone(tz).naive_local();
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
     let dia = crate::infra::letra_dia_semana(hora.weekday());
 

@@ -1,9 +1,12 @@
 import { AxiosInstance } from "axios";
 import { Registro } from "../modelos/registro";
 import { RegistroOutDTO } from "../modelos/dto";
+import dayjs from "dayjs";
+import { formatDateTimeForServer } from "../modelos/formatos";
 
 export interface RegistroApi {
-  ultimos_marcajes(usuarioId: string): Promise<Registro[]>;
+  marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Registro[]>;
+  ultimos_registros(usuarioId: string): Promise<Registro[]>;
   registrar(reg: RegistroOutDTO): Promise<void>;
 }
 
@@ -16,7 +19,17 @@ export class RegistroAxiosApi implements RegistroApi {
     this.axios = axiosInstance;
   }
 
-  async ultimos_marcajes(usuarioId: string): Promise<Registro[]> {
+  async marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Registro[]> {
+    const response = await this.axios.get(
+      `api/usuarios/${usuarioId}/registros_fecha/${formatDateTimeForServer(fecha)}`);
+    const registrosData = response.data;
+
+    return Array.isArray(registrosData)
+      ? registrosData.map(Registro.fromRequest)
+      : [];
+  }
+
+  async ultimos_registros(usuarioId: string): Promise<Registro[]> {
     const response = await this.axios.get(
       `api/usuarios/${usuarioId}/ultimos_registros`);
     const registrosData = response.data;
@@ -33,7 +46,11 @@ export class RegistroAxiosApi implements RegistroApi {
 
 // Implementación de RegistroApi en modo test
 export class RegistroTestApi implements RegistroApi {
-  async ultimos_marcajes(_: string): Promise<Registro[]> {
+  async marcajes_por_fecha(usuario: string, __: dayjs.Dayjs): Promise<Registro[]> {
+    return this.ultimos_registros(usuario)
+  }
+
+  async ultimos_registros(_: string): Promise<Registro[]> {
     const registrosFicticios = [
       // Caso 1: Registro normal completo
       {

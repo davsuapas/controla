@@ -527,41 +527,58 @@ impl UsuarioServicio {
     })
   }
 
-  /// Devuelve el horario del usuario.
+  /// Devuelve los horarios del usuario sin asingnar.
   ///
   /// Si no se proporciona una hora, devuelve el horario del día actual.
   /// simpre que no este asignado.
   /// Si se proporciona una hora, devuelve el horario más cercano a esa hora.
-  pub async fn horario_usuario(
+  #[inline]
+  pub async fn horarios_usuario_sin_asignar(
     &self,
     usuario: u32,
-    hora: Option<NaiveDateTime>,
+    hora: NaiveDateTime,
   ) -> Result<Vec<Horario>, ServicioError> {
-    match hora {
-      None => self
+     self
         .repo
-        .horarios_hoy_usuario(&self.cnfg.zona_horaria, usuario)
+        .horarios_usuario_sin_asignar(usuario, hora)
         .await
         .map_err(|err| {
           tracing::error!(
           usuario = usuario,
-          error = %err,
-         "Obteniendo horario del usuario para el día actual");
-          ServicioError::from(err)
-        }),
-      Some(hora) => self
-        .horario_cercano(usuario, hora)
-        .await
-        .map(|horario| vec![horario])
-        .inspect_err(|err| {
-          tracing::error!(
-          usuario = usuario,
           hora = ?hora,
           error = %err,
-         "Obteniendo horario del usuario para una fecha y hora concreta");
-        }),
+         "Obteniendo horario del usuario sin asignar");
+          ServicioError::from(err)
+        })
+  }
+
+  /// Devuelve el horario del usuario más cercano.
+  /// 
+  /// Si no devuelve ningún horario se tracea el error y
+  /// se devuelve una array vacío
+  pub async fn horario_usuario_cercano(
+    &self,
+    usuario: u32,
+    hora: NaiveDateTime,
+  ) -> Result<Vec<Horario>, ServicioError> {
+    let res = self.repo
+        .horario_cercano(usuario, hora)
+        .await
+        .map(|horario| vec![horario]);
+    match res {
+      Ok(horarios) => Ok(horarios),
+      Err(err) => match err {
+        DBError::RegistroVacio(e) => {
+          tracing::info!(
+            error = %e,
+           "Consulta horario cercano");
+          Ok(vec![])
+        },
+        _ => Err(ServicioError::from(err)),
+      },
     }
   }
+
   /// Devuelve el horario más cercano al usuario.
   #[inline]
   pub async fn horario_cercano(

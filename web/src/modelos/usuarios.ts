@@ -28,8 +28,8 @@ export const ROLES: Map<RolID, {
   }],
   [RolID.Registrador, {
     nombre: 'Registrador',
-    ruta_login: '/registro/manual',
-    rutas_acceso: ['/miarea/*', '/registro/manual']
+    ruta_login: '/marcaje/manual',
+    rutas_acceso: ['/miarea/*', '/marcaje/manual']
   }],
   [RolID.Gestor, {
     nombre: 'Gestor',

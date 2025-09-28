@@ -1,3 +1,5 @@
+use chrono::NaiveDate;
+
 use crate::{
   config::ConfigTrabajo,
   infra::{ServicioError, ShortDateTimeFormat},
@@ -45,10 +47,6 @@ impl RegistroServicio {
   ///   obtenido.
   ///
   /// Devuelve el ID del registro creado.
-  // TODO(entrada: 11, salida 12, hora entrar 10, salir 11)
-  // entrada: 10, salida 10:01, hora entrar 12, salir 13)
-  // Esta ma: Si la entrada es menor a la hora a entrar
-  // de un horario ya registrado, no se puede.
   pub async fn agregar(&self, reg: &Registro) -> Result<u32, ServicioError> {
     tracing::info!(
       registro = ?reg,
@@ -66,28 +64,6 @@ impl RegistroServicio {
           error = %err,
          "Buscando el horario más cercano cuando se añade un registro");
       })?;
-
-    // Validamos que la hora de inicio no sea anterior a la hora de fin
-    // de un registro previo con un horario anterior al horario cercano
-    // obtenido.
-    if let Some(hora_fin_previa) = self
-      .repo
-      .hora_fin_previa(reg.usuario, reg.fecha, horario_cercano.hora_inicio)
-      .await
-      .map_err(ServicioError::from)?
-    {
-      if reg.hora_inicio < hora_fin_previa {
-        return Err(ServicioError::Usuario(format!(
-          "No se puede añadir un registro cuya hora de inicio: {} \
-           es menor a un registro ya añadido cuya hora de fin fue: {} \
-           para el usuario: {} y fecha: {}",
-          reg.hora_inicio,
-          hora_fin_previa,
-          &reg.usuario,
-          &reg.fecha.formato_corto()
-        )));
-      }
-    }
 
     let horas_a_trabajar = horario_cercano.horas_a_trabajar();
 
@@ -114,6 +90,28 @@ impl RegistroServicio {
     );
 
     Ok(id)
+  }
+
+  /// Obtiene el registro dado un usuario y la fecha
+  #[inline]
+  pub async fn registro_por_fecha(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+  ) -> Result<Vec<Registro>, ServicioError> {
+    self
+      .repo
+      .registro_por_fecha(usuario, fecha)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          usuario = usuario,
+          fecha = ?fecha,
+          error = %err,
+          "Obteniendo el registro por usuario y fecha"
+        );
+        ServicioError::from(err)
+      })
   }
 
   /// Obtiene los últimos registros horarios de un usuario.

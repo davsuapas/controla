@@ -3,7 +3,7 @@ use chrono::{NaiveDate, NaiveTime};
 use sqlx::Row;
 
 use crate::{
-  infra::{DBError, PoolConexion},
+  infra::{DBError, PoolConexion, ShortDateTimeFormat},
   registro::Registro,
   usuarios::{DescriptorUsuario, Horario},
 };
@@ -129,31 +129,6 @@ impl RegistroRepo {
     )
   }
 
-  /// Obtiene la hora final de un registro previo
-  /// para un usuario en una fecha y hora de inicio.
-  pub(in crate::registro) async fn hora_fin_previa(
-    &self,
-    usuario: u32,
-    fecha: NaiveDate,
-    hora: NaiveTime,
-  ) -> Result<Option<NaiveTime>, DBError> {
-    const QUERY: &str = r"SELECT MAX(hora_fin) 
-        FROM registros
-        WHERE usuario = ? 
-        AND fecha = ?
-        AND hora_fin < ?";
-
-    let result: Option<NaiveTime> = sqlx::query_scalar(QUERY)
-      .bind(usuario)
-      .bind(fecha)
-      .bind(hora)
-      .fetch_one(self.pool.conexion())
-      .await
-      .map_err(DBError::consulta_from)?;
-
-    Ok(result)
-  }
-
   /// Obtiene los últimos registros horarios de un usuario.
   pub(in crate::registro) async fn ultimos_registros(
     &self,
@@ -164,6 +139,22 @@ impl RegistroRepo {
     let filter = format!("r.usuario = {}", usuario);
 
     self.registros(top, Some(&filter), Some(ORDER_BY)).await
+  }
+
+  /// Obtiene los registro dado el usuario y la fecha
+  pub(in crate::registro) async fn registro_por_fecha(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+  ) -> Result<Vec<Registro>, DBError> {
+    const ORDER_BY: &str = "r.hora_inicio DESC";
+    let filter = format!(
+      "r.usuario = {} AND r.fecha = '{}'",
+      usuario,
+      fecha.formato_sql()
+    );
+
+    self.registros(None, Some(&filter), Some(ORDER_BY)).await
   }
 
   async fn registros(

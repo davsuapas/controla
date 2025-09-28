@@ -210,7 +210,7 @@ export default function RegistroManual() {
     [formData],
   );
 
-  const pageTitle = 'Registro manual del empleado';
+  const pageTitle = 'Marcaje manual del empleado';
 
   return (
     <PageContainer title={pageTitle}>
@@ -296,8 +296,10 @@ export default function RegistroManual() {
           </FormGroup>
         </LocalizationProviderES>
         <ResumenRegistros
+          ultimosRegistros={false}
           usuarioId={formData.empleado?.id.toString()}
-          fechaHora={formData.entrada}
+          fecha={formData.fecha}
+          horaInicio={formData.entrada}
           refreshTrigger={refreshTrigger} />
       </Box>
     </PageContainer >
