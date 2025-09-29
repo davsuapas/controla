@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   infra::{Dni, Password, ShortDateTimeFormat},
-  registro::Registro,
+  marcaje::Marcaje,
   usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
 };
 
@@ -122,9 +122,9 @@ impl From<Horario> for HorarioOutDTO {
   }
 }
 
-/// Define la entidad de intercambio para el registro
+/// Define la entidad de intercambio para el marcaje
 #[derive(Deserialize)]
-pub(in crate::app) struct RegistroInDTO {
+pub(in crate::app) struct MarcajeInDTO {
   pub usuario: u32,
   pub usuario_reg: Option<DescriptorUsuarioDTO>,
   pub fecha: NaiveDate,
@@ -132,9 +132,9 @@ pub(in crate::app) struct RegistroInDTO {
   pub hora_fin: Option<NaiveTime>,
 }
 
-impl From<RegistroInDTO> for Registro {
-  fn from(reg: RegistroInDTO) -> Self {
-    Registro {
+impl From<MarcajeInDTO> for Marcaje {
+  fn from(reg: MarcajeInDTO) -> Self {
+    Marcaje {
       usuario: reg.usuario,
       usuario_reg: reg.usuario_reg.map(Into::into),
       fecha: reg.fecha,
@@ -145,9 +145,9 @@ impl From<RegistroInDTO> for Registro {
   }
 }
 
-/// Define la entidad de intercambio para el registro
+/// Define la entidad de intercambio para el marcaje
 #[derive(Serialize)]
-pub(in crate::app) struct RegistroOutDTO {
+pub(in crate::app) struct MarcajeOutDTO {
   pub usuario_reg: Option<DescriptorUsuarioDTO>,
   pub horario: HorarioOutDTO,
   pub fecha: NaiveDate,
@@ -156,13 +156,13 @@ pub(in crate::app) struct RegistroOutDTO {
   pub hora_trabajadas: Option<f64>,
 }
 
-impl From<Registro> for RegistroOutDTO {
-  fn from(reg: Registro) -> Self {
+impl From<Marcaje> for MarcajeOutDTO {
+  fn from(reg: Marcaje) -> Self {
     let horas_trabajadas = reg.horas_trabajadas();
 
-    RegistroOutDTO {
+    MarcajeOutDTO {
       usuario_reg: reg.usuario_reg.map(Into::into),
-      horario: reg.horario.expect("Registro debe tener horario").into(),
+      horario: reg.horario.expect("Marcaje debe tener horario").into(),
       fecha: reg.fecha,
       hora_inicio: reg.hora_inicio.formato_corto(),
       hora_fin: reg.hora_fin.map(|hf| hf.formato_corto()),

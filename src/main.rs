@@ -1,4 +1,4 @@
-//! controla gestiona el registro horario del personal de una organización
+//! controla gestiona el marcaje horario del personal de una organización
 //!
 //! El sistema debe cumplir el Real Decreto-ley 8/2019, de 8 de marzo.
 //! Puntos principales:
@@ -13,11 +13,11 @@
 //! - Marcaje de entrada y salida.
 //! - Saldo horario: diferencia entre horas marcadas y horas trabajadas.
 //! - Cumplimiento horario: horas trabajadas frente a horas previstas.
-//! - Solicitud de marcaje: Solicitud para gestionar errores de marcaje.
+//! - Solicitud de incidencias: Solicitud para gestionar errores de marcaje.
 //! - Gestión de las incidencias de marcajes.
 //! - Administración de usuarios y empleados
 //! - Informes horrarios y de incidencias.
-//! - Registro automático y manual por el controlador.
+//! - Marcaje automático y manual por el controlador.
 //! - Consultas por partede de un inspector.
 //! - Auditoría de acciones realizadas en el sistema.
 //!
@@ -36,7 +36,7 @@ mod app;
 mod config;
 mod infra;
 
-mod registro;
+mod marcaje;
 mod traza;
 mod usuarios;
 

@@ -8,7 +8,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 
 import { Theme } from "@mui/material/styles";
-import { Registro } from '../modelos/registro';
+import { Marcaje } from '../modelos/marcaje';
 import { dateToStr } from '../modelos/formatos';
 
 const StyledTableCell = styled(TableCell)(({ theme }: { theme: Theme }) => ({
@@ -30,14 +30,14 @@ const StyledTableRow = styled(TableRow)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-interface RegistroListProps {
-  registros: Registro[];
+interface MarcajeListProps {
+  marcajes: Marcaje[];
 }
 
-// Muestra en una tabla el registro de un usuario
-// Se proporciona una lista de registros de usuario
+// Muestra en una tabla los marcajes de un usuario
+// Se proporciona una lista de marcajes de usuario
 // Pemite excluir columnas a través de propiedades de configuración
-export default function MarcajeList({ registros }: RegistroListProps) {
+export default function MarcajeList({ marcajes: marcajes }: MarcajeListProps) {
   return (
     <TableContainer component={Paper}
       sx={{ maxWidth: '100%', maxHeight: '50vh', overflow: 'auto' }}>
@@ -61,40 +61,40 @@ export default function MarcajeList({ registros }: RegistroListProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {registros.map((registro) => (
+          {marcajes.map((marcaje) => (
             <StyledTableRow>
               <StyledTableCell component="th" scope="row">
-                {dateToStr(registro.fecha)}
+                {dateToStr(marcaje.fecha)}
               </StyledTableCell>
               <StyledTableCell align="right">
-                {registro.horaInicio}
+                {marcaje.horaInicio}
               </StyledTableCell>
               <StyledTableCell
                 align="right"
                 sx={{
-                  color: registro.horaFinToStr() == 'Sin especificar' ?
+                  color: marcaje.horaFinToStr() == 'Sin especificar' ?
                     'error.main' : 'inherit'
                 }}
               >
-                {registro.horaFinToStr()}
+                {marcaje.horaFinToStr()}
               </StyledTableCell>
               <StyledTableCell align="right">
-                {registro.horario!.horaInicio}
+                {marcaje.horario!.horaInicio}
               </StyledTableCell>
               <StyledTableCell align="right">
-                {registro.horario!.horaFin}
+                {marcaje.horario!.horaFin}
               </StyledTableCell>
               <StyledTableCell
                 align="right"
                 sx={{
-                  color: registro.horaTrabajadasToStr() == 'Sin especificar' ?
+                  color: marcaje.horaTrabajadasToStr() == 'Sin especificar' ?
                     'error.main' : 'inherit'
                 }}
               >
-                {registro.horaTrabajadasToStr()}
+                {marcaje.horaTrabajadasToStr()}
               </StyledTableCell>
               <StyledTableCell align="right">
-                {registro.horario!.horasATrabajarToStr()}
+                {marcaje.horario!.horasATrabajarToStr()}
               </StyledTableCell>
             </StyledTableRow>
           ))}

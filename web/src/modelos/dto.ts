@@ -37,8 +37,8 @@ export class UsuarioOutDTO {
   }
 }
 
-// DTO para enviar registros al servidor
-export class RegistroOutDTO {
+// DTO para enviar marcajes al servidor
+export class MarcajeOutDTO {
   constructor(
     public usuario: number,
     public usuario_reg: DescriptorUsuario | null,
@@ -54,10 +54,10 @@ export class RegistroOutDTO {
     fecha: dayjs.Dayjs,
     horaInicio: dayjs.Dayjs,
     horaFin: dayjs.Dayjs | undefined,
-  ): RegistroOutDTO {
+  ): MarcajeOutDTO {
     const usuarioReg = usuarioId == usuarioLogeado.id ? null : usuarioLogeado
 
-    return new RegistroOutDTO(
+    return new MarcajeOutDTO(
       usuarioId,
       usuarioReg,
       formatDateForServer(fecha)!,

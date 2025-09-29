@@ -183,7 +183,7 @@ export default function DashboardSidebar({
               selected={!!matchPath('/usuarios/*', pathname)}
             />
             <DashboardSidebarPageItem
-              id="registro_manual"
+              id="marcaje_manual"
               title="Marcaje manual"
               icon={<AppRegistrationIcon />}
               href="/marcaje/manual"

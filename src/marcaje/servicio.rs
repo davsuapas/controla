@@ -3,24 +3,24 @@ use chrono::NaiveDate;
 use crate::{
   config::ConfigTrabajo,
   infra::{ServicioError, ShortDateTimeFormat},
-  registro::{Registro, RegistroRepo},
+  marcaje::{Marcaje, MarcajeRepo},
   usuarios::UsuarioServicio,
 };
 
-/// Servicio que gestiona los registros del usuario
-pub struct RegistroServicio {
+/// Servicio que gestiona los marcajes del usuario
+pub struct MarcajeServicio {
   cnfg: ConfigTrabajo,
-  repo: RegistroRepo,
+  repo: MarcajeRepo,
   usuario_servico: UsuarioServicio,
 }
 
-impl RegistroServicio {
+impl MarcajeServicio {
   pub fn new(
     cnfg: ConfigTrabajo,
-    repo: RegistroRepo,
+    repo: MarcajeRepo,
     usuario_servico: UsuarioServicio,
   ) -> Self {
-    RegistroServicio {
+    MarcajeServicio {
       cnfg,
       repo,
       usuario_servico,
@@ -28,29 +28,29 @@ impl RegistroServicio {
   }
 }
 
-impl RegistroServicio {
-  /// Añade un nuevo registro horario para el usuario.
+impl MarcajeServicio {
+  /// Añade un nuevo marcaje horario para el usuario.
   ///
   /// Para calcular las horas a trabajar utiliza el horario más
-  /// cercano a la hora de inicio del registro que todavía
+  /// cercano a la hora de inicio del marcaje que todavía
   /// no haya sido asignado.
   ///
   /// Validaciones:
-  /// * Si existen registros con alguna hora de fin sin registrar,
+  /// * Si existen marcajes con alguna hora de fin sin registrar,
   /// * se devuelve un error.
   /// * Si el usuario no tiene un horario configurado, se devuelve un error.
   /// * Si la hora de inicio o fin ya están asignadas al usuario,
   ///   se devuelve un error.
-  /// * El nuevo registro no se puede solapar con ningún otro registro.
+  /// * El nuevo marcaje no se puede solapar con ningún otro marcaje.
   /// * La hora de inicio no puede ser anterior a la hora de fin
-  ///   de un registro previo con un horario anterior al horario cercano
+  ///   de un marcaje previo con un horario anterior al horario cercano
   ///   obtenido.
   ///
-  /// Devuelve el ID del registro creado.
-  pub async fn agregar(&self, reg: &Registro) -> Result<u32, ServicioError> {
+  /// Devuelve el ID del marcaje creado.
+  pub async fn agregar(&self, reg: &Marcaje) -> Result<u32, ServicioError> {
     tracing::info!(
-      registro = ?reg,
-      "Se ha iniciado el servicio para crear un registro horario de usuario");
+      marcaje = ?reg,
+      "Se ha iniciado el servicio para crear un marcaje horario de usuario");
 
     self.validar_agregacion(reg).await?;
 
@@ -60,9 +60,9 @@ impl RegistroServicio {
       .await
       .inspect_err(|err| {
         tracing::error!(
-          registro = ?reg,
+          marcaje = ?reg,
           error = %err,
-         "Buscando el horario más cercano cuando se añade un registro");
+         "Buscando el horario más cercano cuando se añade un marcaje");
       })?;
 
     let horas_a_trabajar = horario_cercano.horas_a_trabajar();
@@ -70,68 +70,68 @@ impl RegistroServicio {
     tracing::debug!(
       horario = ?horario_cercano,
       horas_a_trabajar = format!("{:.2}", horas_a_trabajar),
-      "Horario más cercano al registro horario del usuario");
+      "Horario más cercano a el marcajes horario del usuario");
 
     let id = match self.repo.agregar(reg, horario_cercano.id).await {
       Ok(reg_id) => reg_id,
       Err(err) => {
         tracing::error!(
-          registro = ?reg,
+          marcaje = ?reg,
           error = %err,
-          "Creando registro horario"
+          "Creando marcaje horario"
         );
         return Err(ServicioError::from(err));
       }
     };
 
     tracing::debug!(
-      id_registro = id,
-      "Se ha completado satisfactoriamente el registro horario"
+      id_marcaje = id,
+      "Se ha completado satisfactoriamente el marcaje horario"
     );
 
     Ok(id)
   }
 
-  /// Obtiene el registro dado un usuario y la fecha
+  /// Obtiene el marcaje dado un usuario y la fecha
   #[inline]
-  pub async fn registro_por_fecha(
+  pub async fn marcaje_por_fecha(
     &self,
     usuario: u32,
     fecha: NaiveDate,
-  ) -> Result<Vec<Registro>, ServicioError> {
+  ) -> Result<Vec<Marcaje>, ServicioError> {
     self
       .repo
-      .registro_por_fecha(usuario, fecha)
+      .marcajes_por_fecha(usuario, fecha)
       .await
       .map_err(|err| {
         tracing::error!(
           usuario = usuario,
           fecha = ?fecha,
           error = %err,
-          "Obteniendo el registro por usuario y fecha"
+          "Obteniendo el marcaje por usuario y fecha"
         );
         ServicioError::from(err)
       })
   }
 
-  /// Obtiene los últimos registros horarios de un usuario.
+  /// Obtiene los últimos marcajes horarios de un usuario.
   #[inline]
-  pub async fn ultimos_registros(
+  pub async fn ultimos_marcajes(
     &self,
     usuario: u32,
-  ) -> Result<Vec<Registro>, ServicioError> {
+  ) -> Result<Vec<Marcaje>, ServicioError> {
     self
       .repo
-      .ultimos_registros(
+      .ultimos_marcajes(
         usuario,
-        Some(&self.cnfg.limites.ultimos_registros.to_string()),
+        Some(&self.cnfg.limites.ultimos_marcajes.to_string()),
       )
       .await
       .map_err(|err| {
         tracing::error!(
           usuario = usuario,
           error = %err,
-          "Obteniendo los últimos registros horarios del usuario"
+          "Obteniendo los últimos marcaje horarios del usuario"
         );
         ServicioError::from(err)
       })
@@ -139,7 +139,7 @@ impl RegistroServicio {
 
   async fn validar_agregacion(
     &self,
-    reg: &Registro,
+    reg: &Marcaje,
   ) -> Result<(), ServicioError> {
     if self
       .repo
@@ -148,7 +148,7 @@ impl RegistroServicio {
       .map_err(ServicioError::from)?
     {
       return Err(ServicioError::Usuario(format!(
-        "No puede se puede añadir un registro horario \
+        "No puede se puede añadir un marcaje horario \
         con alguna hora de fin sin registrar \
         para el usuario: {} en la fecha: {}. \
         Por favor, registre antes la hora de fin.",
@@ -182,7 +182,7 @@ impl RegistroServicio {
       if hora_asignada {
         return Err(ServicioError::Usuario(format!(
           "Ya existe un rango horario que se solapa con el \
-          registro del usuario: {} en la fecha: {} desde: {} hasta: {}",
+          marcaje del usuario: {} en la fecha: {} desde: {} hasta: {}",
           &reg.usuario,
           &reg.fecha.formato_corto(),
           reg.hora_inicio,

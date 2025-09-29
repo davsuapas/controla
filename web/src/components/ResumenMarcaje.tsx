@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import MarcajeList from './MarcajeList';
-import { Registro } from '../modelos/registro';
+import { Marcaje } from '../modelos/marcaje';
 import React, { useState } from 'react';
 import { NetErrorControlado } from '../net/interceptor';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -14,45 +14,45 @@ import Chip from '@mui/material/Chip';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
 
-interface ResumenRegistrosProps {
-  ultimosRegistros: boolean,
+interface ResumenMarcajesProps {
+  ultimosMarcajes: boolean,
   usuarioId: string | undefined;
   fecha: dayjs.Dayjs | undefined;
   horaInicio: dayjs.Dayjs | undefined;
   refreshTrigger?: number;
 }
 
-// Muestra en una tabla los últimos registros de un usuario
-// si la propierdad ultimos_registros es true, si no muestra
-// el registro por usuario y fecha.
+// Muestra en una tabla los últimos marcajes de un usuario
+// si la propierdad ultimos_marcajes es true, si no muestra
+// el marcaje por usuario y fecha.
 // También, muestra el horario más cercano si se proporciona
 // una fecha y hora, si no se devuelve el horario según la fecha
-export default function ResumenRegistros(props: ResumenRegistrosProps) {
-  const [registros, setRegistros] = useState<Registro[]>([]);
+export default function ResumenMacaje(props: ResumenMarcajesProps) {
+  const [marcaje, setMarcaje] = useState<Marcaje[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const notifica = useNotifications();
 
-  // Carga los últimos registros (solo depende de usuarioId)
-  const cargarRegistros = React.useCallback(
+  // Carga los últimos marcajes (solo depende de usuarioId)
+  const cargarMarcaje = React.useCallback(
     async (
-      ultimosRegistros: boolean,
+      ultimosMarcajes: boolean,
       usuarioId: string,
       fecha: dayjs.Dayjs | undefined) => {
       setIsLoading(true);
 
       try {
-        let registrosData: Registro[] = [];
-        if (ultimosRegistros || (!ultimosRegistros && !fecha)) {
-          registrosData = await api().registros.ultimos_registros(usuarioId);
+        let MarcajesData: Marcaje[] = [];
+        if (ultimosMarcajes || (!ultimosMarcajes && !fecha)) {
+          MarcajesData = await api().marcajes.ultimos_marcajes(usuarioId);
         } else {
-          registrosData = await api().registros.marcajes_por_fecha(
+          MarcajesData = await api().marcajes.marcajes_por_fecha(
             usuarioId, fecha!);
         }
-        setRegistros(registrosData);
+        setMarcaje(MarcajesData);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('resumenregistro.cargar.registros', error);
+          logError('resumenmarcaje.cargar.marcajes', error);
           notifica.show(
             'Error inesperado al cargar los últimos marcajes',
             {
@@ -61,7 +61,7 @@ export default function ResumenRegistros(props: ResumenRegistrosProps) {
             },
           );
         }
-        setRegistros([]);
+        setMarcaje([]);
       }
 
       setIsLoading(false);
@@ -94,7 +94,7 @@ export default function ResumenRegistros(props: ResumenRegistrosProps) {
         setHorarios(horario);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('resumenregistro.cargar.horarios', error);
+          logError('resumenmarcaje.cargar.horarios', error);
           notifica.show(
             'Error inesperado al cargar el horario',
             {
@@ -107,14 +107,14 @@ export default function ResumenRegistros(props: ResumenRegistrosProps) {
       }
     }, []);
 
-  // Efecto para cargar registros (solo cuando cambia usuarioId)
+  // Efecto para cargar marcajes (solo cuando cambia usuarioId)
   React.useEffect(() => {
     if (props.usuarioId) {
-      cargarRegistros(props.ultimosRegistros, props.usuarioId, props.fecha);
+      cargarMarcaje(props.ultimosMarcajes, props.usuarioId, props.fecha);
     } else {
-      setRegistros([]);
+      setMarcaje([]);
     }
-  }, [props.ultimosRegistros, props.usuarioId, props.fecha, props.refreshTrigger]);
+  }, [props.ultimosMarcajes, props.usuarioId, props.fecha, props.refreshTrigger]);
 
   // Efecto para cargar horarios (cuando cambia usuarioId o fechaHora)
   React.useEffect(() => {
@@ -175,7 +175,7 @@ export default function ResumenRegistros(props: ResumenRegistrosProps) {
           )}
         </Box>
         <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <MarcajeList registros={registros} />
+          <MarcajeList marcajes={marcaje} />
         </Box>
       </Stack>
     </Box>

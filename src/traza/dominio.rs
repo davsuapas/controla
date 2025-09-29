@@ -24,7 +24,7 @@ pub struct Traza {
   pub fecha: NaiveDateTime,
   pub motivo: Option<String>,
   pub horario_id: Option<u32>,
-  pub registro_id: Option<u32>,
+  pub marcaje_id: Option<u32>,
 }
 
 impl TrazaBuilder {
@@ -33,7 +33,7 @@ impl TrazaBuilder {
       .autor(None)
       .tipo(tipo)
       .usuario_id(usuario_id)
-      .registro_id(None)
+      .marcaje_id(None)
       .horario_id(None)
       .motivo(None)
   }

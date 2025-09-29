@@ -1,57 +1,57 @@
 import { AxiosInstance } from "axios";
-import { Registro } from "../modelos/registro";
-import { RegistroOutDTO } from "../modelos/dto";
+import { Marcaje } from "../modelos/marcaje";
+import { MarcajeOutDTO } from "../modelos/dto";
 import dayjs from "dayjs";
 import { formatDateTimeForServer } from "../modelos/formatos";
 
-export interface RegistroApi {
-  marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Registro[]>;
-  ultimos_registros(usuarioId: string): Promise<Registro[]>;
-  registrar(reg: RegistroOutDTO): Promise<void>;
+export interface MarcajeApi {
+  marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Marcaje[]>;
+  ultimos_marcajes(usuarioId: string): Promise<Marcaje[]>;
+  registrar(reg: MarcajeOutDTO): Promise<void>;
 }
 
 
-// Implementación de REgistroApi en modo producción
-export class RegistroAxiosApi implements RegistroApi {
+// Implementación de MarcajeApi en modo producción
+export class MarcajeAxiosApi implements MarcajeApi {
   private axios: AxiosInstance;
 
   constructor(axiosInstance: AxiosInstance) {
     this.axios = axiosInstance;
   }
 
-  async marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Registro[]> {
+  async marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Marcaje[]> {
     const response = await this.axios.get(
-      `api/usuarios/${usuarioId}/registros_fecha/${formatDateTimeForServer(fecha)}`);
-    const registrosData = response.data;
+      `api/usuarios/${usuarioId}/marcajes_fecha/${formatDateTimeForServer(fecha)}`);
+    const marcajesData = response.data;
 
-    return Array.isArray(registrosData)
-      ? registrosData.map(Registro.fromRequest)
+    return Array.isArray(marcajesData)
+      ? marcajesData.map(Marcaje.fromRequest)
       : [];
   }
 
-  async ultimos_registros(usuarioId: string): Promise<Registro[]> {
+  async ultimos_marcajes(usuarioId: string): Promise<Marcaje[]> {
     const response = await this.axios.get(
-      `api/usuarios/${usuarioId}/ultimos_registros`);
-    const registrosData = response.data;
+      `api/usuarios/${usuarioId}/ultimos_marcajes`);
+    const marcajesData = response.data;
 
-    return Array.isArray(registrosData)
-      ? registrosData.map(Registro.fromRequest)
+    return Array.isArray(marcajesData)
+      ? marcajesData.map(Marcaje.fromRequest)
       : [];
   }
 
-  async registrar(reg: RegistroOutDTO): Promise<void> {
-    return this.axios.post('api/registros', reg);
+  async registrar(reg: MarcajeOutDTO): Promise<void> {
+    return this.axios.post('api/marcajes', reg);
   }
 }
 
-// Implementación de RegistroApi en modo test
-export class RegistroTestApi implements RegistroApi {
-  async marcajes_por_fecha(usuario: string, __: dayjs.Dayjs): Promise<Registro[]> {
-    return this.ultimos_registros(usuario)
+// Implementación de MarcajeApi en modo test
+export class MarcajeTestApi implements MarcajeApi {
+  async marcajes_por_fecha(usuario: string, __: dayjs.Dayjs): Promise<Marcaje[]> {
+    return this.ultimos_marcajes(usuario)
   }
 
-  async ultimos_registros(_: string): Promise<Registro[]> {
-    const registrosFicticios = [
+  async ultimos_marcajes(_: string): Promise<Marcaje[]> {
+    const marcajesFicticios = [
       // Caso 1: Registro normal completo
       {
         usuario_reg: {
@@ -161,10 +161,10 @@ export class RegistroTestApi implements RegistroApi {
       },
     ];
 
-    return registrosFicticios.map(Registro.fromRequest);
+    return marcajesFicticios.map(Marcaje.fromRequest);
   }
 
-  async registrar(_: RegistroOutDTO): Promise<void> {
+  async registrar(_: MarcajeOutDTO): Promise<void> {
     return;
   }
 }

@@ -3,7 +3,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use crate::usuarios::{DescriptorUsuario, Horario};
 
 #[derive(Debug)]
-pub struct Registro {
+pub struct Marcaje {
   pub usuario: u32,
   pub usuario_reg: Option<DescriptorUsuario>,
   pub horario: Option<Horario>,
@@ -12,7 +12,7 @@ pub struct Registro {
   pub hora_fin: Option<NaiveTime>,
 }
 
-impl Registro {
+impl Marcaje {
   #[inline]
   pub fn hora_inicio_completa(&self) -> NaiveDateTime {
     NaiveDateTime::new(self.fecha, self.hora_inicio)

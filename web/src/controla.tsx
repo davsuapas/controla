@@ -23,7 +23,7 @@ import UsuarioLogeadoProvider from './hooks/useUsuarioLogeado/UsuarioLogeadoProv
 import useUsuarioLogeado from './hooks/useUsuarioLogeado/useUsuarioLogeado';
 import Logout from './components/Logout';
 import UsuarioShow from './components/UsuarioShow';
-import RegistroManual from './components/RegistroManual';
+import MarcajeManual from './components/MarcajeManual';
 import { crearAPI } from './api/fabrica';
 
 
@@ -136,7 +136,7 @@ const rutas = [
             children: [
               {
                 path: 'manual',
-                Component: RegistroManual,
+                Component: MarcajeManual,
               },
             ]
           }

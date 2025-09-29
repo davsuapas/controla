@@ -4,31 +4,31 @@ use sqlx::Row;
 
 use crate::{
   infra::{DBError, PoolConexion, ShortDateTimeFormat},
-  registro::Registro,
+  marcaje::Marcaje,
   usuarios::{DescriptorUsuario, Horario},
 };
 
-/// Implementación del repositorio de registros.
-pub struct RegistroRepo {
+/// Implementación del repositorio de marcajes.
+pub struct MarcajeRepo {
   pool: PoolConexion,
 }
 
-impl RegistroRepo {
+impl MarcajeRepo {
   pub fn new(pool: PoolConexion) -> Self {
-    RegistroRepo { pool }
+    MarcajeRepo { pool }
   }
 }
 
-impl RegistroRepo {
-  /// Agrega un nuevo registro a la base de datos.
+impl MarcajeRepo {
+  /// Agrega un nuevo marcaje a la base de datos.
   ///
-  /// Devuelve el ID del registro creado.
-  pub(in crate::registro) async fn agregar(
+  /// Devuelve el ID del marcaje creado.
+  pub(in crate::marcaje) async fn agregar(
     &self,
-    reg: &Registro,
+    reg: &Marcaje,
     horario: u32,
   ) -> Result<u32, DBError> {
-    const QUERY: &str = r"INSERT INTO registros
+    const QUERY: &str = r"INSERT INTO marcajes
       (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
       VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -46,15 +46,15 @@ impl RegistroRepo {
     Ok(result.last_insert_id() as u32)
   }
 
-  /// Verifica si la hora de fin para cualquier registro
+  /// Verifica si la hora de fin para cualquier marcaje
   /// horario para un usuario y fecha está vacía.
-  pub(in crate::registro) async fn hora_fin_vacia(
+  pub(in crate::marcaje) async fn hora_fin_vacia(
     &self,
     usuario: u32,
     fecha: NaiveDate,
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
-      FROM registros
+      FROM marcajes
       WHERE usuario = ? 
       AND fecha = ?
       AND hora_fin IS NULL
@@ -72,15 +72,15 @@ impl RegistroRepo {
   }
 
   /// Verifica si una hora se encuentra en el rango de horas
-  /// de un registro horario para un usuario y fecha.
-  pub(in crate::registro) async fn hora_asignada(
+  /// de un marcaje horario para un usuario y fecha.
+  pub(in crate::marcaje) async fn hora_asignada(
     &self,
     usuario: u32,
     fecha: NaiveDate,
     hora: NaiveTime,
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
-        FROM registros
+        FROM marcajes
         WHERE usuario = ? 
         AND fecha = ?
         AND ? BETWEEN hora_inicio AND hora_fin
@@ -99,9 +99,9 @@ impl RegistroRepo {
   }
 
   /// Verifica si un rango de horas como parámetro se solapa
-  /// con otro rango de horas ya asignado a un usuario en un registro.
+  /// con otro rango de horas ya asignado a un usuario en un marcaje.
   /// También verifica que la hora no se encuentre entre los rangos de horas.
-  pub(in crate::registro) async fn horas_solapadas(
+  pub(in crate::marcaje) async fn horas_solapadas(
     &self,
     usuario: u32,
     fecha: NaiveDate,
@@ -109,7 +109,7 @@ impl RegistroRepo {
     hora_fin: NaiveTime,
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
-        FROM registros
+        FROM marcajes
         WHERE usuario = ? AND fecha = ?
         AND hora_inicio < ? AND hora_fin > ?
         OR ? BETWEEN hora_inicio AND hora_fin
@@ -129,24 +129,24 @@ impl RegistroRepo {
     )
   }
 
-  /// Obtiene los últimos registros horarios de un usuario.
-  pub(in crate::registro) async fn ultimos_registros(
+  /// Obtiene los últimos marcajes horarios de un usuario.
+  pub(in crate::marcaje) async fn ultimos_marcajes(
     &self,
     usuario: u32,
     top: Option<&str>,
-  ) -> Result<Vec<Registro>, DBError> {
+  ) -> Result<Vec<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
     let filter = format!("r.usuario = {}", usuario);
 
-    self.registros(top, Some(&filter), Some(ORDER_BY)).await
+    self.marcajes(top, Some(&filter), Some(ORDER_BY)).await
   }
 
-  /// Obtiene los registro dado el usuario y la fecha
-  pub(in crate::registro) async fn registro_por_fecha(
+  /// Obtiene los marcaje dado el usuario y la fecha
+  pub(in crate::marcaje) async fn marcajes_por_fecha(
     &self,
     usuario: u32,
     fecha: NaiveDate,
-  ) -> Result<Vec<Registro>, DBError> {
+  ) -> Result<Vec<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.hora_inicio DESC";
     let filter = format!(
       "r.usuario = {} AND r.fecha = '{}'",
@@ -154,22 +154,22 @@ impl RegistroRepo {
       fecha.formato_sql()
     );
 
-    self.registros(None, Some(&filter), Some(ORDER_BY)).await
+    self.marcajes(None, Some(&filter), Some(ORDER_BY)).await
   }
 
-  async fn registros(
+  async fn marcajes(
     &self,
     top: Option<&str>,
     filter: Option<&str>,
     order: Option<&str>,
-  ) -> Result<Vec<Registro>, DBError> {
+  ) -> Result<Vec<Marcaje>, DBError> {
     const SELECT: &str = r"SELECT r.id, r.fecha, r.hora_inicio, r.hora_fin,
         r.usuario, r.usuario_registrador, r.horario,
         u.id AS u_id,
         ur.nombre AS ur_nombre, ur.primer_apellido AS ur_primer_apellido,
         ur.segundo_apellido AS ur_segundo_apellido,
         h.dia, h.hora_inicio AS h_hora_inicio, h.hora_fin AS h_hora_fin
-        FROM registros r
+        FROM marcajes r
         JOIN horarios h ON r.horario = h.id
         JOIN usuarios u ON r.usuario = u.id
         LEFT JOIN usuarios ur ON r.usuario_registrador = ur.id";
@@ -206,7 +206,7 @@ impl RegistroRepo {
     Ok(
       rows
         .iter()
-        .map(|row| Registro {
+        .map(|row| Marcaje {
           usuario: row.get("u_id"),
           usuario_reg: row.try_get::<u32, _>("usuario_registrador").ok().map(
             |id| DescriptorUsuario {

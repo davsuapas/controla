@@ -1,7 +1,7 @@
 import dayjs, { Dayjs } from "dayjs"
 import { DescriptorUsuario, Horario } from "./usuarios"
 
-export class Registro {
+export class Marcaje {
 
   constructor(
     public usuario: number,
@@ -14,7 +14,7 @@ export class Registro {
   ) { }
 
   // Crea una instancia desde la solicitudo del servidor
-  static fromRequest(obj: any): Registro {
+  static fromRequest(obj: any): Marcaje {
     const usuarioReg = obj.usuario_reg
       ? new DescriptorUsuario(
         obj.usuario_reg.id,
@@ -26,7 +26,7 @@ export class Registro {
 
     // No es necesario asignar usuario cuando viene del servidor porque 
     // siempre esta filtrado por el usuario
-    return new Registro(
+    return new Marcaje(
       0,
       usuarioReg,
       dayjs(obj.fecha),

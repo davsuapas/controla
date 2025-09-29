@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import PageContainer from './PageContainer';
-import ResumenRegistros from './ResumenRegistro';
+import ResumenMarcaje from './ResumenMarcaje';
 import FormGroup from '@mui/material/FormGroup';
 import Grid from '@mui/material/Grid';
 import { useState } from 'react';
@@ -19,7 +19,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import Divider from '@mui/material/Divider';
 import LocalizationProviderES from '../theme/location';
 import Button from '@mui/material/Button';
-import { RegistroOutDTO } from '../modelos/dto';
+import { MarcajeOutDTO } from '../modelos/dto';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
 
@@ -42,11 +42,11 @@ function validarFechaHora(fechaHora: dayjs.Dayjs | null | undefined) {
   return fechaHora && fechaHora.isValid()
 }
 
-// Permite realizar un registro para un usuario seleccionado 
+// Permite realizar un marcaje para un usuario seleccionado 
 // indicando manualmente la fecha, hora de inicio y fín.
 // Además muestra el horario más cercano y los últimos
-// registros del usuario.
-export default function RegistroManual() {
+// marcajes del usuario.
+export default function MarcajeManual() {
   const [empleados, setEmpleados] = useState<DescriptorUsuario[]>([]);
 
   const [formData, setFormData] = useState<Partial<FormularioData>>({});
@@ -62,7 +62,7 @@ export default function RegistroManual() {
   const notifica = useNotifications();
 
 
-  // Carga los últimos registros y el horario más cercano
+  // Carga los últimos marcajes y el horario más cercano
   const cargarDatos = React.useCallback(async () => {
     setIsLoading(true);
 
@@ -78,7 +78,7 @@ export default function RegistroManual() {
       });
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('registrmanual.cargardatos', error);
+        logError('marcajemanual.cargardatos', error);
         notifica.show(
           'Error inesperado al cargar los usuarios',
           {
@@ -167,9 +167,11 @@ export default function RegistroManual() {
         validaEntrada &&
         validaSalida &&
         formData.empleado) {
+        setIsLoading(true);
+
         try {
-          await api().registros.registrar(
-            RegistroOutDTO.new(
+          await api().marcajes.registrar(
+            MarcajeOutDTO.new(
               formData.empleado.id,
               usuarioLogeado.getUsrLogeado().toDescriptor(),
               formData.fecha!,
@@ -178,24 +180,29 @@ export default function RegistroManual() {
             )
           )
 
+          notifica.show('Marcaje registrado satisfactóriamente.', {
+            severity: 'success',
+            autoHideDuration: 5000,
+          });
+
           resetCamposHora();
           // Incrementar el trigger para forzar recarga
           setRefreshTrigger(prev => prev + 1);
         } catch (error) {
-          if (error instanceof NetErrorControlado) {
-            return;
+          if (!(error instanceof NetErrorControlado)) {
+            logError('marcajemanual.registrar', error);
+
+            notifica.show(
+              'Error inesperado al registrar el marcaje',
+              {
+                severity: 'error',
+                autoHideDuration: 5000,
+              },
+            );
           }
-
-          logError('registrmanual.registrar', error);
-
-          notifica.show(
-            'Error inesperado al registrar el marcaje',
-            {
-              severity: 'error',
-              autoHideDuration: 5000,
-            },
-          );
         }
+
+        setIsLoading(false);
       } else {
         notifica.show(
           'Imposible realizar el registro. Corriga los errores',
@@ -295,8 +302,8 @@ export default function RegistroManual() {
             </Grid>
           </FormGroup>
         </LocalizationProviderES>
-        <ResumenRegistros
-          ultimosRegistros={false}
+        <ResumenMarcaje
+          ultimosMarcajes={false}
           usuarioId={formData.empleado?.id.toString()}
           fecha={formData.fecha}
           horaInicio={formData.entrada}

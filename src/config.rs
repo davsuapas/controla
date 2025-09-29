@@ -31,8 +31,8 @@ impl From<PasswordConfig> for PasswordLimites {
 /// que se pueden obtener en las consultas.
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct Limites {
-  /// Número máximo de los últimos registros horarios a mostrar
-  pub ultimos_registros: u8,
+  /// Número máximo de los últimos marcajes horarios a mostrar
+  pub ultimos_marcajes: u8,
 }
 
 #[derive(Deserialize)]

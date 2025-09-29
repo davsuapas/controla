@@ -1,11 +1,11 @@
 import axios from "axios";
 import { UsuariosApi, UsuariosAxiosApi, UsuariosTestApi } from "./usuarios";
-import { RegistroApi, RegistroAxiosApi, RegistroTestApi } from "./registro";
+import { MarcajeApi, MarcajeAxiosApi, MarcajeTestApi } from "./marcaje";
 
 export class ContextoApi {
   constructor(
     public usuarios: UsuariosApi,
-    public registros: RegistroApi) {
+    public marcajes: MarcajeApi) {
   }
 }
 
@@ -23,16 +23,16 @@ export function api(): ContextoApi {
 // Crea el API de acceso a los servicios y lo inicializa
 export function crearAPI(modoTest: boolean = false) {
   let usuarioApi: UsuariosApi;
-  let registroApi: RegistroApi;
+  let marcajeApi: MarcajeApi;
 
   if (modoTest) {
     usuarioApi = new UsuariosTestApi();
-    registroApi = new RegistroTestApi();
+    marcajeApi = new MarcajeTestApi();
   } else {
     usuarioApi = new UsuariosAxiosApi(axios);
-    registroApi = new RegistroAxiosApi(axios);
+    marcajeApi = new MarcajeAxiosApi(axios);
   }
 
-  const contexto = new ContextoApi(usuarioApi, registroApi);
+  const contexto = new ContextoApi(usuarioApi, marcajeApi);
   _api = contexto;
 }

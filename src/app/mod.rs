@@ -12,7 +12,7 @@ pub use api::*;
 use crate::{
   config::ConfigTrabajo,
   infra::{PoolConexion, middleware},
-  registro::{RegistroRepo, RegistroServicio},
+  marcaje::{MarcajeRepo, MarcajeServicio},
   traza::{TrazaRepo, TrazaServicio},
   usuarios::{UsuarioRepo, UsuarioServicio},
 };
@@ -20,7 +20,7 @@ use crate::{
 /// Estructura principal de la aplicación que contiene los servicios.
 pub struct AppState {
   pub manejador_sesion: Arc<middleware::ManejadorSesion>,
-  pub reg_servicio: RegistroServicio,
+  pub reg_servicio: MarcajeServicio,
   pub usuario_servicio: UsuarioServicio,
 }
 
@@ -38,9 +38,9 @@ impl AppState {
         UsuarioRepo::new(pool.clone()),
         TrazaServicio::new(TrazaRepo::new()),
       ),
-      reg_servicio: RegistroServicio::new(
+      reg_servicio: MarcajeServicio::new(
         cnfg.clone(),
-        RegistroRepo::new(pool.clone()),
+        MarcajeRepo::new(pool.clone()),
         UsuarioServicio::new(
           cnfg.clone(),
           UsuarioRepo::new(pool.clone()),

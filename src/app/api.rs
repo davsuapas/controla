@@ -14,8 +14,8 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, HorarioOutDTO, PasswordDniDTO, PasswordUsuarioDTO,
-      RegistroInDTO, RegistroOutDTO, UsuarioDTO, vec_dominio_to_dtos,
+      DescriptorUsuarioDTO, HorarioOutDTO, MarcajeInDTO, MarcajeOutDTO,
+      PasswordDniDTO, PasswordUsuarioDTO, UsuarioDTO, vec_dominio_to_dtos,
     },
   },
   infra::{Dni, Password},
@@ -42,10 +42,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route(
-      "/usuarios/{id}/registros_fecha/{fecha}",
-      get(registro_por_fecha),
+      "/usuarios/{id}/marcajes_fecha/{fecha}",
+      get(marcaje_por_fecha),
     )
-    .route("/usuarios/{id}/ultimos_registros", get(ultimos_registros))
+    .route("/usuarios/{id}/ultimos_marcajes", get(ultimos_marcajes))
     .route(
       "/usuarios/{id}/horario_sin_asignar/{fecha}",
       get(horario_usuario_sin_asignar),
@@ -55,7 +55,7 @@ pub fn rutas(app: Arc<AppState>) -> Router {
       get(horario_cercano),
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
-    .route("/registros", post(registrar))
+    .route("/marcajes", post(registrar))
     .layer(axum::middleware::from_fn(
       crate::infra::middleware::autenticacion,
     ));
@@ -201,29 +201,29 @@ async fn usuario(
 }
 
 /// Api para obtener el regisotr por usuario y fecha.
-async fn registro_por_fecha(
+async fn marcaje_por_fecha(
   State(state): State<Arc<AppState>>,
   Path(param): Path<UsuarioFechaParams>,
 ) -> impl IntoResponse {
   state
     .reg_servicio
-    .registro_por_fecha(param.id, param.fecha.date())
+    .marcaje_por_fecha(param.id, param.fecha.date())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|regs| Json(vec_dominio_to_dtos::<_, RegistroOutDTO>(regs)))
+    .map(|regs| Json(vec_dominio_to_dtos::<_, MarcajeOutDTO>(regs)))
 }
 
-/// Api para obtener los últimos registros horarios de un usuario.
-async fn ultimos_registros(
+/// Api para obtener los últimos marcajes horarios de un usuario.
+async fn ultimos_marcajes(
   State(state): State<Arc<AppState>>,
   Path(usuario): Path<u32>,
 ) -> impl IntoResponse {
   state
     .reg_servicio
-    .ultimos_registros(usuario)
+    .ultimos_marcajes(usuario)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|regs| Json(vec_dominio_to_dtos::<_, RegistroOutDTO>(regs)))
+    .map(|regs| Json(vec_dominio_to_dtos::<_, MarcajeOutDTO>(regs)))
 }
 
 /// Api para obtener el horario de un usuario completo.
@@ -265,10 +265,10 @@ async fn usuarios_por_rol(
     .map(|usrs| Json(vec_dominio_to_dtos::<_, DescriptorUsuarioDTO>(usrs)))
 }
 
-/// Api para crear un nuevo registro de empleado completo.
+/// Api para crear un nuevo marcaje de empleado completo.
 async fn registrar(
   State(state): State<Arc<AppState>>,
-  Json(reg): Json<RegistroInDTO>,
+  Json(reg): Json<MarcajeInDTO>,
 ) -> impl IntoResponse {
   state
     .reg_servicio

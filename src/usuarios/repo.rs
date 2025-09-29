@@ -382,12 +382,12 @@ impl UsuarioRepo {
   /// Obtiene el horario más cercano a una hora dada para un usuario.
   ///
   /// Busca un horario que este entre las horas de inicio y fin
-  /// del día de la semana y que no esté ya asignado a un registro horario.
+  /// del día de la semana y que no esté ya asignado a un marcaje horario.
   /// Si no encuentra un horario entre las horas de inicio y fin,
   /// devuelve el más cercano al inicio y que no esté ya asignado
-  /// a un registro horario.
+  /// a un marcaje horario.
   /// Además, la hora que se busca, tiene que ser mayor de la hora
-  /// final del registro del horario anterior asignado.
+  /// final del marcaje del horario anterior asignado.
   pub(in crate::usuarios) async fn horario_cercano(
     &self,
     usuario: u32,
@@ -407,13 +407,13 @@ impl UsuarioRepo {
          AND ? BETWEEN h.hora_inicio AND h.hora_fin
          AND NOT EXISTS 
          (SELECT r.id
-            FROM registros r
+            FROM marcajes r
             WHERE r.usuario = uh.usuario
              AND r.fecha = ?
              AND r.horario = h.id)
          AND ? > COALESCE((
             SELECT MAX(r2.hora_fin)
-            FROM registros r2
+            FROM marcajes r2
             JOIN horarios h2 ON r2.horario = h2.id
             WHERE r2.usuario = uh.usuario
               AND r2.fecha = ?
@@ -448,13 +448,13 @@ impl UsuarioRepo {
              AND h.hora_inicio > ?
              AND NOT EXISTS 
              ( SELECT r.id
-                 FROM registros r
+                 FROM marcajes r
                  WHERE r.usuario = uh.usuario
                   AND r.fecha = ?
                   AND r.horario = h.id)
             AND ? > COALESCE((
                 SELECT MAX(r2.hora_fin)
-                FROM registros r2
+                FROM marcajes r2
                 JOIN horarios h2 ON r2.horario = h2.id
                 WHERE r2.usuario = uh.usuario
                   AND r2.fecha = ?
@@ -506,7 +506,7 @@ impl UsuarioRepo {
          AND h.dia = ?
          AND NOT EXISTS 
          ( SELECT r.id
-            FROM registros r
+            FROM marcajes r
             WHERE r.usuario = uh.usuario
              AND r.fecha = ?
              AND r.horario = h.id)
@@ -529,13 +529,13 @@ impl UsuarioRepo {
     )
   }
 
-  /// Obtiene el número de registros horarios de un usuario
-  pub(in crate::usuarios) async fn num_registros_horarios_usuario(
+  /// Obtiene el número de marcajes horarios de un usuario
+  pub(in crate::usuarios) async fn num_marcajes_horarios_usuario(
     &self,
     id: u32,
   ) -> Result<u32, DBError> {
     const QUERY: &str = r"SELECT CAST(COUNT(id) AS UNSIGNED) 
-        FROM registros
+        FROM marcajes
         WHERE usuario = ?";
 
     Ok(

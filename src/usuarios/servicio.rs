@@ -198,7 +198,7 @@ impl UsuarioServicio {
         usuario = usuario.id,
         "Ha cambiado el DNI del usuario");
 
-      let reg_horarios = self.repo.num_registros_horarios_usuario(usuario.id)
+      let reg_horarios = self.repo.num_marcajes_horarios_usuario(usuario.id)
         .await;
 
       match reg_horarios {
