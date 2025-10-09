@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  infra::{Dni, Password, ShortDateTimeFormat},
-  marcaje::Marcaje,
+  inc::{EstadoIncidencia, Incidencia, TipoIncidencia},
+  infra::{Dni, DominiosWithCacheUsuario, Password, ShortDateTimeFormat},
+  marcaje::{DescriptorMarcaje, Marcaje},
   usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
 };
 
@@ -102,7 +105,7 @@ pub struct PasswordUsuarioDTO {
   pub password: String,
 }
 
-/// Define la entidad de intercambio para el horario
+/// Define la entidad de intercambio de salida para el horario
 #[derive(Serialize)]
 pub(in crate::app) struct HorarioOutDTO {
   pub dia: &'static str,
@@ -122,11 +125,23 @@ impl From<Horario> for HorarioOutDTO {
   }
 }
 
-/// Define la entidad de intercambio para el marcaje
+/// Define la entidad de intercambio con el mínimo de info del marcaje
+#[derive(Serialize, Deserialize)]
+pub struct DescriptorMarcajeDTO {
+  pub id: u32,
+}
+
+impl From<DescriptorMarcajeDTO> for DescriptorMarcaje {
+  fn from(marcaje: DescriptorMarcajeDTO) -> Self {
+    DescriptorMarcaje { id: marcaje.id }
+  }
+}
+
+/// Define la entidad de intercambio de entrada para el marcaje
 #[derive(Deserialize)]
 pub(in crate::app) struct MarcajeInDTO {
   pub usuario: u32,
-  pub usuario_reg: Option<DescriptorUsuarioDTO>,
+  pub usuario_reg: Option<u32>,
   pub fecha: NaiveDate,
   pub hora_inicio: NaiveTime,
   pub hora_fin: Option<NaiveTime>,
@@ -135,8 +150,9 @@ pub(in crate::app) struct MarcajeInDTO {
 impl From<MarcajeInDTO> for Marcaje {
   fn from(reg: MarcajeInDTO) -> Self {
     Marcaje {
+      id: 0, // Es auto incremental
       usuario: reg.usuario,
-      usuario_reg: reg.usuario_reg.map(Into::into),
+      usuario_reg: reg.usuario_reg,
       fecha: reg.fecha,
       hora_inicio: reg.hora_inicio,
       hora_fin: reg.hora_fin,
@@ -145,10 +161,12 @@ impl From<MarcajeInDTO> for Marcaje {
   }
 }
 
-/// Define la entidad de intercambio para el marcaje
+/// Define la entidad de intercambio de salida para el marcaje
 #[derive(Serialize)]
 pub(in crate::app) struct MarcajeOutDTO {
-  pub usuario_reg: Option<DescriptorUsuarioDTO>,
+  pub id: u32,
+  pub usuario: u32,
+  pub usuario_reg: Option<u32>,
   pub horario: HorarioOutDTO,
   pub fecha: NaiveDate,
   pub hora_inicio: String,
@@ -161,12 +179,73 @@ impl From<Marcaje> for MarcajeOutDTO {
     let horas_trabajadas = reg.horas_trabajadas();
 
     MarcajeOutDTO {
-      usuario_reg: reg.usuario_reg.map(Into::into),
+      id: reg.id,
+      usuario: reg.usuario,
+      usuario_reg: reg.usuario_reg,
       horario: reg.horario.expect("Marcaje debe tener horario").into(),
       fecha: reg.fecha,
       hora_inicio: reg.hora_inicio.formato_corto(),
       hora_fin: reg.hora_fin.map(|hf| hf.formato_corto()),
       hora_trabajadas: horas_trabajadas,
+    }
+  }
+}
+
+// Define la entidad de intercambio para las incidencias.
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct IncidenciaDTO {
+  pub id: u32,
+  pub tipo: u8,
+  pub fecha_solicitud: NaiveDateTime,
+  pub fecha: NaiveDate,
+  pub hora_inicio: Option<NaiveTime>,
+  pub hora_fin: Option<NaiveTime>,
+  pub marcaje: Option<DescriptorMarcajeDTO>,
+  pub estado: u8,
+  pub error: Option<String>,
+  pub usuario_creador: u32,
+  pub usuario_gestor: Option<u32>,
+  pub motivo_solicitud: Option<String>,
+}
+
+impl From<IncidenciaDTO> for Incidencia {
+  fn from(solicitud: IncidenciaDTO) -> Self {
+    Incidencia {
+      id: solicitud.id,
+      tipo: TipoIncidencia::from(solicitud.tipo),
+      fecha_solicitud: solicitud.fecha_solicitud,
+      fecha: solicitud.fecha,
+      hora_inicio: solicitud.hora_inicio,
+      hora_fin: solicitud.hora_fin,
+      marcaje: solicitud.marcaje.map(DescriptorMarcaje::from),
+      estado: EstadoIncidencia::from(solicitud.estado),
+      error: solicitud.error,
+      usuario_creador: solicitud.usuario_creador,
+      usuario_gestor: solicitud.usuario_gestor,
+      motivo_solicitud: solicitud.motivo_solicitud,
+    }
+  }
+}
+
+// DTO genérico para DominiosWithCacheUsuario
+#[derive(Serialize)]
+pub(in crate::app) struct DominiosWithCacheUsuarioDTO<T> {
+  pub items: Vec<T>,
+  pub cache: HashMap<u32, DescriptorUsuarioDTO>,
+}
+
+impl<T, U> From<DominiosWithCacheUsuario<T>> for DominiosWithCacheUsuarioDTO<U>
+where
+  U: From<T>,
+{
+  fn from(domain: DominiosWithCacheUsuario<T>) -> Self {
+    DominiosWithCacheUsuarioDTO {
+      items: domain.items.into_iter().map(U::from).collect(),
+      cache: domain
+        .cache
+        .into_iter()
+        .map(|(id, user)| (id, user.into()))
+        .collect(),
     }
   }
 }

@@ -36,6 +36,7 @@ mod app;
 mod config;
 mod infra;
 
+mod inc;
 mod marcaje;
 mod traza;
 mod usuarios;

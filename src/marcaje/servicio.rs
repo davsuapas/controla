@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 
 use crate::{
   config::ConfigTrabajo,
-  infra::{ServicioError, ShortDateTimeFormat},
+  infra::{DominiosWithCacheUsuario, ServicioError, ShortDateTimeFormat},
   marcaje::{Marcaje, MarcajeRepo},
   usuarios::UsuarioServicio,
 };
@@ -92,13 +92,38 @@ impl MarcajeServicio {
     Ok(id)
   }
 
+  /// Obtiene los marcaje dado el usuario y la fecha para
+  /// el registrador que no tengan asigandas una incidencia
+  #[inline]
+  pub async fn marcajes_inc_por_fecha_reg(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+    usuario_reg: Option<u32>,
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, ServicioError> {
+    self
+      .repo
+      .marcajes_inc_por_fecha_reg(usuario, fecha, usuario_reg)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          usuario = usuario,
+          fecha = ?fecha,
+          usuario_reg = ?usuario_reg,
+          error = %err,
+          "Obteniendo los marcajes por fecha sin incidencias"
+        );
+        ServicioError::from(err)
+      })
+  }
+
   /// Obtiene el marcaje dado un usuario y la fecha
   #[inline]
   pub async fn marcaje_por_fecha(
     &self,
     usuario: u32,
     fecha: NaiveDate,
-  ) -> Result<Vec<Marcaje>, ServicioError> {
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, ServicioError> {
     self
       .repo
       .marcajes_por_fecha(usuario, fecha)
@@ -119,7 +144,7 @@ impl MarcajeServicio {
   pub async fn ultimos_marcajes(
     &self,
     usuario: u32,
-  ) -> Result<Vec<Marcaje>, ServicioError> {
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, ServicioError> {
     self
       .repo
       .ultimos_marcajes(

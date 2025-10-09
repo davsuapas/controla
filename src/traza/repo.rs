@@ -33,7 +33,7 @@ impl TrazaRepo {
     .bind(&traza.motivo)
     .execute(&mut **trans.deref_mut())
     .await
-    .map_err(DBError::consulta_from)?;
+    .map_err(DBError::from_sqlx)?;
 
     Ok(result.last_insert_id() as u32)
   }

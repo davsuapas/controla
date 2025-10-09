@@ -8,6 +8,7 @@
 //! - Registrador
 //! - Inspector
 //! - Director
+//! - Supervisor
 
 /// Módulo que gestiona el acceso a datos para los usuarios
 mod repo;

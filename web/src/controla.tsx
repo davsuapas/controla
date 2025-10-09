@@ -25,19 +25,23 @@ import Logout from './components/Logout';
 import UsuarioShow from './components/UsuarioShow';
 import MarcajeManual from './components/MarcajeManual';
 import { crearAPI } from './api/fabrica';
-
+import SolicitudIncEmpleado from './components/SolicitudIncEmpleado';
+import SolicitudIncSupervisores from './components/SolicitudIncSupervisores';
+import ErrorPage from './components/ErrorPage';
+import ErrorBoundary from './components/ErrorBoundary';
 
 crearAPI(false);
-
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
   return (
-    <NotificationsProvider>
-      <DialogsProvider>
-        <Outlet />
-      </DialogsProvider>
-    </NotificationsProvider>
+    <ErrorBoundary>
+      <NotificationsProvider>
+        <DialogsProvider>
+          <Outlet />
+        </DialogsProvider>
+      </NotificationsProvider>
+    </ErrorBoundary>
   );
 };
 
@@ -85,63 +89,98 @@ const rutas = [
   {
     path: '/',
     Component: RootLayout,
+    errorElement: <ErrorPage />, // Error boundary para el layout raíz
     children: [
       {
         index: true,
         Component: Login,
+        errorElement: <ErrorPage />,
       },
       {
         Component: ProtectedDashboard,
+        errorElement: <ErrorPage />,
         children: [
           {
             path: 'usuarios',
+            errorElement: <ErrorPage />,
             children: [
               {
                 index: true,
                 Component: UsuarioList,
+                errorElement: <ErrorPage />,
               },
               {
                 path: 'nuevo',
                 Component: UsuarioCrear,
+                errorElement: <ErrorPage />,
               },
               {
                 path: ':id',
                 Component: UsuarioEdit,
+                errorElement: <ErrorPage />,
               },
               {
                 path: ':id/password',
                 Component: UsuarioPassword,
+                errorElement: <ErrorPage />,
               },
             ]
           },
           {
             path: 'miarea',
+            errorElement: <ErrorPage />,
             children: [
               {
                 path: 'password',
                 Component: UsuarioPassword,
+                errorElement: <ErrorPage />,
               },
               {
                 path: 'perfil',
                 Component: UsuarioShow,
+                errorElement: <ErrorPage />,
               },
               {
                 path: 'logout',
                 Component: Logout,
+                errorElement: <ErrorPage />,
               },
             ]
           },
           {
             path: 'marcaje',
+            errorElement: <ErrorPage />,
             children: [
               {
                 path: 'manual',
                 Component: MarcajeManual,
+                errorElement: <ErrorPage />,
+              },
+            ]
+          },
+          {
+            path: 'incidencias',
+            errorElement: <ErrorPage />,
+            children: [
+              {
+                path: 'solicitud',
+                Component: SolicitudIncEmpleado,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'empleado/solicitud',
+                Component: SolicitudIncSupervisores,
+                errorElement: <ErrorPage />,
               },
             ]
           }
         ],
       },
+      // Ruta comodín para 404
+      {
+        path: '*',
+        element: <ErrorPage type="404" />,
+      }
     ],
   },
 ];
@@ -157,11 +196,13 @@ const themeComponents = {
 
 export default function Controla(props: { disableCustomTheme?: boolean }) {
   return (
-    <AppTheme {...props} themeComponents={themeComponents}>
-      <CssBaseline enableColorScheme />
-      <UsuarioLogeadoProvider>
-        <RouterProvider router={router} />
-      </UsuarioLogeadoProvider>
-    </AppTheme>
+    <ErrorBoundary>
+      <AppTheme {...props} themeComponents={themeComponents}>
+        <CssBaseline enableColorScheme />
+        <UsuarioLogeadoProvider>
+          <RouterProvider router={router} />
+        </UsuarioLogeadoProvider>
+      </AppTheme>
+    </ErrorBoundary>
   );
 }

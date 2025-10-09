@@ -1,10 +1,20 @@
 import dayjs, { Dayjs } from "dayjs"
 import { DescriptorUsuario, Horario } from "./usuarios"
+import { DominiosWithCacheUsuarioDTO } from "./dto";
+
+const NO_ESPECIFICADO = 'Sin especificar';
+
+export class DescriptorMarcaje {
+  constructor(
+    public id: number,
+  ) { }
+}
 
 export class Marcaje {
 
   constructor(
-    public usuario: number,
+    public id: number,
+    public usuario: DescriptorUsuario,
     public usuario_reg: DescriptorUsuario | null,
     public fecha: Dayjs,
     public horaInicio: string,
@@ -14,36 +24,36 @@ export class Marcaje {
   ) { }
 
   // Crea una instancia desde la solicitudo del servidor
-  static fromRequest(obj: any): Marcaje {
-    const usuarioReg = obj.usuario_reg
-      ? new DescriptorUsuario(
-        obj.usuario_reg.id,
-        obj.usuario_reg.nombre,
-        obj.usuario_reg.primer_apellido,
-        obj.usuario_reg.segundo_apellido
-      )
-      : null;
+  static fromRequest(dto: DominiosWithCacheUsuarioDTO<any>): Marcaje[] {
+    return dto.items.map(item => {
+      return new Marcaje(
+        item.id,
+        dto.usuario(item.usuario),
+        dto.usuarioOptional(item.usuario_reg),
+        dayjs(item.fecha),
+        item.hora_inicio,
+        item.hora_fin || null,
+        item.horario ? Horario.fromRequest(item.horario) : null,
+        item.hora_trabajadas,
+      );
+    });
+  }
 
-    // No es necesario asignar usuario cuando viene del servidor porque 
-    // siempre esta filtrado por el usuario
-    return new Marcaje(
-      0,
-      usuarioReg,
-      dayjs(obj.fecha),
-      obj.hora_inicio,
-      obj.hora_fin ? obj.hora_fin : null,
-      Horario.fromRequest(obj.horario),
-      obj.hora_trabajadas,
-    );
+  // Devuelve el usuario que registro el marcaje si no es nulo
+  // si no el usuario por defecto
+  usuarioCreador(usuarioDefault: DescriptorUsuario): DescriptorUsuario {
+    // Por rendimiento no se trae el usuario porque normalmente
+    // esta filtrado por el mismo y se puede obtener
+    return this.usuario_reg ? this.usuario_reg : usuarioDefault;
   }
 
   horaFinToStr(): string {
-    return this.horaFin ? this.horaFin : 'Sin especificar';
+    return this.horaFin ? this.horaFin : NO_ESPECIFICADO;
   }
 
   horaTrabajadasToStr(): string {
     return this.horasTrabajadas ? this.horasTrabajadas.toFixed(2)
-      : 'Sin especificar';
+      : NO_ESPECIFICADO;
   }
 
 }

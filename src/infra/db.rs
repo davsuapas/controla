@@ -3,35 +3,68 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum DBError {
   #[error("Error cuando se trabaja con transacciones: {0}")]
-  #[allow(dead_code)]
   Transaccion(anyhow::Error),
-
   #[error("Error en la consulta: {0}")]
   Consulta(anyhow::Error),
-
   #[error("Registro/s inexistente/s: {0}")]
-  RegistroVacio(anyhow::Error),
-
+  RegistroVacio(String),
   #[error("Error encriptando o desencriptando un campo: {0}")]
   Criptografia(anyhow::Error),
+  #[error("Parámetros de la consulta: {0}")]
+  Parametros(&'static str),
+  #[error("{0}")]
+  ConstraintViolation(String),
 }
 
 impl DBError {
-  pub fn consulta_from<E: Into<anyhow::Error>>(err: E) -> Self {
-    DBError::Consulta(err.into())
-  }
-
-  #[allow(dead_code)]
   pub fn trans_from<E: Into<anyhow::Error>>(err: E) -> Self {
     DBError::Transaccion(err.into())
   }
 
   pub fn registro_vacio(msg: String) -> Self {
-    DBError::RegistroVacio(anyhow::anyhow!(msg))
+    DBError::RegistroVacio(msg)
   }
 
   pub fn cripto_from<E: Into<anyhow::Error>>(err: E) -> Self {
     DBError::Criptografia(err.into())
+  }
+
+  /// Convierte errores de SQLx detectando violaciones de constraints
+  pub fn from_sqlx(err: sqlx::Error) -> Self {
+    match &err {
+      sqlx::Error::Database(dberr) => {
+        if dberr.is_foreign_key_violation() {
+          let msg = if let Some(constraint) = dberr.constraint() {
+            format!(
+              "No se puede eliminar o actualizar: 
+              existen registros relacionados ({})",
+              constraint
+            )
+          } else {
+            "No se puede eliminar o actualizar: existen registros relacionados"
+              .to_string()
+          };
+          DBError::ConstraintViolation(msg)
+        } else if dberr.is_check_violation() {
+          let msg = if let Some(constraint) = dberr.constraint() {
+            format!("Validación de datos fallida: {}", constraint)
+          } else {
+            "Los datos no cumplen con las validaciones".to_string()
+          };
+          DBError::ConstraintViolation(msg)
+        } else if dberr.is_unique_violation() {
+          let msg = if let Some(constraint) = dberr.constraint() {
+            format!("El registro ya existe: {}", constraint)
+          } else {
+            "El registro ya existe".to_string()
+          };
+          DBError::ConstraintViolation(msg)
+        } else {
+          DBError::Consulta(anyhow::anyhow!(err))
+        }
+      }
+      _ => DBError::Consulta(anyhow::anyhow!(err)),
+    }
   }
 }
 

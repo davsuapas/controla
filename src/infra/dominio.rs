@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use std::fmt::{self, Formatter};
 use std::{fmt::Display, ops::Deref};
@@ -7,6 +7,37 @@ use data_encoding::HEXLOWER;
 use sha2::{Digest, Sha256};
 
 use crate::infra::{desencriptar, encriptar};
+use crate::usuarios::DescriptorUsuario;
+
+/// Estructura que representa un array de entidades
+/// que cotiene descriptores de usuarios
+/// y una colección de descriptores de usuario
+/// cacheados que corresponde con todos los usuarios de
+/// la entidades
+pub struct DominiosWithCacheUsuario<T> {
+  pub items: Vec<T>,
+  pub cache: HashMap<u32, DescriptorUsuario>,
+}
+
+impl<T> DominiosWithCacheUsuario<T> {
+  pub fn new(capacidad_entidad: usize) -> Self {
+    Self {
+      items: Vec::with_capacity(capacidad_entidad),
+      cache: HashMap::new(),
+    }
+  }
+
+  // Agregar un item y los descriptores de usuario asociados
+  pub fn push_with_usuarios<I>(&mut self, item: T, users: I)
+  where
+    I: IntoIterator<Item = DescriptorUsuario>,
+  {
+    self.items.push(item);
+    for user in users {
+      self.cache.entry(user.id).or_insert(user);
+    }
+  }
+}
 
 /// Tipo que representa un valor encriptado
 #[derive(Debug, Eq, PartialEq)]

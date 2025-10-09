@@ -42,7 +42,7 @@ impl UsuarioRepo {
       .bind(usuario)
       .execute(&mut **trans.deref_mut())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     const QUERY: &str = "INSERT INTO roles_usuario (usuario, rol)
        VALUES (?, ?);";
@@ -53,7 +53,7 @@ impl UsuarioRepo {
         .bind(*rol as u32)
         .execute(&mut **trans.deref_mut())
         .await
-        .map_err(DBError::consulta_from)?;
+        .map_err(DBError::from_sqlx)?;
     }
 
     Ok(())
@@ -97,7 +97,7 @@ impl UsuarioRepo {
       .bind(usuario.inicio)
       .execute(&mut **trans.deref_mut())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     Ok(result.last_insert_id() as u32)
   }
@@ -137,7 +137,7 @@ impl UsuarioRepo {
       .bind(usuario.id)
       .execute(&mut **trans.deref_mut())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if res.rows_affected() == 0 {
       Err(DBError::registro_vacio("Actualizando usuario".to_string()))
@@ -165,7 +165,7 @@ impl UsuarioRepo {
       .bind(usuario)
       .execute(&mut **trans.deref_mut())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if res.rows_affected() == 0 {
       Err(DBError::registro_vacio("Actualizando password".to_string()))
@@ -188,7 +188,7 @@ impl UsuarioRepo {
       .bind(usuario)
       .execute(&mut **trans.deref_mut())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if res.rows_affected() == 0 {
       Err(DBError::registro_vacio(
@@ -213,7 +213,7 @@ impl UsuarioRepo {
       .bind(dni.hash_con_salt(secreto))
       .fetch_one(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     Ok(count > 0)
   }
@@ -234,7 +234,7 @@ impl UsuarioRepo {
       .bind(usuario)
       .fetch_optional(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if let Some(r) = row {
       let p: String = r.get("password");
@@ -262,7 +262,7 @@ impl UsuarioRepo {
     let rows = sqlx::query(QUERY)
       .fetch_all(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     let mut usuarios = Vec::with_capacity(rows.len());
 
@@ -290,7 +290,7 @@ impl UsuarioRepo {
       .bind(id)
       .fetch_optional(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if let Some(row) = row {
       self.usuario_from_row(&row, secreto).await
@@ -320,7 +320,7 @@ impl UsuarioRepo {
       .bind(dni.hash_con_salt(secreto))
       .fetch_optional(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if let Some(row) = row {
       self.usuario_from_row(&row, secreto).await
@@ -347,7 +347,7 @@ impl UsuarioRepo {
       .bind(rol as u32)
       .fetch_all(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     Ok(
       rows
@@ -374,7 +374,7 @@ impl UsuarioRepo {
       .bind(usuario)
       .fetch_all(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     Ok(rows.into_iter().map(Rol::from).collect())
   }
@@ -408,16 +408,17 @@ impl UsuarioRepo {
          AND NOT EXISTS 
          (SELECT r.id
             FROM marcajes r
-            WHERE r.usuario = uh.usuario
-             AND r.fecha = ?
-             AND r.horario = h.id)
-         AND ? > COALESCE((
-            SELECT MAX(r2.hora_fin)
+            WHERE r.usuario = uh.usuario AND r.fecha = ?
+             AND r.horario = h.id
+             AND modificado_por IS NULL AND eliminado IS NULL)
+         AND ? > COALESCE(
+         (SELECT MAX(r2.hora_fin)
             FROM marcajes r2
             JOIN horarios h2 ON r2.horario = h2.id
-            WHERE r2.usuario = uh.usuario
-              AND r2.fecha = ?
-              AND h2.hora_inicio < h.hora_inicio), '00:00:00')";
+            WHERE r2.usuario = uh.usuario AND r2.fecha = ?
+              AND h2.hora_inicio < h.hora_inicio
+              AND modificado_por IS NULL AND eliminado IS NULL),
+        '00:00:00')";
 
     let fecha = hora.date();
     let hora_buscar = hora.time();
@@ -432,7 +433,7 @@ impl UsuarioRepo {
       .bind(fecha)
       .fetch_optional(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     if let Some(row) = result {
       Ok(UsuarioRepo::horario_from_row(&row))
@@ -449,17 +450,19 @@ impl UsuarioRepo {
              AND NOT EXISTS 
              ( SELECT r.id
                  FROM marcajes r
-                 WHERE r.usuario = uh.usuario
-                  AND r.fecha = ?
-                  AND r.horario = h.id)
-            AND ? > COALESCE((
-                SELECT MAX(r2.hora_fin)
+                 WHERE r.usuario = uh.usuario AND r.fecha = ?
+                  AND r.horario = h.id
+                  AND modificado_por IS NULL AND eliminado IS NULL)
+            AND ? > COALESCE(
+            (SELECT MAX(r2.hora_fin)
                 FROM marcajes r2
                 JOIN horarios h2 ON r2.horario = h2.id
                 WHERE r2.usuario = uh.usuario
                   AND r2.fecha = ?
-                  AND h2.hora_inicio < h.hora_inicio), '00:00:00')
-             LIMIT 1;";
+                  AND h2.hora_inicio < h.hora_inicio
+                  AND modificado_por IS NULL AND eliminado IS NULL),
+            00:00:00')
+            LIMIT 1;";
 
       let result = sqlx::query(QUERY)
         .bind(usuario)
@@ -471,7 +474,7 @@ impl UsuarioRepo {
         .bind(fecha)
         .fetch_optional(self.pool.conexion())
         .await
-        .map_err(DBError::consulta_from)?;
+        .map_err(DBError::from_sqlx)?;
 
       if let Some(row) = result {
         Ok(UsuarioRepo::horario_from_row(&row))
@@ -507,9 +510,9 @@ impl UsuarioRepo {
          AND NOT EXISTS 
          ( SELECT r.id
             FROM marcajes r
-            WHERE r.usuario = uh.usuario
-             AND r.fecha = ?
-             AND r.horario = h.id)
+            WHERE r.usuario = uh.usuario AND r.fecha = ?
+             AND r.horario = h.id
+             AND modificado_por IS NULL AND eliminado IS NULL)
         ORDER BY h.hora_inicio;";
 
     let rows = sqlx::query(QUERY)
@@ -519,7 +522,7 @@ impl UsuarioRepo {
       .bind(hora.date())
       .fetch_all(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     Ok(
       rows
@@ -543,7 +546,7 @@ impl UsuarioRepo {
         .bind(id)
         .fetch_one(self.pool.conexion())
         .await
-        .map_err(DBError::consulta_from),
+        .map_err(DBError::from_sqlx),
     )?
   }
 
@@ -563,7 +566,7 @@ impl UsuarioRepo {
       .bind(hora)
       .fetch_one(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?
+      .map_err(DBError::from_sqlx)?
       .ok_or_else(|| {
         DBError::registro_vacio(format!(
           "No se ha encontrado ningún horario configurado \

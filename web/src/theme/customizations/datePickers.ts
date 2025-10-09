@@ -1,12 +1,11 @@
 import { alpha, Theme } from '@mui/material/styles';
-import type { PickersProComponents } from '@mui/x-date-pickers-pro/themeAugmentation';
 import type { PickerComponents } from '@mui/x-date-pickers/themeAugmentation';
 import { menuItemClasses } from '@mui/material/MenuItem';
 import { pickersDayClasses, yearCalendarClasses } from '@mui/x-date-pickers';
 import { gray, brand } from '../../theme/themePrimitives';
 
 /* eslint-disable import/prefer-default-export */
-export const datePickersCustomizations: PickersProComponents<Theme> & PickerComponents<Theme> = {
+export const datePickersCustomizations: PickerComponents<Theme> = {
   MuiPickerPopper: {
     styleOverrides: {
       paper: ({ theme }) => ({
@@ -14,7 +13,7 @@ export const datePickersCustomizations: PickersProComponents<Theme> & PickerComp
         borderRadius: theme.shape.borderRadius,
         border: `1px solid ${(theme.vars || theme).palette.divider}`,
         backgroundImage: 'none',
-        background: 'hsl(0, 0%, 100%)',
+        background: 'hsl(0, 0%, 100%) !important',
         boxShadow:
           'hsla(220, 30%, 5%, 0.07) 0px 4px 16px 0px, hsla(220, 25%, 10%, 0.07) 0px 8px 16px -5px',
         [`& .${menuItemClasses.root}`]: {
@@ -22,7 +21,7 @@ export const datePickersCustomizations: PickersProComponents<Theme> & PickerComp
           margin: '0 6px',
         },
         ...theme.applyStyles('dark', {
-          background: gray[900],
+          background: `${gray[900]} !important`,
           boxShadow:
             'hsla(220, 30%, 5%, 0.7) 0px 4px 16px 0px, hsla(220, 25%, 10%, 0.8) 0px 8px 16px -5px',
         }),
@@ -168,6 +167,79 @@ export const datePickersCustomizations: PickersProComponents<Theme> & PickerComp
           },
         }),
       }),
+    },
+  },
+  // CONFIGURACIÓN DEL INPUT PARA TIME PICKERS
+  MuiPickersTextField: {
+    styleOverrides: {
+      root: ({ theme }) => ({
+        '& .MuiInputBase-root': {
+          backgroundColor: (theme.vars || theme).palette.background.default,
+        },
+      }),
+    },
+  },
+  MuiPickersInputBase: {
+    styleOverrides: {
+      root: ({ theme }) => ({
+        padding: '8px 12px',
+        color: (theme.vars || theme).palette.text.primary,
+        borderRadius: (theme.vars || theme).shape.borderRadius,
+        border: `1px solid ${(theme.vars || theme).palette.divider}`,
+        backgroundColor: (theme.vars || theme).palette.background.default,
+        transition: 'border 120ms ease-in',
+        '&:hover': {
+          borderColor: gray[400],
+        },
+        '&.Mui-focused': {
+          outline: `3px solid ${alpha(brand[500], 0.5)}`,
+          borderColor: brand[400],
+        },
+        ...theme.applyStyles('dark', {
+          '&:hover': {
+            borderColor: gray[500],
+          },
+        }),
+      }),
+      input: {
+        padding: 0,
+        '&::placeholder': {
+          opacity: 0.7,
+          color: gray[500],
+        },
+      },
+    },
+  },
+  MuiPickersFilledInput: {
+    styleOverrides: {
+      root: ({ theme }) => ({
+        padding: '8px 12px',
+        color: (theme.vars || theme).palette.text.primary,
+        borderRadius: (theme.vars || theme).shape.borderRadius,
+        border: `1px solid ${(theme.vars || theme).palette.divider}`,
+        backgroundColor: `${(theme.vars || theme).palette.background.default} !important`,
+        transition: 'border 120ms ease-in',
+        '&:before, &:after': {
+          display: 'none',
+        },
+        '&:hover': {
+          borderColor: gray[400],
+          backgroundColor: `${(theme.vars || theme).palette.background.default} !important`,
+        },
+        '&.Mui-focused': {
+          outline: `3px solid ${alpha(brand[500], 0.5)}`,
+          borderColor: brand[400],
+          backgroundColor: `${(theme.vars || theme).palette.background.default} !important`,
+        },
+        ...theme.applyStyles('dark', {
+          '&:hover': {
+            borderColor: gray[500],
+          },
+        }),
+      }),
+      input: {
+        padding: 0,
+      },
     },
   },
 };

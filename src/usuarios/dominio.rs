@@ -9,20 +9,27 @@ use crate::infra::{Dni, Password};
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Rol {
-  /// Empleado con permisos para registrar y consultar su registro.
+  /// Empleado con permisos para registrar y consultar marcajes.
+  /// También puede enviar solicitudes de incidencias
   Empleado = 1,
-  /// Permisos de gestión de incidencias.
+  /// Permisos de gestión de incidencias. Puede aprobar o
+  /// rechazar incidencias
   Gestor = 2,
   /// Permisos de administración de usuarios.
   Admin = 3,
   /// Permisos de dirección y generación de informes.
   Director = 4,
-  /// Permisos para registrar registros horarios en nombre del empleado.
+  /// Permisos para registrar marcajes en nombre del empleado.
+  /// También puede realizar solicitudes de incidencias que
+  /// haya previamente registrado
   Registrador = 5,
   /// Permisos para inspeccionar y auditar registros.
   Inspector = 6,
-  /// Permisos para configurar el sistema.
-  Configurador = 7,
+  /// Permisos que supervisa a los gestores. Si un gestor
+  /// deja la compañia, el gestor podrá realizar sus tareas
+  /// Puede realizar solictudes de cualquier empleado incluso
+  /// que no haya registrado
+  Supervidor = 7,
 }
 
 impl From<u8> for Rol {
@@ -34,7 +41,7 @@ impl From<u8> for Rol {
       4 => Rol::Director,
       5 => Rol::Registrador,
       6 => Rol::Inspector,
-      7 => Rol::Configurador,
+      7 => Rol::Supervidor,
       _ => panic!("Valor de Rol no válido"),
     }
   }
@@ -149,7 +156,6 @@ impl From<&str> for Dia {
   }
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Horario {
   pub id: u32,

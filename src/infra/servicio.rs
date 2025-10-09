@@ -25,9 +25,9 @@ impl ServicioError {
     match self {
       ServicioError::Usuario(msg) => ServicioError::mensaje(msg),
       ServicioError::Validacion(msg) => ServicioError::mensaje(msg),
-      ServicioError::DB(DBError::RegistroVacio(e)) => {
-        ServicioError::mensaje(&e.to_string())
-      }
+      ServicioError::DB(
+        DBError::RegistroVacio(e) | DBError::ConstraintViolation(e),
+      ) => ServicioError::mensaje(&e.to_string()),
       ServicioError::DB(_) => "".to_string(),
     }
   }

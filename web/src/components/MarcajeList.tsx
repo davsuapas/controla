@@ -72,8 +72,7 @@ export default function MarcajeList({ marcajes: marcajes }: MarcajeListProps) {
               <StyledTableCell
                 align="right"
                 sx={{
-                  color: marcaje.horaFinToStr() == 'Sin especificar' ?
-                    'error.main' : 'inherit'
+                  color: marcaje.horaFin ? 'inherit' : 'error.main'
                 }}
               >
                 {marcaje.horaFinToStr()}
@@ -87,8 +86,7 @@ export default function MarcajeList({ marcajes: marcajes }: MarcajeListProps) {
               <StyledTableCell
                 align="right"
                 sx={{
-                  color: marcaje.horaTrabajadasToStr() == 'Sin especificar' ?
-                    'error.main' : 'inherit'
+                  color: marcaje.horaFin ? 'inherit' : 'error.main'
                 }}
               >
                 {marcaje.horaTrabajadasToStr()}

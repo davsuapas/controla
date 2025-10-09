@@ -9,7 +9,7 @@ import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import ColorModeSelect from '../theme/ColorModeSelect';
-import SitemarkIcon from './SitemarkIcon';
+import ControlaIcon from './ControlaIcon';
 import { api } from '../api/fabrica';
 import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useLocation, useNavigate } from 'react-router';
@@ -128,7 +128,7 @@ export default function Login() {
     <SignInContainer direction="column" justifyContent="space-between">
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <Card variant="outlined">
-        <SitemarkIcon />
+        <ControlaIcon />
         <Typography
           component="h1"
           variant="h4"

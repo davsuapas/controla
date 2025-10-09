@@ -11,6 +11,9 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import PasswordIcon from '@mui/icons-material/Password';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -183,12 +186,68 @@ export default function DashboardSidebar({
               selected={!!matchPath('/usuarios/*', pathname)}
             />
             <DashboardSidebarPageItem
-              id="marcaje_manual"
-              title="Marcaje manual"
-              icon={<AppRegistrationIcon />}
-              href="/marcaje/manual"
-              visible={user.acceso_a_ruta('/marcaje/manual')}
-              selected={!!matchPath('/marcaje/manual', pathname)}
+              id="marcajes"
+              title="Marcajes"
+              icon={<FactCheckIcon />}
+              href="/marcajes"
+              defaultExpanded={true}
+              expanded={true}
+              nestedNavigation={
+                <List
+                  dense
+                  sx={{
+                    padding: 0,
+                    my: 1,
+                    pl: mini ? 0 : 1,
+                    minWidth: 240,
+                  }}
+                >
+                  <DashboardSidebarPageItem
+                    id="marcaje_manual"
+                    title="Marcaje manual"
+                    icon={<AppRegistrationIcon />}
+                    href="/marcaje/manual"
+                    visible={user.acceso_a_ruta('/marcaje/manual')}
+                    selected={!!matchPath('/marcaje/manual', pathname)}
+                  />
+                </List>
+              }
+            />
+            <DashboardSidebarPageItem
+              id="incidencias"
+              title="Incidencias"
+              icon={<BugReportIcon />}
+              href="/incidencias"
+              defaultExpanded={true}
+              expanded={true}
+              nestedNavigation={
+                <List
+                  dense
+                  sx={{
+                    padding: 0,
+                    my: 1,
+                    pl: mini ? 0 : 1,
+                    minWidth: 240,
+                  }}
+                >
+                  <DashboardSidebarPageItem
+                    id="incidencias_solicitud"
+                    title="Solicitud empleado"
+                    icon={<AppRegistrationIcon />}
+                    href="/incidencias/solicitud"
+                    visible={user.acceso_a_ruta('/incidencias/solicitud')}
+                    selected={!!matchPath('/incidencias/solicitud', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="incidencias_solicitud_super"
+                    title="Solicitud con privilegios"
+                    icon={<VpnKeyIcon />}
+                    href="/incidencias/solicitud/privilegios"
+                    visible={user.acceso_a_ruta('/incidencias/solicitud/privilegios')}
+                    selected={!!matchPath('/incidencias/solicitud/privilegios', pathname)}
+                  />
+                </List>
+              }
             />
           </List>
         </Box>

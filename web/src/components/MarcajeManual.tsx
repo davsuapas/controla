@@ -4,13 +4,10 @@ import ResumenMarcaje from './ResumenMarcaje';
 import FormGroup from '@mui/material/FormGroup';
 import Grid from '@mui/material/Grid';
 import { useState } from 'react';
-import { DescriptorUsuario, RolID } from '../modelos/usuarios';
+import { DescriptorUsuario } from '../modelos/usuarios';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import React from 'react';
 import { NetErrorControlado } from '../net/interceptor';
-import InputLabel from '@mui/material/InputLabel';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
 import { api } from '../api/fabrica';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { TimeField } from '@mui/x-date-pickers/TimeField';
@@ -21,76 +18,49 @@ import LocalizationProviderES from '../theme/location';
 import Button from '@mui/material/Button';
 import { MarcajeOutDTO } from '../modelos/dto';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
-import { logError } from '../error';
+import { logError, validarFechaHora } from '../error';
+import SelectorEmpleado from './SelectorEmpleado';
 
 interface FormularioData {
-  empleado: DescriptorUsuario;
+  empleado?: DescriptorUsuario;
   fecha: dayjs.Dayjs;
-  entrada: dayjs.Dayjs;
-  salida: dayjs.Dayjs;
+  entrada?: dayjs.Dayjs;
+  salida?: dayjs.Dayjs;
 }
 
 interface FormErrors {
-  fecha: string; // No se usa pero mejora la legibilidad del código
-  entrada: string;
-  salida: string;
+  fecha?: string;
+  entrada?: string;
+  salida?: string;
 }
 
 const HORA_NO_VALIDA = 'Hora no valida';
 
-function validarFechaHora(fechaHora: dayjs.Dayjs | null | undefined) {
-  return fechaHora && fechaHora.isValid()
-}
-
-// Permite realizar un marcaje para un usuario seleccionado 
-// indicando manualmente la fecha, hora de inicio y fín.
-// Además muestra el horario más cercano y los últimos
-// marcajes del usuario.
 export default function MarcajeManual() {
-  const [empleados, setEmpleados] = useState<DescriptorUsuario[]>([]);
-
-  const [formData, setFormData] = useState<Partial<FormularioData>>({});
-  const [formErrors, setFormErrors] = useState<Partial<FormErrors>>({});
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Permite forzar el renderizado de los marcajes de resumen
+  const [formData, setFormData] = useState<FormularioData>({
+    fecha: dayjs(),
+    entrada: undefined,
+    salida: undefined,
+  });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
 
   const usuarioLogeado = useUsuarioLogeado();
   const notifica = useNotifications();
 
-
-  // Carga los últimos marcajes y el horario más cercano
-  const cargarDatos = React.useCallback(async () => {
-    setIsLoading(true);
-
-    try {
-      let empls = await api().usuarios.usuarios_por_rol(RolID.Empleado)
-      setEmpleados(empls);
-
-      setFormData({
-        empleado: empls[0],
-        fecha: dayjs(),
+  const handleEmpleadoChange = React.useCallback(
+    (empleado: DescriptorUsuario | undefined) => {
+      setFormData(prev => ({
+        ...prev,
+        empleado,
         entrada: undefined,
         salida: undefined,
-      });
-    } catch (error) {
-      if (!(error instanceof NetErrorControlado)) {
-        logError('marcajemanual.cargardatos', error);
-        notifica.show(
-          'Error inesperado al cargar los usuarios',
-          {
-            severity: 'error',
-            autoHideDuration: 5000,
-          },
-        );
-      }
-      setEmpleados([]);
-    }
-    setIsLoading(false);
-  }, []);
+      }));
+      setFormErrors({});
+    },
+    []
+  );
 
   const resetCamposHora = React.useCallback(() => {
     setFormData(prev => ({
@@ -98,32 +68,9 @@ export default function MarcajeManual() {
       entrada: undefined,
       salida: undefined,
     }));
-
     setFormErrors({});
-  },
-    []
-  )
-
-  React.useEffect(() => {
-    cargarDatos();
   }, []);
 
-
-  const handleEmpleadoChange = React.useCallback(
-    (event: SelectChangeEvent<string>) => {
-      const id = Number(event.target.value);
-      const empleadoSeleccionado = empleados.find(u => u.id === id);
-
-      setFormData({
-        empleado: empleadoSeleccionado,
-        fecha: dayjs(),
-        entrada: undefined,
-        salida: undefined,
-      });
-    }, [empleados]);
-
-
-  // Maneja el cambio de los campos de fecha y hora
   const handleDateTimeFieldChange = React.useCallback(
     (name: string, value: dayjs.Dayjs | null) => {
       const valida = validarFechaHora(value);
@@ -137,7 +84,9 @@ export default function MarcajeManual() {
         ...prev,
         [name]: value
       }));
-    }, []);
+    },
+    []
+  );
 
   const handleSubmit = React.useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -153,20 +102,15 @@ export default function MarcajeManual() {
         formData.entrada! < formData.salida!)) {
         validaSalida = false;
         msg_salida_error =
-          'La hora de salida no puede ser menor que la de hora de entrada'
+          'La hora de salida no puede ser menor que la de hora de entrada';
       }
 
-      setFormErrors(
-        {
-          entrada: validaEntrada ? undefined : HORA_NO_VALIDA,
-          salida: validaSalida ? undefined : msg_salida_error
-        }
-      );
+      setFormErrors({
+        entrada: validaEntrada ? undefined : HORA_NO_VALIDA,
+        salida: validaSalida ? undefined : msg_salida_error
+      });
 
-      if (validaFecha &&
-        validaEntrada &&
-        validaSalida &&
-        formData.empleado) {
+      if (validaFecha && validaEntrada && validaSalida && formData.empleado) {
         setIsLoading(true);
 
         try {
@@ -178,7 +122,7 @@ export default function MarcajeManual() {
               formData.entrada!,
               formData.salida
             )
-          )
+          );
 
           notifica.show('Marcaje registrado satisfactóriamente.', {
             severity: 'success',
@@ -186,7 +130,6 @@ export default function MarcajeManual() {
           });
 
           resetCamposHora();
-          // Incrementar el trigger para forzar recarga
           setRefreshTrigger(prev => prev + 1);
         } catch (error) {
           if (!(error instanceof NetErrorControlado)) {
@@ -197,7 +140,7 @@ export default function MarcajeManual() {
               {
                 severity: 'error',
                 autoHideDuration: 5000,
-              },
+              }
             );
           }
         }
@@ -209,12 +152,11 @@ export default function MarcajeManual() {
           {
             severity: 'warning',
             autoHideDuration: 5000,
-          },
+          }
         );
       }
-
     },
-    [formData],
+    [formData, usuarioLogeado, notifica, resetCamposHora]
   );
 
   const pageTitle = 'Marcaje manual del empleado';
@@ -233,21 +175,11 @@ export default function MarcajeManual() {
             <Grid container spacing={2} sx={{ ml: 0.2, mb: 2, width: '100%' }}>
               <Grid size={{ xs: 12, sm: 12, md: 6 }}
                 sx={{ display: 'flex', flexDirection: 'column' }}>
-                <InputLabel>Empleado</InputLabel>
-                <Select
-                  name='empleado'
-                  value={formData.empleado?.id?.toString() ?? ''}
-                  label="Empleado"
+                <SelectorEmpleado
                   onChange={handleEmpleadoChange}
                   disabled={isLoading}
-                  fullWidth
-                >
-                  {empleados.map((empleado) => (
-                    <MenuItem key={empleado.id} value={empleado.id.toString()}>
-                      {empleado.nombreCompleto()}
-                    </MenuItem>
-                  ))}
-                </Select>
+                  onLoadingChange={setIsLoading}
+                />
               </Grid>
               <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 1, width: '100%' }} />
@@ -307,8 +239,9 @@ export default function MarcajeManual() {
           usuarioId={formData.empleado?.id.toString()}
           fecha={formData.fecha}
           horaInicio={formData.entrada}
-          refreshTrigger={refreshTrigger} />
+          refreshTrigger={refreshTrigger}
+        />
       </Box>
-    </PageContainer >
+    </PageContainer>
   );
 }

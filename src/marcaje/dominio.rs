@@ -1,11 +1,17 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
-use crate::usuarios::{DescriptorUsuario, Horario};
+use crate::usuarios::Horario;
+
+#[derive(Debug)]
+pub struct DescriptorMarcaje {
+  pub id: u32,
+}
 
 #[derive(Debug)]
 pub struct Marcaje {
+  pub id: u32,
   pub usuario: u32,
-  pub usuario_reg: Option<DescriptorUsuario>,
+  pub usuario_reg: Option<u32>,
   pub horario: Option<Horario>,
   pub fecha: NaiveDate,
   pub hora_inicio: NaiveTime,

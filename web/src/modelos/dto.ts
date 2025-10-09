@@ -20,7 +20,7 @@ export class UsuarioOutDTO {
   ) {
   }
 
-  // No se olvide de propor el autor si procede
+  // No se olvide de proporcionar el autor si procede
   static fromUsuario(usr: Usuario): UsuarioOutDTO {
     return new UsuarioOutDTO(
       usr.id,
@@ -41,7 +41,7 @@ export class UsuarioOutDTO {
 export class MarcajeOutDTO {
   constructor(
     public usuario: number,
-    public usuario_reg: DescriptorUsuario | null,
+    public usuario_reg: number | null,
     public fecha: string,
     public hora_inicio: string,
     public hora_fin: string | null,
@@ -55,7 +55,7 @@ export class MarcajeOutDTO {
     horaInicio: dayjs.Dayjs,
     horaFin: dayjs.Dayjs | undefined,
   ): MarcajeOutDTO {
-    const usuarioReg = usuarioId == usuarioLogeado.id ? null : usuarioLogeado
+    const usuarioReg = usuarioId == usuarioLogeado.id ? null : usuarioLogeado.id
 
     return new MarcajeOutDTO(
       usuarioId,
@@ -64,5 +64,56 @@ export class MarcajeOutDTO {
       formatTimeForServer(horaInicio)!,
       formatTimeForServer(horaFin)
     );
+  }
+}
+
+// Gestiona una cache de usuarios
+// Los datos son obtenidos del servidor
+export class DominiosWithCacheUsuarioDTO<T> {
+  constructor(
+    public readonly items: T[],
+    public readonly cache: { [key: string]: any }
+  ) { }
+
+  // Método estático para crear desde respuesta Axios
+  static fromResponse<T>(responseData: any): DominiosWithCacheUsuarioDTO<T> {
+    return new DominiosWithCacheUsuarioDTO<T>(
+      responseData.items || [],
+      responseData.cache || {}
+    );
+  }
+
+  // Helper interno para obtener usuarios del cache
+  private getUsuarioFromCache(id: number | string): DescriptorUsuario | null {
+    const key = typeof id === 'number' ? id.toString() : id;
+    const userObj = this.cache[key];
+
+    if (!userObj) return null;
+
+    return new DescriptorUsuario(
+      userObj.id,
+      userObj.nombre,
+      userObj.primer_apellido,
+      userObj.segundo_apellido
+    );
+  }
+
+  // Helper interno para obtener usuario o lanzar error
+  private TryGetUsuario(id: number | string): DescriptorUsuario {
+    const usuario = this.getUsuarioFromCache(id);
+    if (!usuario) {
+      throw new Error(`Usuario con ID ${id} no encontrado en cache`);
+    }
+    return usuario;
+  }
+
+  // Método público para que fromRequest() pueda obtener usuarios
+  usuario(id: number): DescriptorUsuario {
+    return this.TryGetUsuario(id);
+  }
+
+  // Método público para obtener usuario opcional
+  usuarioOptional(id: number | null | undefined): DescriptorUsuario | null {
+    return id ? this.TryGetUsuario(id) : null;
   }
 }

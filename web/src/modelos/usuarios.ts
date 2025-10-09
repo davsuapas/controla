@@ -3,7 +3,6 @@ import { matchPath } from 'react-router';
 import { dateToStr } from './formatos';
 
 
-// Si cambia el nombre cambiarlo en Login.tsx
 export enum RolID {
   Empleado = 1,
   Gestor = 2,
@@ -11,7 +10,7 @@ export enum RolID {
   Director = 4,
   Registrador = 5,
   Inspector = 6,
-  Configurador = 7
+  Supervisor = 7
 }
 
 // El orden es imporante para establecer la ruta del login
@@ -21,23 +20,35 @@ export const ROLES: Map<RolID, {
   rutas_acceso: string[];
   // otras propiedades que necesites
 }> = new Map([
+  [RolID.Empleado, {
+    nombre: 'Empleado',
+    ruta_login: '/incidencias/solicitud',
+    rutas_acceso: ['/miarea/*', '/incidencias/solicitud']
+  }],
+  [RolID.Registrador, {
+    nombre: 'Registrador',
+    ruta_login: '/marcaje/manual',
+    rutas_acceso: [
+      '/miarea/*',
+      '/marcaje/manual',
+      '/incidencias/solicitud/privilegios'
+    ]
+  }],
+  [RolID.Supervisor, {
+    nombre: 'Supervisor',
+    ruta_login: '/incidencias/solicitud/privilegios',
+    rutas_acceso: [
+      '/miarea/*',
+      '/incidencias/solicitud/privilegios'
+    ]
+  }],
   [RolID.Admin, {
     nombre: 'Admin',
     ruta_login: '/usuarios',
     rutas_acceso: ['/miarea/*', '/usuarios/*']
   }],
-  [RolID.Registrador, {
-    nombre: 'Registrador',
-    ruta_login: '/marcaje/manual',
-    rutas_acceso: ['/miarea/*', '/marcaje/manual']
-  }],
   [RolID.Gestor, {
     nombre: 'Gestor',
-    ruta_login: '',
-    rutas_acceso: ['/miarea/*']
-  }],
-  [RolID.Empleado, {
-    nombre: 'Empleado',
     ruta_login: '',
     rutas_acceso: ['/miarea/*']
   }],
@@ -48,11 +59,6 @@ export const ROLES: Map<RolID, {
   }],
   [RolID.Inspector, {
     nombre: 'Inspector',
-    ruta_login: '',
-    rutas_acceso: ['/miarea/*']
-  }],
-  [RolID.Configurador, {
-    nombre: 'Configurador',
     ruta_login: '',
     rutas_acceso: ['/miarea/*']
   }],
@@ -148,6 +154,10 @@ export class Usuario {
 
   anyRoles(ids: RolID[]): boolean {
     return this.roles.some(rol => ids.includes(rol.id));
+  }
+
+  tieneRol(id: RolID): boolean {
+    return this.roles.some(rol => rol.id === id);
   }
 
   toDescriptor(): DescriptorUsuario {

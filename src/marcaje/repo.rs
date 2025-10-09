@@ -1,10 +1,14 @@
 use chrono::{NaiveDate, NaiveTime};
 
+use smallvec::SmallVec;
 use sqlx::Row;
 
 use crate::{
-  infra::{DBError, PoolConexion, ShortDateTimeFormat},
+  infra::{
+    DBError, DominiosWithCacheUsuario, PoolConexion, ShortDateTimeFormat,
+  },
   marcaje::Marcaje,
+  mysql_params,
   usuarios::{DescriptorUsuario, Horario},
 };
 
@@ -38,16 +42,16 @@ impl MarcajeRepo {
       .bind(horario)
       .bind(reg.hora_inicio)
       .bind(reg.hora_fin)
-      .bind(reg.usuario_reg.as_ref().map(|u| u.id))
+      .bind(reg.usuario_reg)
       .execute(self.pool.conexion())
       .await
-      .map_err(DBError::consulta_from)?;
+      .map_err(DBError::from_sqlx)?;
 
     Ok(result.last_insert_id() as u32)
   }
 
   /// Verifica si la hora de fin para cualquier marcaje
-  /// horario para un usuario y fecha está vacía.
+  /// horario, para un determinado usuario y fecha, está vacía.
   pub(in crate::marcaje) async fn hora_fin_vacia(
     &self,
     usuario: u32,
@@ -55,9 +59,9 @@ impl MarcajeRepo {
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
       FROM marcajes
-      WHERE usuario = ? 
-      AND fecha = ?
+      WHERE usuario = ? AND fecha = ?
       AND hora_fin IS NULL
+      AND modificado_por IS NULL AND eliminado IS NULL
       LIMIT 1;";
 
     Ok(
@@ -66,7 +70,7 @@ impl MarcajeRepo {
         .bind(fecha)
         .fetch_optional(self.pool.conexion())
         .await
-        .map_err(DBError::consulta_from)?
+        .map_err(DBError::from_sqlx)?
         .is_some(),
     )
   }
@@ -81,9 +85,9 @@ impl MarcajeRepo {
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
         FROM marcajes
-        WHERE usuario = ? 
-        AND fecha = ?
+        WHERE usuario = ? AND fecha = ?
         AND ? BETWEEN hora_inicio AND hora_fin
+        AND modificado_por IS NULL AND eliminado IS NULL
         LIMIT 1;";
 
     Ok(
@@ -93,7 +97,7 @@ impl MarcajeRepo {
         .bind(hora)
         .fetch_optional(self.pool.conexion())
         .await
-        .map_err(DBError::consulta_from)?
+        .map_err(DBError::from_sqlx)?
         .is_some(),
     )
   }
@@ -113,6 +117,7 @@ impl MarcajeRepo {
         WHERE usuario = ? AND fecha = ?
         AND hora_inicio < ? AND hora_fin > ?
         OR ? BETWEEN hora_inicio AND hora_fin
+        AND modificado_por IS NULL AND eliminado IS NULL
         LIMIT 1;";
 
     Ok(
@@ -124,7 +129,7 @@ impl MarcajeRepo {
         .bind(hora_fin)
         .fetch_optional(self.pool.conexion())
         .await
-        .map_err(DBError::consulta_from)?
+        .map_err(DBError::from_sqlx)?
         .is_some(),
     )
   }
@@ -134,11 +139,58 @@ impl MarcajeRepo {
     &self,
     usuario: u32,
     top: Option<&str>,
-  ) -> Result<Vec<Marcaje>, DBError> {
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
-    let filter = format!("r.usuario = {}", usuario);
 
-    self.marcajes(top, Some(&filter), Some(ORDER_BY)).await
+    self
+      .marcajes(
+        top,
+        Some("r.usuario = ?"),
+        Some(mysql_params![usuario => "Usuario"]),
+        Some(ORDER_BY),
+      )
+      .await
+  }
+
+  /// Obtiene los marcaje dado el usuario y la fecha
+  /// para el registrador como 1parámetro
+  /// que no tengan asigandas una incidencia
+  pub(in crate::marcaje) async fn marcajes_inc_por_fecha_reg(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+    usuario_reg: Option<u32>,
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
+    const ORDER_BY: &str = "r.hora_inicio DESC";
+
+    let filter = if usuario_reg.is_some() {
+      "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador = ? 
+         AND NOT EXISTS (SELECT id FROM incidencias AS i 
+         WHERE i.marcaje = r.id)"
+    } else {
+      "r.usuario = ? AND r.fecha = ? 
+         AND NOT EXISTS (SELECT id FROM incidencias AS i
+         WHERE i.marcaje = r.id)"
+    };
+
+    use sqlx::Arguments;
+    let mut args = sqlx::mysql::MySqlArguments::default();
+    args
+      .add(usuario)
+      .map_err(|_| DBError::Parametros("Usuario"))?;
+    args
+      .add(fecha.formato_sql())
+      .map_err(|_| DBError::Parametros("Fecha"))?;
+
+    if let Some(ur) = usuario_reg {
+      args
+        .add(ur)
+        .map_err(|_| DBError::Parametros("Usuario registrador"))?;
+    }
+
+    self
+      .marcajes(None, Some(filter), Some(args), Some(ORDER_BY))
+      .await
   }
 
   /// Obtiene los marcaje dado el usuario y la fecha
@@ -146,27 +198,35 @@ impl MarcajeRepo {
     &self,
     usuario: u32,
     fecha: NaiveDate,
-  ) -> Result<Vec<Marcaje>, DBError> {
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.hora_inicio DESC";
-    let filter = format!(
-      "r.usuario = {} AND r.fecha = '{}'",
-      usuario,
-      fecha.formato_sql()
-    );
 
-    self.marcajes(None, Some(&filter), Some(ORDER_BY)).await
+    self
+      .marcajes(
+        None,
+        Some("r.usuario = ? AND r.fecha = ?"),
+        Some(
+          mysql_params![usuario => "usuario", fecha.formato_sql() => "fecha"],
+        ),
+        Some(ORDER_BY),
+      )
+      .await
   }
 
   async fn marcajes(
     &self,
     top: Option<&str>,
     filter: Option<&str>,
+    filter_params: Option<sqlx::mysql::MySqlArguments>,
     order: Option<&str>,
-  ) -> Result<Vec<Marcaje>, DBError> {
-    const SELECT: &str = r"SELECT r.id, r.fecha, r.hora_inicio, r.hora_fin,
-        r.usuario, r.usuario_registrador, r.horario,
-        u.id AS u_id,
-        ur.nombre AS ur_nombre, ur.primer_apellido AS ur_primer_apellido,
+  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
+    const SELECT: &str = r"SELECT r.id, r.fecha,
+        r.hora_inicio, r.hora_fin, r.horario,
+        u.id AS u_id, u.nombre AS u_nombre,
+        u.primer_apellido AS u_primer_apellido,
+        u.segundo_apellido AS u_segundo_apellido,
+        ur.id AS ur_id, ur.nombre AS ur_nombre,
+        ur.primer_apellido AS ur_primer_apellido,
         ur.segundo_apellido AS ur_segundo_apellido,
         h.dia, h.hora_inicio AS h_hora_inicio, h.hora_fin AS h_hora_fin
         FROM marcajes r
@@ -176,7 +236,7 @@ impl MarcajeRepo {
 
     let mut query = String::with_capacity(
       SELECT.len()
-        + filter.map_or(0, |f| f.len() + 10)
+        + filter.map_or(0, |f| f.len() + 60)
         + order.map_or(0, |f| f.len() + 10)
         + top.map_or(0, |t| t.len() + 10),
     );
@@ -186,6 +246,7 @@ impl MarcajeRepo {
     if let Some(f) = filter {
       query.push_str(" WHERE ");
       query.push_str(f);
+      query.push_str(" AND modificado_por IS NULL AND eliminado IS NULL");
     }
 
     if let Some(o) = order {
@@ -198,35 +259,59 @@ impl MarcajeRepo {
       query.push_str(t);
     }
 
-    let rows = sqlx::query(query.as_str())
-      .fetch_all(self.pool.conexion())
-      .await
-      .map_err(DBError::consulta_from)?;
+    let rows = if let Some(args) = filter_params {
+      sqlx::query_with(&query, args)
+        .fetch_all(self.pool.conexion())
+        .await
+        .map_err(DBError::from_sqlx)?
+    } else {
+      sqlx::query(&query)
+        .fetch_all(self.pool.conexion())
+        .await
+        .map_err(DBError::from_sqlx)?
+    };
 
-    Ok(
-      rows
-        .iter()
-        .map(|row| Marcaje {
-          usuario: row.get("u_id"),
-          usuario_reg: row.try_get::<u32, _>("usuario_registrador").ok().map(
-            |id| DescriptorUsuario {
-              id,
-              nombre: row.get("ur_nombre"),
-              primer_apellido: row.get("ur_primer_apellido"),
-              segundo_apellido: row.get("ur_segundo_apellido"),
-            },
-          ),
-          horario: Some(Horario {
-            id: row.get("horario"),
-            dia: row.get::<String, _>("dia").as_str().into(),
-            hora_inicio: row.get("h_hora_inicio"),
-            hora_fin: row.get("h_hora_fin"),
-          }),
-          fecha: row.get("fecha"),
-          hora_inicio: row.get("hora_inicio"),
-          hora_fin: row.get("hora_fin"),
-        })
-        .collect(),
-    )
+    // El resto del código permanece igual...
+    let capacidad = rows.len();
+    let mut resultado = DominiosWithCacheUsuario::<Marcaje>::new(capacidad);
+    let mut usuarios_buffer: SmallVec<[DescriptorUsuario; 2]> =
+      SmallVec::with_capacity(2);
+
+    for row in rows {
+      usuarios_buffer.push(DescriptorUsuario {
+        id: row.get("u_id"),
+        nombre: row.get("u_nombre"),
+        primer_apellido: row.get("u_primer_apellido"),
+        segundo_apellido: row.get("u_segundo_apellido"),
+      });
+
+      if let Ok(ur_id) = row.try_get::<u32, _>("ur_id") {
+        usuarios_buffer.push(DescriptorUsuario {
+          id: ur_id,
+          nombre: row.get("ur_nombre"),
+          primer_apellido: row.get("ur_primer_apellido"),
+          segundo_apellido: row.get("ur_segundo_apellido"),
+        });
+      }
+
+      let marcaje = Marcaje {
+        id: row.get("id"),
+        usuario: row.get("u_id"),
+        usuario_reg: row.try_get::<u32, _>("ur_id").ok(),
+        horario: Some(Horario {
+          id: row.get("horario"),
+          dia: row.get::<String, _>("dia").as_str().into(),
+          hora_inicio: row.get("h_hora_inicio"),
+          hora_fin: row.get("h_hora_fin"),
+        }),
+        fecha: row.get("fecha"),
+        hora_inicio: row.get("hora_inicio"),
+        hora_fin: row.get("hora_fin"),
+      };
+
+      resultado.push_with_usuarios(marcaje, usuarios_buffer.drain(..));
+    }
+
+    Ok(resultado)
   }
 }

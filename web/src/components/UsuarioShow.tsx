@@ -74,61 +74,61 @@ export default function UsuarioShow() {
         <Grid container spacing={2} sx={{ width: '100%' }}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">ID</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">ID</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.id}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">DNI</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">DNI</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.dni}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">NOMBRE</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">Nombre</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.nombre}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">PRIMER APELLIDO</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">Primer apellido</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.primerApellido}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">SEGUNDO APELLIDO</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">Segundo apellido</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.segundoApellido}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">EMAIL</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">Email</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.email}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">ROLES</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">Roles</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.roles.map((rol) => (
                   <Chip
                     key={rol.id}
                     label={rol.nombre}
-                    size="small"
+                    size="medium"
                     variant="outlined"
                   />
                 ))}
@@ -137,8 +137,8 @@ export default function UsuarioShow() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Paper sx={{ px: 2, py: 1 }}>
-              <Typography variant="h5">PRIMER ACCESO</Typography>
-              <Typography variant="body1" sx={{ mb: 1 }}>
+              <Typography variant="h6">Primer acceso</Typography>
+              <Typography variant="h2" sx={{ mb: 1 }}>
                 {usuario.inicioToStr()}
               </Typography>
             </Paper>

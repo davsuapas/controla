@@ -88,7 +88,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
     let response;
 
     response = await this.axios.get(
-      `api/usuarios/${usuarioId}/horario_sin_asignar/${formatDateTimeForServer(fechaHora)}`);
+      `api/usuarios/${usuarioId}/horario/sin/asignar/${formatDateTimeForServer(fechaHora)}`);
 
     return Array.isArray(response.data)
       ? response.data.map(Horario.fromRequest)
@@ -100,7 +100,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
     let response;
 
     response = await this.axios.get(
-      `api/usuarios/${usuarioId}/horario_cercano/${formatDateTimeForServer(fechaHora)}`);
+      `api/usuarios/${usuarioId}/horario/cercano/${formatDateTimeForServer(fechaHora)}`);
 
     return Array.isArray(response.data)
       ? response.data.map(Horario.fromRequest)

@@ -14,8 +14,9 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, HorarioOutDTO, MarcajeInDTO, MarcajeOutDTO,
-      PasswordDniDTO, PasswordUsuarioDTO, UsuarioDTO, vec_dominio_to_dtos,
+      DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioOutDTO,
+      IncidenciaDTO, MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO,
+      PasswordUsuarioDTO, UsuarioDTO, vec_dominio_to_dtos,
     },
   },
   infra::{Dni, Password},
@@ -26,6 +27,13 @@ use crate::{
 struct UsuarioFechaParams {
   id: u32,
   fecha: NaiveDateTime,
+}
+
+#[derive(Deserialize)]
+struct UsuarioFechaRegParams {
+  id: u32,
+  fecha: NaiveDateTime,
+  usuario_reg: u32,
 }
 
 /// Define las rutas de la aplicación.
@@ -42,20 +50,29 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route(
-      "/usuarios/{id}/marcajes_fecha/{fecha}",
+      "/usuarios/{id}/marcajes/por/fecha/{fecha}",
       get(marcaje_por_fecha),
     )
     .route("/usuarios/{id}/ultimos_marcajes", get(ultimos_marcajes))
     .route(
-      "/usuarios/{id}/horario_sin_asignar/{fecha}",
+      "/usuarios/{id}/horario/sin/asignar/{fecha}",
       get(horario_usuario_sin_asignar),
     )
     .route(
-      "/usuarios/{id}/horario_cercano/{fecha}",
+      "/usuarios/{id}/horario/cercano/{fecha}",
       get(horario_cercano),
+    )
+    .route(
+      "/usuarios/{id}/marcajes/sin/inc/{fecha}",
+      get(marcaje_sin_inc_por_fecha),
+    )
+    .route(
+      "/usuarios/{id}/marcajes/sin/inc/{fecha}/registrador/{usuario_reg}",
+      get(marcaje_sin_inc_por_fecha_reg),
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
     .route("/marcajes", post(registrar))
+    .route("/incidencias", post(crear_incidencia))
     .layer(axum::middleware::from_fn(
       crate::infra::middleware::autenticacion,
     ));
@@ -200,17 +217,48 @@ async fn usuario(
     .map(|u| Json(UsuarioDTO::from(u)))
 }
 
-/// Api para obtener el regisotr por usuario y fecha.
+/// Api para obtener el marcaje sin incidencias por fecha
+async fn marcaje_sin_inc_por_fecha(
+  State(state): State<Arc<AppState>>,
+  Path(param): Path<UsuarioFechaParams>,
+) -> impl IntoResponse {
+  state
+    .marcaje_servicio
+    .marcajes_inc_por_fecha_reg(param.id, param.fecha.date(), None)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
+}
+
+/// Api para obtener el marcjae sin incidencias
+/// por fecha y marcaje creado por un usuario registrador
+async fn marcaje_sin_inc_por_fecha_reg(
+  State(state): State<Arc<AppState>>,
+  Path(param): Path<UsuarioFechaRegParams>,
+) -> impl IntoResponse {
+  state
+    .marcaje_servicio
+    .marcajes_inc_por_fecha_reg(
+      param.id,
+      param.fecha.date(),
+      Some(param.usuario_reg),
+    )
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
+}
+
+/// Api para obtener el registro por usuario y fecha.
 async fn marcaje_por_fecha(
   State(state): State<Arc<AppState>>,
   Path(param): Path<UsuarioFechaParams>,
 ) -> impl IntoResponse {
   state
-    .reg_servicio
+    .marcaje_servicio
     .marcaje_por_fecha(param.id, param.fecha.date())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|regs| Json(vec_dominio_to_dtos::<_, MarcajeOutDTO>(regs)))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
 }
 
 /// Api para obtener los últimos marcajes horarios de un usuario.
@@ -219,11 +267,11 @@ async fn ultimos_marcajes(
   Path(usuario): Path<u32>,
 ) -> impl IntoResponse {
   state
-    .reg_servicio
+    .marcaje_servicio
     .ultimos_marcajes(usuario)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|regs| Json(vec_dominio_to_dtos::<_, MarcajeOutDTO>(regs)))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
 }
 
 /// Api para obtener el horario de un usuario completo.
@@ -271,8 +319,21 @@ async fn registrar(
   Json(reg): Json<MarcajeInDTO>,
 ) -> impl IntoResponse {
   state
-    .reg_servicio
+    .marcaje_servicio
     .agregar(&reg.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+// Api para crear una solicitud de incidencia por el usuario
+async fn crear_incidencia(
+  State(state): State<Arc<AppState>>,
+  Json(solicitud): Json<IncidenciaDTO>,
+) -> impl IntoResponse {
+  state
+    .inc_servicio
+    .agregar(&solicitud.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|id| (StatusCode::CREATED, Json(id)))
