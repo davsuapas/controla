@@ -9,7 +9,6 @@ import {
   GridActionsCellItem,
   GridColDef,
   GridEventListener,
-  gridClasses,
 } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -45,7 +44,7 @@ export default function UsuarioList() {
       listData = await api().usuarios.usuarios();
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('usuariolistar.cargar', error);
+        logError('usuario-listar.cargar', error);
 
         notifica.show(
           'Error inesperado al cargar la lista de usuarios',
@@ -253,19 +252,6 @@ export default function UsuarioList() {
           onRowClick={handleRowClick}
           loading={isLoading}
           showToolbar
-          sx={{
-            height: '100%',
-            [`& .${gridClasses.columnHeader}, & .${gridClasses.cell}`]: {
-              outline: 'transparent',
-            },
-            [`& .${gridClasses.columnHeader}:focus-within, & .${gridClasses.cell}:focus-within`]:
-            {
-              outline: 'none',
-            },
-            [`& .${gridClasses.row}:hover`]: {
-              cursor: 'pointer',
-            },
-          }}
           slotProps={{
             loadingOverlay: {
               variant: 'circular-progress',

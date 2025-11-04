@@ -5,7 +5,6 @@ import {
   DataGrid,
   GridActionsCellItem,
   GridColDef,
-  gridClasses,
 } from '@mui/x-data-grid';
 import { api } from '../api/fabrica';
 import { NetErrorControlado } from '../net/interceptor';
@@ -30,7 +29,7 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import TextField from '@mui/material/TextField';
 import { Incidencia, TipoIncidencia } from '../modelos/incidencias';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
-import { UseDesktopPickerProps } from '@mui/x-date-pickers/internals/hooks/useDesktopPicker';
+import { dataGridStyles } from '../theme/customizations/dataGrid';
 
 const HORA_NO_VALIDA = 'Hora no valida';
 
@@ -66,7 +65,7 @@ function fromTipoSolicitud(tipo: TipoSolicitud): TipoIncidencia | undefined {
 // realiza solicitud de incidencias para un usuario.
 // Las incidencias pueden ser: Salidas erróneas,
 // eliminación de algún marcaje (solo roles específicos)
-// y creación de uno nuevo.
+// y creación de uno nueva.
 export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   const theme = useTheme();
   const notifica = useNotifications();
@@ -131,7 +130,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
         );
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('solicitudincidencia.cargar', error);
+          logError('solicitud-incidencia.cargar', error);
           notifica.show('Error inesperado al cargar la lista de marcajes', {
             severity: 'error',
             autoHideDuration: 5000,
@@ -187,7 +186,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
 
     switch (tipoSolicitud) {
       case TipoSolicitud.SALIDA_ERRONEA:
-        msgNotifica = 'Solicitud salida errónea creada satistactóriamente'
+        msgNotifica = 'Solicitud "salida errónea" creada satistactóriamente'
         break;
 
       case TipoSolicitud.ELIMINAR:
@@ -195,7 +194,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
         break;
 
       case TipoSolicitud.MARCAJE_NO_REALIZADO:
-        msgNotifica = 'Solicitud marcaje no realizado creada satistactóriamente'
+        msgNotifica = 'Solicitud "marcaje no realizado" creada satistactóriamente'
         break;
 
       default:
@@ -209,13 +208,14 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
     }
 
     try {
-      await api().inc.incidencias(
+      await api().inc.crearIncidencia(
         Incidencia.crearSolicitud(
           fromTipoSolicitud(tipoSolicitud)!,
+          props.usuarioId!,
           fecha,
           info.horaEntrada ?? null,
           info.horaSalida ?? null,
-          marcaje ? new DescriptorMarcaje(marcaje?.id) : null,
+          marcaje ? new DescriptorMarcaje(marcaje?.id, null, null) : null,
           getUsrLogeado().id,
           info.motivo ?? null,
         ))
@@ -234,7 +234,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
         return;
       }
 
-      logError('solicitudincidencia.crear', error);
+      logError('solicitud-incidencia.crear', error);
 
       notifica.show(
         'Error inesperado al crear una solicitud de incidencia',
@@ -326,11 +326,11 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
             return [];
           }
           return [
-            <Tooltip title="Salida errónea" key="salida-erronea-tooltip">
+            <Tooltip title="Corregir salida" key="salida-erronea-tooltip">
               <GridActionsCellItem
                 key="solicitud-salida-erronea"
                 icon={<AutoFixHighIcon />}
-                label="Salida errónea"
+                label="Corregir salida"
                 onClick={handleSolicitudClick(row)}
               />
             </Tooltip>,
@@ -358,7 +358,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
     marcajeSeleccionado?: Marcaje) => {
     if (tipoSolicitud === TipoSolicitud.SALIDA_ERRONEA) {
       return {
-        titulo: 'CORREGIR SALIDA ERRÓNEA',
+        titulo: 'CORREGIR SALIDA',
         mostrarEntrada: false,
         mostrarSalida: true,
         info: {
@@ -434,28 +434,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
             solicitudesProcesadas.has(params.row.id) ? 'fila-con-solicitud' : ''
           }
           sx={{
-            height: '100%',
-            [`& .${gridClasses.columnHeader}, & .${gridClasses.cell}`]: {
-              outline: 'transparent',
-            },
-            [`& .${gridClasses.columnHeader}:focus-within, & 
-              .${gridClasses.cell}:focus-within`]: {
-              outline: 'none',
-            },
-            [`& .${gridClasses.row}:hover`]: {
-              cursor: 'pointer',
-            },
-            '& .fila-con-solicitud': {
-              backgroundColor: theme.palette.info.light,
-              borderLeft: `4px solid ${theme.palette.info.dark}`,
-              '& .MuiDataGrid-cell': {
-                fontWeight: 600, // Texto en negrita
-                color: theme.palette.info.dark,
-              },
-              '&:hover': {
-                backgroundColor: theme.palette.info.light,
-              }
-            }
+            '& .fila-con-solicitud': dataGridStyles.marcarFila(theme)
           }}
           slotProps={{
             loadingOverlay: {
@@ -618,9 +597,15 @@ function ModalInfoSolicitud({
                 }}
                 name="motivo"
                 label="Motivo"
-                helperText='Indique una aclaración si es necesario'
+                helperText='Indique una aclaración si es necesario (máx. 200 caracteres)'
                 fullWidth
-              />            </Grid>
+                slotProps={{
+                  htmlInput: {
+                    maxLength: 200
+                  }
+                }}
+              />
+            </Grid>
           </Box>
         </LocalizationProviderES>
       </DialogContent>

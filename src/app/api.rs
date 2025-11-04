@@ -15,10 +15,12 @@ use crate::{
     AppState,
     dto::{
       DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioOutDTO,
-      IncidenciaDTO, MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO,
+      IncidenciaDTO, IncidenciaInProcesoDTO, IncidenciaOutProcesoDTO,
+      IncidenciasFiltroParams, MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO,
       PasswordUsuarioDTO, UsuarioDTO, vec_dominio_to_dtos,
     },
   },
+  inc::{EstadoIncidencia, IncidenciaProceso},
   infra::{Dni, Password},
   usuarios::Rol,
 };
@@ -73,6 +75,8 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
     .route("/marcajes", post(registrar))
     .route("/incidencias", post(crear_incidencia))
+    .route("/incidencias/procesar", post(procesar_incidencias))
+    .route("/incidencias/por/fechas", post(incidencias_por_fechas))
     .layer(axum::middleware::from_fn(
       crate::infra::middleware::autenticacion,
     ));
@@ -104,7 +108,7 @@ async fn logout(
 
 /// Api para logear el usuario
 ///
-/// Verifica que se cumpla la clave y si es correcto envía
+/// Verifica que la clave sea correcta y si es correcto envía
 /// la información del usuario y la cookie de sesión.
 /// En caso contrario devuelve un estado: UNAUTHORIZED.
 async fn login(
@@ -326,7 +330,7 @@ async fn registrar(
     .map(|id| (StatusCode::CREATED, Json(id)))
 }
 
-// Api para crear una solicitud de incidencia por el usuario
+/// Api para crear una solicitud de incidencia por el usuario
 async fn crear_incidencia(
   State(state): State<Arc<AppState>>,
   Json(solicitud): Json<IncidenciaDTO>,
@@ -337,4 +341,82 @@ async fn crear_incidencia(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para procesar las incidencias.
+///
+/// Devuelve las incidencias según el filtro como parámetro
+/// y un array de incidencias con errores faltales.
+async fn procesar_incidencias(
+  State(state): State<Arc<AppState>>,
+  Json(entrada): Json<IncidenciaInProcesoDTO>,
+) -> Result<(StatusCode, Json<IncidenciaOutProcesoDTO>), (StatusCode, String)> {
+  let incidencias_vec: Vec<IncidenciaProceso> =
+    entrada.incidencias.into_iter().map(|i| i.into()).collect();
+
+  let incs_erroneas = match state
+    .inc_servicio
+    .procesar_incidencias(entrada.usuario_gestor, incidencias_vec.as_slice())
+    .await
+  {
+    Ok(v) => v,
+    Err(err) => {
+      return Err((StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()));
+    }
+  };
+
+  let estados_vec: Vec<EstadoIncidencia> = entrada
+    .param_filtro_inc
+    .estados
+    .into_iter()
+    .map(EstadoIncidencia::from)
+    .collect();
+
+  let incs = match state
+    .inc_servicio
+    .incidencias(
+      entrada.param_filtro_inc.fecha_inicio,
+      entrada.param_filtro_inc.fecha_fin,
+      estados_vec.as_slice(),
+      entrada.param_filtro_inc.usuario,
+    )
+    .await
+  {
+    Ok(regs) => DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs),
+    Err(err) => {
+      return Err((StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()));
+    }
+  };
+
+  Ok((
+    StatusCode::CREATED,
+    Json(IncidenciaOutProcesoDTO {
+      incidencias_erroneas: incs_erroneas,
+      incidencias: incs,
+    }),
+  ))
+}
+
+/// Devuelve las incidencias filtradas por una serie de filtros
+async fn incidencias_por_fechas(
+  State(state): State<Arc<AppState>>,
+  Json(param): Json<IncidenciasFiltroParams>,
+) -> impl IntoResponse {
+  let estados_vec: Vec<EstadoIncidencia> = param
+    .estados
+    .into_iter()
+    .map(EstadoIncidencia::from)
+    .collect();
+
+  state
+    .inc_servicio
+    .incidencias(
+      param.fecha_inicio,
+      param.fecha_fin,
+      estados_vec.as_slice(),
+      param.usuario,
+    )
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs)))
 }

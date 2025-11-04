@@ -34,23 +34,24 @@ export const ROLES: Map<RolID, {
       '/incidencias/solicitud/privilegios'
     ]
   }],
+  [RolID.Gestor, {
+    nombre: 'Gestor',
+    ruta_login: '/incidencias/revision',
+    rutas_acceso: ['/miarea/*', '/incidencias/revision']
+  }],
   [RolID.Supervisor, {
     nombre: 'Supervisor',
-    ruta_login: '/incidencias/solicitud/privilegios',
+    ruta_login: '/incidencias/revision',
     rutas_acceso: [
       '/miarea/*',
-      '/incidencias/solicitud/privilegios'
+      '/incidencias/solicitud/privilegios',
+      '/incidencias/revision'
     ]
   }],
   [RolID.Admin, {
     nombre: 'Admin',
     ruta_login: '/usuarios',
     rutas_acceso: ['/miarea/*', '/usuarios/*']
-  }],
-  [RolID.Gestor, {
-    nombre: 'Gestor',
-    ruta_login: '',
-    rutas_acceso: ['/miarea/*']
   }],
   [RolID.Director, {
     nombre: 'Director',

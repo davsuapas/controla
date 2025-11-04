@@ -21,15 +21,14 @@ impl TrazaRepo {
   ) -> Result<u32, DBError> {
     let result = sqlx::query(
       r"INSERT INTO trazas
-      (autor, tipo, fecha, usuario, horario, marcaje, motivo)
-      VALUES (?, ?, ?, ?, ?, ?, ?)",
+      (autor, tipo, fecha, entidad, entidad_id, motivo)
+      VALUES (?, ?, ?, ?, ?, ?)",
     )
     .bind(traza.autor)
     .bind(traza.tipo as u8)
     .bind(traza.fecha)
-    .bind(traza.usuario_id)
-    .bind(traza.horario_id)
-    .bind(traza.marcaje_id)
+    .bind(traza.entidad as u8)
+    .bind(traza.entidad_id)
     .bind(&traza.motivo)
     .execute(&mut **trans.deref_mut())
     .await

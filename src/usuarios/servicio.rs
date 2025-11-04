@@ -562,7 +562,7 @@ impl UsuarioServicio {
     hora: NaiveDateTime,
   ) -> Result<Vec<Horario>, ServicioError> {
     let res = self.repo
-        .horario_cercano(usuario, hora)
+        .horario_cercano(usuario, hora, 0)
         .await
         .map(|horario| vec![horario]);
     match res {
@@ -580,15 +580,21 @@ impl UsuarioServicio {
   }
 
   /// Devuelve el horario más cercano al usuario.
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
   #[inline]
   pub async fn horario_cercano(
     &self,
     usuario: u32,
     hora: NaiveDateTime,
+    excluir_marcaje_id: u32,
   ) -> Result<Horario, ServicioError> {
     self
       .repo
-      .horario_cercano(usuario, hora)
+      .horario_cercano(usuario, hora, excluir_marcaje_id)
       .await
       .map_err(ServicioError::from)
   }

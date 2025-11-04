@@ -34,7 +34,7 @@ export default function SelectorEmpleado({
     if (onLoadingChange) onLoadingChange(true);
 
     try {
-      const empls = await api().usuarios.usuarios_por_rol(RolID.Empleado);
+      const empls = await api().usuarios.usuariosPorRol(RolID.Empleado);
       setEmpleados(empls);
 
       if (empls.length > 0) {
@@ -43,7 +43,7 @@ export default function SelectorEmpleado({
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('selectorempleado.cargar', error);
+        logError('selector-empleado.cargar', error);
         notifica.show(
           'Error inesperado al cargar los empleados',
           {

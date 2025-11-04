@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { formatDateForServer, formatDateTimeForServer, formatTimeForServer } from "./formatos";
 import { DescriptorUsuario, Usuario } from "./usuarios";
+import { EstadoIncidencia } from "./incidencias";
 
 // La entidad UsuarioDTO se usa para enviar a el servidor
 export class UsuarioOutDTO {
@@ -116,4 +117,12 @@ export class DominiosWithCacheUsuarioDTO<T> {
   usuarioOptional(id: number | null | undefined): DescriptorUsuario | null {
     return id ? this.TryGetUsuario(id) : null;
   }
+}
+
+// La entidad que se utiliza para procesar incidencias
+export class IncidenciaProcesoDTO {
+  constructor(
+    public id: number,
+    public estado: EstadoIncidencia,
+    public motivo_rechazo: string | null) { }
 }

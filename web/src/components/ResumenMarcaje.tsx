@@ -52,7 +52,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
         setMarcaje(MarcajesData);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('resumenmarcaje.cargar.marcajes', error);
+          logError('resumen-marcaje.cargar.marcajes', error);
           notifica.show(
             'Error inesperado al cargar los últimos marcajes',
             {
@@ -94,7 +94,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
         setHorarios(horario);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('resumenmarcaje.cargar.horarios', error);
+          logError('resumen-marcaje.cargar.horarios', error);
           notifica.show(
             'Error inesperado al cargar el horario',
             {

@@ -19,13 +19,13 @@ impl UsuarioRepo {
   pub fn new(pool: PoolConexion) -> Self {
     UsuarioRepo { pool }
   }
-}
 
-impl UsuarioRepo {
   pub(in crate::usuarios) fn conexion(&self) -> &PoolConexion {
     &self.pool
   }
+}
 
+impl UsuarioRepo {
   /// Añadir roles a un usuario.
   ///
   /// Si el usuario ya tiene roles, se eliminan antes de añadir los nuevos.
@@ -388,10 +388,16 @@ impl UsuarioRepo {
   /// a un marcaje horario.
   /// Además, la hora que se busca, tiene que ser mayor de la hora
   /// final del marcaje del horario anterior asignado.
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
   pub(in crate::usuarios) async fn horario_cercano(
     &self,
     usuario: u32,
     hora: NaiveDateTime,
+    excluir_marcaje_id: u32,
   ) -> Result<Horario, DBError> {
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
     let dia = crate::infra::letra_dia_semana(hora.weekday());
@@ -409,15 +415,15 @@ impl UsuarioRepo {
          (SELECT r.id
             FROM marcajes r
             WHERE r.usuario = uh.usuario AND r.fecha = ?
-             AND r.horario = h.id
-             AND modificado_por IS NULL AND eliminado IS NULL)
+             AND r.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+             AND r.horario = h.id)
          AND ? > COALESCE(
          (SELECT MAX(r2.hora_fin)
             FROM marcajes r2
             JOIN horarios h2 ON r2.horario = h2.id
             WHERE r2.usuario = uh.usuario AND r2.fecha = ?
-              AND h2.hora_inicio < h.hora_inicio
-              AND modificado_por IS NULL AND eliminado IS NULL),
+              AND r2.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+              AND h2.hora_inicio < h.hora_inicio),
         '00:00:00')";
 
     let fecha = hora.date();
@@ -429,8 +435,10 @@ impl UsuarioRepo {
       .bind(dia)
       .bind(hora_buscar)
       .bind(fecha)
+      .bind(excluir_marcaje_id)
       .bind(hora_buscar)
       .bind(fecha)
+      .bind(excluir_marcaje_id)
       .fetch_optional(self.pool.conexion())
       .await
       .map_err(DBError::from_sqlx)?;
@@ -449,18 +457,18 @@ impl UsuarioRepo {
              AND h.hora_inicio > ?
              AND NOT EXISTS 
              ( SELECT r.id
-                 FROM marcajes r
-                 WHERE r.usuario = uh.usuario AND r.fecha = ?
-                  AND r.horario = h.id
-                  AND modificado_por IS NULL AND eliminado IS NULL)
+                FROM marcajes r
+                WHERE r.usuario = uh.usuario AND r.fecha = ?
+                 AND r.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+                 AND r.horario = h.id)
             AND ? > COALESCE(
             (SELECT MAX(r2.hora_fin)
-                FROM marcajes r2
-                JOIN horarios h2 ON r2.horario = h2.id
-                WHERE r2.usuario = uh.usuario
-                  AND r2.fecha = ?
-                  AND h2.hora_inicio < h.hora_inicio
-                  AND modificado_por IS NULL AND eliminado IS NULL),
+              FROM marcajes r2
+              JOIN horarios h2 ON r2.horario = h2.id
+              WHERE r2.usuario = uh.usuario
+               AND r2.fecha = ?
+               AND r.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+               AND h2.hora_inicio < h.hora_inicio),
             00:00:00')
             LIMIT 1;";
 
@@ -470,8 +478,10 @@ impl UsuarioRepo {
         .bind(dia)
         .bind(hora_buscar)
         .bind(fecha)
+        .bind(excluir_marcaje_id)
         .bind(hora_buscar)
         .bind(fecha)
+        .bind(excluir_marcaje_id)
         .fetch_optional(self.pool.conexion())
         .await
         .map_err(DBError::from_sqlx)?;

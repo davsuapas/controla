@@ -25,10 +25,9 @@ pub enum Rol {
   Registrador = 5,
   /// Permisos para inspeccionar y auditar registros.
   Inspector = 6,
-  /// Permisos que supervisa a los gestores. Si un gestor
-  /// deja la compañia, el gestor podrá realizar sus tareas
-  /// Puede realizar solictudes de cualquier empleado incluso
-  /// que no haya registrado
+  /// Permisos que permite realizar acciones de un registrador
+  /// o un gestor. Si un gestor o registrador deja la compañia,
+  /// el supervisor podrá realizar sus tareas.
   Supervidor = 7,
 }
 

@@ -13,6 +13,14 @@ pub enum TipoTraza {
   UsrActivoModificado = 6,
   PasswordModificada = 7,
   PrimerInicio = 8,
+  IncConflicto = 9,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Entidad {
+  Usuario = 1,
+  Incidencia = 2,
 }
 
 #[derive(Builder, Debug)]
@@ -20,21 +28,28 @@ pub enum TipoTraza {
 pub struct Traza {
   pub autor: Option<u32>,
   pub tipo: TipoTraza,
-  pub usuario_id: u32,
+  pub entidad: Entidad,
+  pub entidad_id: u32,
   pub fecha: NaiveDateTime,
   pub motivo: Option<String>,
-  pub horario_id: Option<u32>,
-  pub marcaje_id: Option<u32>,
 }
 
 impl TrazaBuilder {
-  pub fn with_usuario(tipo: TipoTraza, usuario_id: u32) -> TrazaBuilder {
+  pub fn with_usuario(tipo: TipoTraza, id: u32) -> TrazaBuilder {
     TrazaBuilder::default()
       .autor(None)
       .tipo(tipo)
-      .usuario_id(usuario_id)
-      .marcaje_id(None)
-      .horario_id(None)
+      .entidad(Entidad::Usuario)
+      .entidad_id(id)
+      .motivo(None)
+  }
+
+  pub fn with_inc(tipo: TipoTraza, id: u32) -> TrazaBuilder {
+    TrazaBuilder::default()
+      .autor(None)
+      .tipo(tipo)
+      .entidad(Entidad::Incidencia)
+      .entidad_id(id)
       .motivo(None)
   }
 

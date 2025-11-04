@@ -133,7 +133,7 @@ export default function MarcajeManual() {
           setRefreshTrigger(prev => prev + 1);
         } catch (error) {
           if (!(error instanceof NetErrorControlado)) {
-            logError('marcajemanual.registrar', error);
+            logError('marcaje-manual.registrar', error);
 
             notifica.show(
               'Error inesperado al registrar el marcaje',

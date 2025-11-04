@@ -2,7 +2,9 @@ use chrono::NaiveDate;
 
 use crate::{
   config::ConfigTrabajo,
-  infra::{DominiosWithCacheUsuario, ServicioError, ShortDateTimeFormat},
+  infra::{
+    DominiosWithCacheUsuario, ServicioError, ShortDateTimeFormat, Transaccion,
+  },
   marcaje::{Marcaje, MarcajeRepo},
   usuarios::UsuarioServicio,
 };
@@ -29,6 +31,13 @@ impl MarcajeServicio {
 }
 
 impl MarcajeServicio {
+  #[inline]
+  /// Añade un nuevo marcaje horario para el usuario.
+  ///
+  /// Para más detalles vea: [`agregar_with_trans`].
+  pub async fn agregar(&self, reg: &Marcaje) -> Result<u32, ServicioError> {
+    self.agregar_with_trans(None, reg, 0).await
+  }
   /// Añade un nuevo marcaje horario para el usuario.
   ///
   /// Para calcular las horas a trabajar utiliza el horario más
@@ -46,17 +55,32 @@ impl MarcajeServicio {
   ///   de un marcaje previo con un horario anterior al horario cercano
   ///   obtenido.
   ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
+  ///
   /// Devuelve el ID del marcaje creado.
-  pub async fn agregar(&self, reg: &Marcaje) -> Result<u32, ServicioError> {
+  pub async fn agregar_with_trans(
+    &self,
+    tr: Option<&mut Transaccion<'_>>,
+    reg: &Marcaje,
+    excluir_marcaje_id: u32,
+  ) -> Result<u32, ServicioError> {
     tracing::info!(
       marcaje = ?reg,
+      excluir_marcaje_id = excluir_marcaje_id,
       "Se ha iniciado el servicio para crear un marcaje horario de usuario");
 
-    self.validar_agregacion(reg).await?;
+    self.validar_agregacion(reg, excluir_marcaje_id).await?;
 
     let horario_cercano = self
       .usuario_servico
-      .horario_cercano(reg.usuario, reg.hora_inicio_completa())
+      .horario_cercano(
+        reg.usuario,
+        reg.hora_inicio_completa(),
+        excluir_marcaje_id,
+      )
       .await
       .inspect_err(|err| {
         tracing::error!(
@@ -72,7 +96,7 @@ impl MarcajeServicio {
       horas_a_trabajar = format!("{:.2}", horas_a_trabajar),
       "Horario más cercano a el marcajes horario del usuario");
 
-    let id = match self.repo.agregar(reg, horario_cercano.id).await {
+    let id = match self.repo.agregar(tr, reg, horario_cercano.id).await {
       Ok(reg_id) => reg_id,
       Err(err) => {
         tracing::error!(
@@ -90,6 +114,54 @@ impl MarcajeServicio {
     );
 
     Ok(id)
+  }
+
+  /// Actualiza el campo modificado_por del marcaje
+  ///
+  /// Devuelve True si se actualizo
+  #[inline]
+  pub async fn actualizar_modificado_por(
+    &self,
+    trans: &mut Transaccion<'_>,
+    id: u32,
+    modificar_por: u32,
+  ) -> Result<bool, ServicioError> {
+    self
+      .repo
+      .actualizar_modificado_por(trans, id, modificar_por)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          id_marcaje = id,
+          modificar_por = modificar_por,
+          error = %err,
+          "Actualizando modificado_por del marcaje"
+        );
+        ServicioError::from(err)
+      })
+  }
+
+  /// Marca un marcaje como eliminado
+  ///
+  /// Devuelve True si se actualizo
+  #[inline]
+  pub async fn marcar_marcaje_eliminado(
+    &self,
+    trans: &mut Transaccion<'_>,
+    id: u32,
+  ) -> Result<bool, ServicioError> {
+    self
+      .repo
+      .marcar_marcaje_eliminado(trans, id)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          id_marcaje = id,
+          error = %err,
+          "Marcando el marcaje como eliminado"
+        );
+        ServicioError::from(err)
+      })
   }
 
   /// Obtiene los marcaje dado el usuario y la fecha para
@@ -162,13 +234,20 @@ impl MarcajeServicio {
       })
   }
 
+  /// Valida añadir un nuevo marcaje
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
   async fn validar_agregacion(
     &self,
     reg: &Marcaje,
+    excluir_marcaje_id: u32,
   ) -> Result<(), ServicioError> {
     if self
       .repo
-      .hora_fin_vacia(reg.usuario, reg.fecha)
+      .hora_fin_vacia(reg.usuario, reg.fecha, excluir_marcaje_id)
       .await
       .map_err(ServicioError::from)?
     {
@@ -184,7 +263,12 @@ impl MarcajeServicio {
 
     if self
       .repo
-      .hora_asignada(reg.usuario, reg.fecha, reg.hora_inicio)
+      .hora_asignada(
+        reg.usuario,
+        reg.fecha,
+        reg.hora_inicio,
+        excluir_marcaje_id,
+      )
       .await
       .map_err(ServicioError::from)?
     {
@@ -200,7 +284,13 @@ impl MarcajeServicio {
     if let Some(hora_fin) = reg.hora_fin {
       let hora_asignada = self
         .repo
-        .horas_solapadas(reg.usuario, reg.fecha, reg.hora_inicio, hora_fin)
+        .horas_solapadas(
+          reg.usuario,
+          reg.fecha,
+          reg.hora_inicio,
+          hora_fin,
+          excluir_marcaje_id,
+        )
         .await
         .map_err(ServicioError::from)?;
 

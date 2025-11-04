@@ -14,6 +14,7 @@ import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import RuleIcon from '@mui/icons-material/Rule';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -245,6 +246,14 @@ export default function DashboardSidebar({
                     href="/incidencias/solicitud/privilegios"
                     visible={user.acceso_a_ruta('/incidencias/solicitud/privilegios')}
                     selected={!!matchPath('/incidencias/solicitud/privilegios', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="incidencias_revisar"
+                    title="Revisión"
+                    icon={<RuleIcon />}
+                    href="/incidencias/revision"
+                    visible={user.acceso_a_ruta('/incidencias/revision')}
+                    selected={!!matchPath('/incidencias/revision', pathname)}
                   />
                 </List>
               }

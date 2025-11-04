@@ -121,7 +121,7 @@ export default function UsuarioPassword() {
         return;
       }
 
-      logError('usuariopassword.actualizar', error);
+      logError('usuario-password.actualizar', error);
 
       notifica.show(
         'Error inesperado al modificar las password de el usuario',

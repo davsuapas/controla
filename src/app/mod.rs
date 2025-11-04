@@ -29,6 +29,9 @@ pub struct AppState {
 impl AppState {
   /// Inicia la aplicación y devuelve una instancia de `App`.
   pub fn iniciar(cnfg: &ConfigTrabajo, pool: PoolConexion) -> Self {
+    // Aunque se realizan varias clonaciones de los servicios,
+    // estos son ligeros y no suponen un gran coste.
+    // Además, solo se hacen al iniciar la aplicación.
     AppState {
       manejador_sesion: Arc::new(middleware::ManejadorSesion::new(
         cnfg.secreto.clone(),
@@ -49,7 +52,20 @@ impl AppState {
           TrazaServicio::new(TrazaRepo::new()),
         ),
       ),
-      inc_servicio: IncidenciaServicio::new(IncidenciaRepo::new(pool.clone())),
+      inc_servicio: IncidenciaServicio::new(
+        cnfg.clone(),
+        IncidenciaRepo::new(pool.clone()),
+        TrazaServicio::new(TrazaRepo::new()),
+        MarcajeServicio::new(
+          cnfg.clone(),
+          MarcajeRepo::new(pool.clone()),
+          UsuarioServicio::new(
+            cnfg.clone(),
+            UsuarioRepo::new(pool.clone()),
+            TrazaServicio::new(TrazaRepo::new()),
+          ),
+        ),
+      ),
     }
   }
 }

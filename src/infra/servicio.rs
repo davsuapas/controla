@@ -19,21 +19,23 @@ pub enum ServicioError {
 }
 
 impl ServicioError {
-  /// Si hay mensajes de error para el usuario devuelve la
-  /// cadena con el mensaje si no devuelve una cadena vacía
+  // Devuelve un mensaje formateado para el interface de
+  #[inline]
   pub fn mensaje_usuario(&self) -> String {
-    match self {
-      ServicioError::Usuario(msg) => ServicioError::mensaje(msg),
-      ServicioError::Validacion(msg) => ServicioError::mensaje(msg),
-      ServicioError::DB(
-        DBError::RegistroVacio(e) | DBError::ConstraintViolation(e),
-      ) => ServicioError::mensaje(&e.to_string()),
-      ServicioError::DB(_) => "".to_string(),
-    }
+    format!("@@:{}", &self.mensaje())
   }
 
-  fn mensaje(msg: &str) -> String {
-    format!("@@:{}", msg)
+  /// Si hay mensajes de error para el usuario devuelve la
+  /// cadena con el mensaje si no devuelve una cadena vacía
+  pub fn mensaje(&self) -> String {
+    match self {
+      ServicioError::Usuario(msg) => msg.to_owned(),
+      ServicioError::Validacion(msg) => msg.to_owned(),
+      ServicioError::DB(
+        DBError::RegistroVacio(e) | DBError::ConstraintViolation(e),
+      ) => e.to_owned(),
+      ServicioError::DB(_) => "".to_string(),
+    }
   }
 }
 

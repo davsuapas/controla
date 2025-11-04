@@ -7,8 +7,6 @@ import NotificationsProvider from './hooks/useNotifications/NotificationsProvide
 import DialogsProvider from './hooks/useDialogs/DialogsProvider';
 import AppTheme from './theme/AppTheme';
 import {
-  dataGridCustomizations,
-  datePickersCustomizations,
   sidebarCustomizations,
   formInputCustomizations,
 } from './theme/customizations';
@@ -29,6 +27,7 @@ import SolicitudIncEmpleado from './components/SolicitudIncEmpleado';
 import SolicitudIncSupervisores from './components/SolicitudIncSupervisores';
 import ErrorPage from './components/ErrorPage';
 import ErrorBoundary from './components/ErrorBoundary';
+import RevisionIncidencia from './components/RevisionIncidencias';
 
 crearAPI(false);
 
@@ -168,8 +167,13 @@ const rutas = [
                 errorElement: <ErrorPage />,
               },
               {
-                path: 'empleado/solicitud',
+                path: 'solicitud/privilegios',
                 Component: SolicitudIncSupervisores,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'revision',
+                Component: RevisionIncidencia,
                 errorElement: <ErrorPage />,
               },
             ]
@@ -188,8 +192,6 @@ const rutas = [
 const router = createBrowserRouter(rutas);
 
 const themeComponents = {
-  ...dataGridCustomizations,
-  ...datePickersCustomizations,
   ...sidebarCustomizations,
   ...formInputCustomizations,
 };

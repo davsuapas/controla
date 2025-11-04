@@ -54,9 +54,9 @@ impl DBError {
           DBError::ConstraintViolation(msg)
         } else if dberr.is_unique_violation() {
           let msg = if let Some(constraint) = dberr.constraint() {
-            format!("El registro ya existe: {}", constraint)
+            format!("El registro debe ser único: {}", constraint)
           } else {
-            "El registro ya existe".to_string()
+            "El registro debe ser único".to_string()
           };
           DBError::ConstraintViolation(msg)
         } else {

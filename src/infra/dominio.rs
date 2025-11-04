@@ -23,19 +23,20 @@ impl<T> DominiosWithCacheUsuario<T> {
   pub fn new(capacidad_entidad: usize) -> Self {
     Self {
       items: Vec::with_capacity(capacidad_entidad),
-      cache: HashMap::new(),
+      cache: HashMap::with_capacity(capacidad_entidad / 2),
     }
   }
 
-  // Agregar un item y los descriptores de usuario asociados
-  pub fn push_with_usuarios<I>(&mut self, item: T, users: I)
-  where
-    I: IntoIterator<Item = DescriptorUsuario>,
-  {
+  /// Agregar una entidad
+  pub fn push_entidad(&mut self, item: T) {
     self.items.push(item);
-    for user in users {
-      self.cache.entry(user.id).or_insert(user);
-    }
+  }
+
+  /// Agregar un descriptor de usuario asociado
+  ///
+  /// Si ya existe en la caché, no se añade de nuevo
+  pub fn push_usuario(&mut self, usuario: DescriptorUsuario) {
+    self.cache.entry(usuario.id).or_insert(usuario);
   }
 }
 

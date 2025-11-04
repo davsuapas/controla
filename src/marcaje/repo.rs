@@ -1,11 +1,11 @@
 use chrono::{NaiveDate, NaiveTime};
 
-use smallvec::SmallVec;
 use sqlx::Row;
 
 use crate::{
   infra::{
     DBError, DominiosWithCacheUsuario, PoolConexion, ShortDateTimeFormat,
+    Transaccion,
   },
   marcaje::Marcaje,
   mysql_params,
@@ -29,6 +29,7 @@ impl MarcajeRepo {
   /// Devuelve el ID del marcaje creado.
   pub(in crate::marcaje) async fn agregar(
     &self,
+    tr: Option<&mut Transaccion<'_>>,
     reg: &Marcaje,
     horario: u32,
   ) -> Result<u32, DBError> {
@@ -36,38 +37,94 @@ impl MarcajeRepo {
       (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
       VALUES (?, ?, ?, ?, ?, ?)";
 
-    let result = sqlx::query(QUERY)
+    let query = sqlx::query(QUERY)
       .bind(reg.usuario)
       .bind(reg.fecha)
       .bind(horario)
       .bind(reg.hora_inicio)
       .bind(reg.hora_fin)
-      .bind(reg.usuario_reg)
-      .execute(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
+      .bind(reg.usuario_reg);
+
+    let result = if let Some(tr) = tr {
+      query
+        .execute(&mut **tr.deref_mut())
+        .await
+        .map_err(DBError::from_sqlx)?
+    } else {
+      query
+        .execute(self.pool.conexion())
+        .await
+        .map_err(DBError::from_sqlx)?
+    };
 
     Ok(result.last_insert_id() as u32)
   }
 
+  /// Actualiza modificado_por
+  ///
+  /// Devuelve True si se actualizo
+  pub(in crate::marcaje) async fn actualizar_modificado_por(
+    &self,
+    trans: &mut Transaccion<'_>,
+    id: u32,
+    modificar_por: u32,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = r"UPDATE marcajes SET modificado_por = ? WHERE id = ?";
+
+    let result = sqlx::query(QUERY)
+      .bind(modificar_por)
+      .bind(id)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    Ok(result.rows_affected() > 0)
+  }
+
+  /// Marca un marcaje como eliminado
+  ///
+  /// Devuelve True si se actualizo
+  pub(in crate::marcaje) async fn marcar_marcaje_eliminado(
+    &self,
+    trans: &mut Transaccion<'_>,
+    id: u32,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = r"UPDATE marcajes SET eliminado = TRUE WHERE id = ?";
+
+    let result = sqlx::query(QUERY)
+      .bind(id)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    Ok(result.rows_affected() > 0)
+  }
+
   /// Verifica si la hora de fin para cualquier marcaje
   /// horario, para un determinado usuario y fecha, está vacía.
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
   pub(in crate::marcaje) async fn hora_fin_vacia(
     &self,
     usuario: u32,
     fecha: NaiveDate,
+    excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
       FROM marcajes
       WHERE usuario = ? AND fecha = ?
+      AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
       AND hora_fin IS NULL
-      AND modificado_por IS NULL AND eliminado IS NULL
       LIMIT 1;";
 
     Ok(
       sqlx::query_scalar::<_, bool>(QUERY)
         .bind(usuario)
         .bind(fecha)
+        .bind(excluir_marcaje_id)
         .fetch_optional(self.pool.conexion())
         .await
         .map_err(DBError::from_sqlx)?
@@ -77,23 +134,30 @@ impl MarcajeRepo {
 
   /// Verifica si una hora se encuentra en el rango de horas
   /// de un marcaje horario para un usuario y fecha.
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
   pub(in crate::marcaje) async fn hora_asignada(
     &self,
     usuario: u32,
     fecha: NaiveDate,
     hora: NaiveTime,
+    excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
         FROM marcajes
         WHERE usuario = ? AND fecha = ?
+        AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
         AND ? BETWEEN hora_inicio AND hora_fin
-        AND modificado_por IS NULL AND eliminado IS NULL
         LIMIT 1;";
 
     Ok(
       sqlx::query(QUERY)
         .bind(usuario)
         .bind(fecha)
+        .bind(excluir_marcaje_id)
         .bind(hora)
         .fetch_optional(self.pool.conexion())
         .await
@@ -105,25 +169,32 @@ impl MarcajeRepo {
   /// Verifica si un rango de horas como parámetro se solapa
   /// con otro rango de horas ya asignado a un usuario en un marcaje.
   /// También verifica que la hora no se encuentre entre los rangos de horas.
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
   pub(in crate::marcaje) async fn horas_solapadas(
     &self,
     usuario: u32,
     fecha: NaiveDate,
     hora_ini: NaiveTime,
     hora_fin: NaiveTime,
+    excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
     const QUERY: &str = r"SELECT id
         FROM marcajes
         WHERE usuario = ? AND fecha = ?
-        AND hora_inicio < ? AND hora_fin > ?
-        OR ? BETWEEN hora_inicio AND hora_fin
-        AND modificado_por IS NULL AND eliminado IS NULL
+        AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+        AND ( hora_inicio < ? AND hora_fin > ?
+        OR ? BETWEEN hora_inicio AND hora_fin )
         LIMIT 1;";
 
     Ok(
       sqlx::query(QUERY)
         .bind(usuario)
         .bind(fecha)
+        .bind(excluir_marcaje_id)
         .bind(hora_fin)
         .bind(hora_ini)
         .bind(hora_fin)
@@ -271,14 +342,11 @@ impl MarcajeRepo {
         .map_err(DBError::from_sqlx)?
     };
 
-    // El resto del código permanece igual...
     let capacidad = rows.len();
     let mut resultado = DominiosWithCacheUsuario::<Marcaje>::new(capacidad);
-    let mut usuarios_buffer: SmallVec<[DescriptorUsuario; 2]> =
-      SmallVec::with_capacity(2);
 
     for row in rows {
-      usuarios_buffer.push(DescriptorUsuario {
+      resultado.push_usuario(DescriptorUsuario {
         id: row.get("u_id"),
         nombre: row.get("u_nombre"),
         primer_apellido: row.get("u_primer_apellido"),
@@ -286,7 +354,7 @@ impl MarcajeRepo {
       });
 
       if let Ok(ur_id) = row.try_get::<u32, _>("ur_id") {
-        usuarios_buffer.push(DescriptorUsuario {
+        resultado.push_usuario(DescriptorUsuario {
           id: ur_id,
           nombre: row.get("ur_nombre"),
           primer_apellido: row.get("ur_primer_apellido"),
@@ -309,7 +377,7 @@ impl MarcajeRepo {
         hora_fin: row.get("hora_fin"),
       };
 
-      resultado.push_with_usuarios(marcaje, usuarios_buffer.drain(..));
+      resultado.push_entidad(marcaje);
     }
 
     Ok(resultado)

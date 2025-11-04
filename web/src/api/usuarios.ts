@@ -8,13 +8,13 @@ export interface UsuariosApi {
   usuarios(): Promise<Usuario[]>;
   usuario(id: string): Promise<Usuario>;
   actualizar_usuario(usuario: UsuarioOutDTO): Promise<void>;
-  crear_usuario(usuario: UsuarioOutDTO): Promise<void>;
+  crearUsuario(usuario: UsuarioOutDTO): Promise<void>;
   actualizar_password(usuarioId: number, passw: string): Promise<void>;
   login(dni: string, passw: string): Promise<Usuario>;
   logout(id: string): Promise<void>;
   horarioSinAsignar(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
   horarioCercano(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
-  usuarios_por_rol(id: RolID): Promise<DescriptorUsuario[]>
+  usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]>
 }
 
 export class ContextoApi {
@@ -48,7 +48,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
     return this.axios.put('api/usuarios', usuario);
   }
 
-  async crear_usuario(usuario: UsuarioOutDTO): Promise<void> {
+  async crearUsuario(usuario: UsuarioOutDTO): Promise<void> {
     usuario.id = 0; // Los nuevos usuarios asignan el id en el backend
     return this.axios.post('api/usuarios', usuario);
   }
@@ -107,7 +107,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
       : [];
   }
 
-  async usuarios_por_rol(id: RolID): Promise<DescriptorUsuario[]> {
+  async usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]> {
     const response = await this.axios.get(`api/roles/${id}/usuarios`);
     const usuariosData = response.data;
 
@@ -191,7 +191,7 @@ export class UsuariosTestApi implements UsuariosApi {
     return;
   }
 
-  async crear_usuario(_: UsuarioOutDTO): Promise<void> {
+  async crearUsuario(_: UsuarioOutDTO): Promise<void> {
     return;
   }
 
@@ -254,7 +254,7 @@ export class UsuariosTestApi implements UsuariosApi {
 
     return horariosFicticios.map(Horario.fromRequest);
   }
-  async usuarios_por_rol(_: RolID): Promise<DescriptorUsuario[]> {
+  async usuariosPorRol(_: RolID): Promise<DescriptorUsuario[]> {
     const usuariosFicticios = [
       {
         id: 1,

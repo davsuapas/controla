@@ -21,8 +21,23 @@ export function formatTimeForServer(
   return dayjs(date).format('HH:mm');
 }
 
-export function dateToStr(date: dayjs.Dayjs) {
-  return date.format('DD/MM/YYYY')
+export function formatTimeFromServer(
+  hora: string | null | undefined): string | null {
+  if (!hora) return null;
+
+  return hora.substring(0, 5);
+}
+
+export function dateToStr(date: dayjs.Dayjs | null) {
+  if (date && date.isValid()) {
+    return date.format('DD/MM/YYYY');
+  }
+
+  return null;
+}
+
+export function timeToStr(hora: String | null) {
+  return hora ? hora : '--:--';
 }
 
 export function createDayjsFromTime(

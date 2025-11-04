@@ -134,7 +134,7 @@ function UsuarioEditForm({
         return;
       }
 
-      logError('usuarioeditar.actualizar', error);
+      logError('usuario-editar.actualizar', error);
 
       notifica.show(
         'Error inesperado al actualizar el usuario',
@@ -175,7 +175,7 @@ export default function UsuarioEdit() {
       setUsuario(showData);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('usuarioeditar.cargar', error);
+        logError('usuario-editar.cargar', error);
         setError(Error('Error inesperado al crear el usuario'));
       }
     }

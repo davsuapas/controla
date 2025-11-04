@@ -5,6 +5,8 @@ use crate::usuarios::Horario;
 #[derive(Debug)]
 pub struct DescriptorMarcaje {
   pub id: u32,
+  pub hora_inicio: Option<NaiveTime>,
+  pub hora_fin: Option<NaiveTime>,
 }
 
 #[derive(Debug)]

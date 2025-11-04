@@ -31,7 +31,7 @@ export default function UsuarioShow() {
       setUsuario(showData);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('usuariovisualizar.cargar', error);
+        logError('usuario-visualizar.cargar', error);
         setError(Error('Error inesperado al visualizar el usuario'));
       }
     }

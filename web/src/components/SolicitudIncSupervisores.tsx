@@ -4,7 +4,6 @@ import SolicitudIncidencia from './SolicitudIncidencia';
 import Box from '@mui/material/Box';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
 import SelectorEmpleado from './SelectorEmpleado';
 import React from 'react';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';

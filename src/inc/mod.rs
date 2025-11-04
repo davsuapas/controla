@@ -30,17 +30,25 @@
 //!    Si se producen errores de validación, la incidencia
 //!    quedará en estado incosistente y el usuario podrá modficarla,
 //!    para que posteriormente vuelva a ser aceptada. En caso
-//!    de errore interno, la incidencia quedará en un estado
+//!    de error interno, la incidencia quedará en un estado
 //!    erróneo, para que el gestor o supervisor puedan volver
 //!    a procesarla.
 //!  - El usuario puede ver en todo momento el estado de
 //!    su solicitud y actuar en función de su estado.
 //!
+//! Diagrama de estados:
+//!   Solicitud -> Resolver, Rechazar
+//!   Resolver -> Conflicto, ErrorResolver, Resuelta
+//!   Conflicto -> Solicitud
+//!   ErrorResolver -> Resolver
+//!   Rechazar -> Rechazada
+//!   Rechazada -> Solicitud
+//!
 //! Consideraciones:
 //! - El registrador solo puede poner solicudes de marcajes
 //!   que creo él.
 //! - El usuario solo puede ver las incidencias que creo él.
-//! - El supervidor puede ver todas.
+//! - El supervisor puede ver todas.
 
 /// Módulo que gestiona toda las iteraciones sobre incidencias
 /// con la base de datos

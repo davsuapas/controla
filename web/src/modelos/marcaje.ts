@@ -2,12 +2,20 @@ import dayjs, { Dayjs } from "dayjs"
 import { DescriptorUsuario, Horario } from "./usuarios"
 import { DominiosWithCacheUsuarioDTO } from "./dto";
 
-const NO_ESPECIFICADO = 'Sin especificar';
-
 export class DescriptorMarcaje {
   constructor(
     public id: number,
+    public hora_inicio: string | null,
+    public hora_fin: string | null,
   ) { }
+
+  static fromRequest(obj: any): DescriptorMarcaje {
+    return new DescriptorMarcaje(
+      obj.id,
+      obj.hora_inicio,
+      obj.hora_fin || null,
+    );
+  }
 }
 
 export class Marcaje {
@@ -48,12 +56,12 @@ export class Marcaje {
   }
 
   horaFinToStr(): string {
-    return this.horaFin ? this.horaFin : NO_ESPECIFICADO;
+    return this.horaFin ? this.horaFin : '--:--';
   }
 
   horaTrabajadasToStr(): string {
     return this.horasTrabajadas ? this.horasTrabajadas.toFixed(2)
-      : NO_ESPECIFICADO;
+      : '--';
   }
 
 }

@@ -4,11 +4,19 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  inc::{EstadoIncidencia, Incidencia, TipoIncidencia},
+  inc::{EstadoIncidencia, Incidencia, IncidenciaProceso, TipoIncidencia},
   infra::{Dni, DominiosWithCacheUsuario, Password, ShortDateTimeFormat},
   marcaje::{DescriptorMarcaje, Marcaje},
   usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
 };
+
+#[derive(Deserialize)]
+pub struct IncidenciasFiltroParams {
+  pub fecha_inicio: Option<NaiveDate>,
+  pub fecha_fin: Option<NaiveDate>,
+  pub estados: Vec<u8>,
+  pub usuario: Option<u32>,
+}
 
 /// Define la entidad de intercambio para el usuario
 #[derive(Serialize, Deserialize)]
@@ -129,11 +137,27 @@ impl From<Horario> for HorarioOutDTO {
 #[derive(Serialize, Deserialize)]
 pub struct DescriptorMarcajeDTO {
   pub id: u32,
+  pub hora_inicio: Option<NaiveTime>,
+  pub hora_fin: Option<NaiveTime>,
 }
 
 impl From<DescriptorMarcajeDTO> for DescriptorMarcaje {
   fn from(marcaje: DescriptorMarcajeDTO) -> Self {
-    DescriptorMarcaje { id: marcaje.id }
+    DescriptorMarcaje {
+      id: marcaje.id,
+      hora_inicio: marcaje.hora_inicio,
+      hora_fin: marcaje.hora_fin,
+    }
+  }
+}
+
+impl From<DescriptorMarcaje> for DescriptorMarcajeDTO {
+  fn from(marcaje: DescriptorMarcaje) -> Self {
+    DescriptorMarcajeDTO {
+      id: marcaje.id,
+      hora_inicio: marcaje.hora_inicio,
+      hora_fin: marcaje.hora_fin,
+    }
   }
 }
 
@@ -191,38 +215,102 @@ impl From<Marcaje> for MarcajeOutDTO {
   }
 }
 
+// Define la entidad de intercambio para el proceso de incidencias.
+#[derive(Deserialize)]
+pub(in crate::app) struct IncidenciaInProcesoDTO {
+  pub usuario_gestor: u32,
+  pub param_filtro_inc: IncidenciasFiltroParams,
+  pub incidencias: Vec<IncidenciaProcesoDTO>,
+}
+
+impl From<IncidenciaProcesoDTO> for IncidenciaProceso {
+  fn from(inc: IncidenciaProcesoDTO) -> Self {
+    IncidenciaProceso {
+      id: inc.id,
+      estado: EstadoIncidencia::from(inc.estado),
+      motivo_rechazo: inc.motivo_rechazo,
+    }
+  }
+}
+
+// Define la entidad de retorno para el proceso de incidencias.
+#[derive(Serialize)]
+pub(in crate::app) struct IncidenciaOutProcesoDTO {
+  pub incidencias_erroneas: Vec<u32>,
+  pub incidencias: DominiosWithCacheUsuarioDTO<IncidenciaDTO>,
+}
+
+// Define la entidad de intercambio para el proceso de incidencias.
+#[derive(Deserialize)]
+pub(in crate::app) struct IncidenciaProcesoDTO {
+  pub id: u32,
+  pub estado: u8,
+  pub motivo_rechazo: Option<String>,
+}
+
 // Define la entidad de intercambio para las incidencias.
 #[derive(Serialize, Deserialize)]
 pub(in crate::app) struct IncidenciaDTO {
   pub id: u32,
   pub tipo: u8,
+  pub usuario: u32,
   pub fecha_solicitud: NaiveDateTime,
+  pub fecha_resolucion: Option<NaiveDateTime>,
   pub fecha: NaiveDate,
   pub hora_inicio: Option<NaiveTime>,
   pub hora_fin: Option<NaiveTime>,
   pub marcaje: Option<DescriptorMarcajeDTO>,
   pub estado: u8,
+  pub fecha_estado: Option<NaiveDateTime>,
   pub error: Option<String>,
   pub usuario_creador: u32,
   pub usuario_gestor: Option<u32>,
   pub motivo_solicitud: Option<String>,
+  pub motivo_rechazo: Option<String>,
 }
 
 impl From<IncidenciaDTO> for Incidencia {
-  fn from(solicitud: IncidenciaDTO) -> Self {
+  fn from(inc: IncidenciaDTO) -> Self {
     Incidencia {
-      id: solicitud.id,
-      tipo: TipoIncidencia::from(solicitud.tipo),
-      fecha_solicitud: solicitud.fecha_solicitud,
-      fecha: solicitud.fecha,
-      hora_inicio: solicitud.hora_inicio,
-      hora_fin: solicitud.hora_fin,
-      marcaje: solicitud.marcaje.map(DescriptorMarcaje::from),
-      estado: EstadoIncidencia::from(solicitud.estado),
-      error: solicitud.error,
-      usuario_creador: solicitud.usuario_creador,
-      usuario_gestor: solicitud.usuario_gestor,
-      motivo_solicitud: solicitud.motivo_solicitud,
+      id: inc.id,
+      tipo: TipoIncidencia::from(inc.tipo),
+      usuario: inc.usuario,
+      fecha_solicitud: inc.fecha_solicitud,
+      fecha_resolucion: inc.fecha_resolucion,
+      fecha: inc.fecha,
+      hora_inicio: inc.hora_inicio,
+      hora_fin: inc.hora_fin,
+      marcaje: inc.marcaje.map(DescriptorMarcaje::from),
+      estado: EstadoIncidencia::from(inc.estado),
+      fecha_estado: inc.fecha_estado,
+      error: inc.error,
+      usuario_creador: inc.usuario_creador,
+      usuario_gestor: inc.usuario_gestor,
+      motivo_solicitud: inc.motivo_solicitud,
+      motivo_rechazo: inc.motivo_rechazo,
+    }
+  }
+}
+
+impl From<Incidencia> for IncidenciaDTO {
+  fn from(inc: Incidencia) -> Self {
+    IncidenciaDTO {
+      id: inc.id,
+      tipo: inc.tipo as u8,
+      fecha_solicitud: inc.fecha_solicitud,
+      fecha_resolucion: inc.fecha_resolucion,
+      usuario: inc.usuario,
+      fecha: inc.fecha,
+      hora_inicio: inc.hora_inicio,
+      hora_fin: inc.hora_fin,
+      marcaje: inc.marcaje.map(DescriptorMarcajeDTO::from),
+      estado: inc.estado as u8,
+      fecha_estado: inc.fecha_estado,
+      error: inc.error,
+      usuario_creador: inc.usuario_creador,
+      usuario_gestor: inc.usuario_gestor,
+      motivo_solicitud: inc.motivo_solicitud,
+      motivo_rechazo: inc.motivo_rechazo,
     }
   }
 }

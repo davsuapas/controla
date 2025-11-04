@@ -125,7 +125,7 @@ export default function UsuarioCreate() {
       let usr = formValues as Usuario
       usr.autor = usrLog.id
 
-      await api().usuarios.crear_usuario(
+      await api().usuarios.crearUsuario(
         UsuarioOutDTO.fromUsuario(usr),
       );
 
@@ -140,7 +140,7 @@ export default function UsuarioCreate() {
         return;
       }
 
-      logError('usuariocrear.crear', error);
+      logError('usuario-crear.crear', error);
 
       notifica.show(
         'Error inesperado al crear el usuario',
