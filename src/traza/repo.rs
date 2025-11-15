@@ -20,7 +20,7 @@ impl TrazaRepo {
     traza: &Traza,
   ) -> Result<u32, DBError> {
     let result = sqlx::query(
-      r"INSERT INTO trazas
+      "INSERT INTO trazas
       (autor, tipo, fecha, entidad, entidad_id, motivo)
       VALUES (?, ?, ?, ?, ?, ?)",
     )

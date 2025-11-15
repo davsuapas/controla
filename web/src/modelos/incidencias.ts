@@ -98,9 +98,30 @@ export class Incidencia {
       error: null,
       usuario_creador: usuarioCreador,
       usuario_gestor: null,
-      motivo_solicitud: motivo === '' ? null : motivo,
+      motivo_solicitud: motivo === '' ? null : motivo?.trim(),
       motivo_rechazo: null
     });
+  }
+
+  // Crea una entidad de incidencias para una solicitud que
+  // será enviada al servidor desde un estado rechazado o con conflicto
+  static crearSolicitudFromEstado(
+    id: number,
+    estado: EstadoIncidencia,
+    horaInicio: Dayjs | null,
+    horaFin: Dayjs | null,
+    usuarioCreador: number,
+    motivo?: string,
+  ): {} {
+    return {
+      id: id,
+      estado: estado,
+      motivo_solicitud: (motivo ?? '').trim() === '' ? null : motivo?.trim(),
+      fecha_solicitud: formatDateTimeForServer(dayjs()) as string,
+      hora_inicio: formatTimeForServer(horaInicio),
+      hora_fin: formatTimeForServer(horaFin),
+      usuario_creador: usuarioCreador,
+    };
   }
 
   static fromRequest(dto: DominiosWithCacheUsuarioDTO<any>): Incidencia[] {

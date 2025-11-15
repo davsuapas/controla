@@ -1,10 +1,11 @@
 use chrono::{NaiveDate, Utc};
 
 use crate::{
+  agregar_traza,
   config::ConfigTrabajo,
   inc::{
     EstadoIncidencia, Incidencia, IncidenciaMarcaje, IncidenciaProceso,
-    IncidenciaRepo, TipoIncidencia,
+    IncidenciaRepo, IncidenciaSolictud, TipoIncidencia,
   },
   infra::{DominiosWithCacheUsuario, ServicioError, Transaccion},
   marcaje::{Marcaje, MarcajeServicio},
@@ -64,6 +65,107 @@ impl IncidenciaServicio {
     );
 
     Ok(id)
+  }
+
+  /// Actualiza una incidencia cambiando la incidencia a solictud
+  ///
+  /// Dependiendo del estado origen se cambian unos u otros campos
+  /// y genera una traza como evidencia.
+  ///
+  /// El estado desde donde se procede viene en la incidencia
+  pub async fn cambiar_estado_a_solicitud(
+    &self,
+    inc: &IncidenciaSolictud,
+  ) -> Result<(), ServicioError> {
+    tracing::info!(
+      incidencia = ?inc,
+      "Se ha iniciado el servicio para cambiar a estado solicitud");
+
+    let incidencia_traza = self
+      .repo
+      .incidencia_para_traza(inc.id)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+           incidencia = ?inc, error = %err,
+           "Obteniendo datos de incidencia para traza");
+        ServicioError::from(err)
+      })?;
+
+    let mut tr =
+      self
+        .repo
+        .conexion()
+        .empezar_transaccion()
+        .await
+        .map_err(|err| {
+          tracing::error!(
+           incidencia = ?inc, error = %err,
+           "Iniciando transacción cambiar a estado solicitud");
+          ServicioError::from(err)
+        })?;
+
+    if !self
+      .repo
+      .cambiar_estado_solictud(&mut tr, inc)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+           incidencia = ?inc, error = %err,
+           "Actualizando incidencia cambiando a estado solicitud");
+        ServicioError::from(err)
+      })?
+    {
+      tracing::warn!(
+        incidencia = inc.id,
+        "No se ha podido cambiar a estado solicitud, posiblemente \
+        ya se ha cambiaado previamente"
+      );
+      return Ok(());
+    }
+
+    // En el motivo incluyo los campos de incidencia_traza
+    let traza = TrazaBuilder::with_inc(TipoTraza::IncReSolictar, inc.id)
+      .autor(Some(inc.usuario_creador))
+      .motivo(Some(format!(
+        "Se vuelve a realizar la solicitud. Registro previo: \
+        (Fecha solicitud: {:?}, Motivo solictud: '{}' \
+        Entrada: '{:?}' Salida: '{:?}' \
+        Motivo rechazo: '{}' Fecha estado: '{:?}' \
+        Creador: {} Gestor: {:?} Error: '{}')",
+        incidencia_traza.fecha_solicitud,
+        incidencia_traza.motivo_solicitud.as_deref().unwrap_or(""),
+        incidencia_traza.hora_inicio,
+        incidencia_traza.hora_fin,
+        incidencia_traza.motivo_rechazo.as_deref().unwrap_or(""),
+        incidencia_traza.fecha_estado,
+        incidencia_traza.usuario_creador,
+        incidencia_traza.usuario_gestor,
+        incidencia_traza.error.as_deref().unwrap_or(""),
+      )))
+      .build(&self.cnfg.zona_horaria);
+
+    agregar_traza!(
+      self,
+      tr,
+      traza,
+      "Creando actualizando incidencia cambiando a estado solicitud",
+      incidencia = inc.id
+    );
+
+    tr.commit().await.map_err(|err| {
+      tracing::error!(
+         incidencia = ?inc, error = %err,
+        "Commit transacción para cambiar a estado solicitud");
+      ServicioError::from(err)
+    })?;
+
+    tracing::debug!(
+      incidencia = inc.id,
+      "Se ha completado satisfactoriamente el cambio a estado solictud"
+    );
+
+    Ok(())
   }
 
   /// Recorre un lista de incidencias y la procesa según su estado y tipo
@@ -189,7 +291,7 @@ impl IncidenciaServicio {
                           id = incp.id,
                           incidencia = ?inc,
                           error = %err,
-                          r"Cambiando el estado a error resolver
+                          "Cambiando el estado a error resolver \
                           tras error eliminando marcaje"
                         );
 
@@ -208,7 +310,7 @@ impl IncidenciaServicio {
                     tracing::error!(
                       incidencia = ?incp,
                       error = %err,
-                      r"Obteniendo la información mínima necesaria
+                      "Obteniendo la información mínima necesaria \
                       para procesar la incidencia"
                     );
 
@@ -219,7 +321,7 @@ impl IncidenciaServicio {
               } else {
                 tracing::warn!(
                   incidencia = ?incp,
-                  r"No se ha podido resolver la incidencia de marcaje,
+                  "No se ha podido resolver la incidencia de marcaje, \
                   posiblemente ya estaba procesada"
                 );
               }
@@ -256,7 +358,7 @@ impl IncidenciaServicio {
               } else {
                 tracing::warn!(
                   incidencia = ?incp,
-                  r"No se ha podido rechazar la incidencia de marcaje,
+                  "No se ha podido rechazar la incidencia de marcaje, \
                   posiblemente ya estaba procesada"
                 );
               }
@@ -346,8 +448,8 @@ impl IncidenciaServicio {
             incp.id,
             usuario_gestor,
             err,
-            r"No se ha podido crear el marcaje nuevo asociado a la incidencia. 
-          Consulte con el administrador del sistema.",
+            "No se ha podido crear el marcaje nuevo asociado a la incidencia. \
+            Consulte con el administrador del sistema.",
           )
           .await
       }
@@ -400,20 +502,20 @@ impl IncidenciaServicio {
                 marcaje = marcaje_id,
                 id = incp.id,
                 incidencia = ?inc,
-                r"Salida del marcaje corregido correctamente
+                "Salida del marcaje corregido correctamente \
                 al resolver la incidencia"
               );
 
               Ok(())
             } else {
               Err(
-                r"El marcaje que se quiere corregir la salida ya no existe. 
+                "El marcaje que se instenta corregir la salida ya no existe. \
                 Consulte con el administrador",
               )
             }
           }
           Err(_) => Err(
-            r"No se ha podido deshabilitar el marcaje que 
+            "No se ha podido deshabilitar el marcaje que \
              se quiere corregir la salida. Consulte con el administrador",
           ),
         }
@@ -432,8 +534,8 @@ impl IncidenciaServicio {
             incp.id,
             usuario_gestor,
             err,
-            r"No se ha podido corregir el marcaje de salida
-            asociado a la incidencia. 
+            "No se ha podido corregir el marcaje de salida \
+            asociado a la incidencia. \
             Consulte con el administrador del sistema.",
           )
           .await
@@ -466,7 +568,7 @@ impl IncidenciaServicio {
           tracing::warn!(
             id = incp.id,
             incidencia = ?inc,
-            r"No existe el marcaje para eliminar. Se deshecha"
+            "No existe el marcaje para eliminar. Se deshecha"
           );
         }
 
@@ -480,7 +582,7 @@ impl IncidenciaServicio {
         );
 
         Err(
-          r"No se ha podido eliminar el marcaje asociado a la incidencia. 
+          "No se ha podido eliminar el marcaje asociado a la incidencia. \
           Consulte con el administrador del sistema.",
         )
       }
@@ -529,7 +631,7 @@ impl IncidenciaServicio {
           tracing::error!(
             id = incidencia_id,
             error = %e,
-            r"Cambiando el estado a conflicto tras procesar incidencia"
+            "Cambiando el estado a conflicto tras procesar incidencia"
           );
           default_err
         })?;
@@ -557,9 +659,12 @@ impl IncidenciaServicio {
   }
 
   /// Lista las incidencias que cumplen los filtros indicados.
+  ///
+  /// Si se indica ID solo se devuelve esa incidencia
   #[inline]
   pub async fn incidencias(
     &self,
+    id: Option<u32>,
     fecha_inicio: Option<NaiveDate>,
     fecha_fin: Option<NaiveDate>,
     estados: &[EstadoIncidencia],
@@ -567,7 +672,7 @@ impl IncidenciaServicio {
   ) -> Result<DominiosWithCacheUsuario<Incidencia>, ServicioError> {
     self
       .repo
-      .incidencias(fecha_inicio, fecha_fin, estados, usuario)
+      .incidencias(id, fecha_inicio, fecha_fin, estados, usuario)
       .await
       .map_err(|err| {
         tracing::error!(

@@ -33,7 +33,7 @@ impl MarcajeRepo {
     reg: &Marcaje,
     horario: u32,
   ) -> Result<u32, DBError> {
-    const QUERY: &str = r"INSERT INTO marcajes
+    const QUERY: &str = "INSERT INTO marcajes
       (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
       VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -69,7 +69,7 @@ impl MarcajeRepo {
     id: u32,
     modificar_por: u32,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"UPDATE marcajes SET modificado_por = ? WHERE id = ?";
+    const QUERY: &str = "UPDATE marcajes SET modificado_por = ? WHERE id = ?";
 
     let result = sqlx::query(QUERY)
       .bind(modificar_por)
@@ -89,7 +89,7 @@ impl MarcajeRepo {
     trans: &mut Transaccion<'_>,
     id: u32,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"UPDATE marcajes SET eliminado = TRUE WHERE id = ?";
+    const QUERY: &str = "UPDATE marcajes SET eliminado = TRUE WHERE id = ?";
 
     let result = sqlx::query(QUERY)
       .bind(id)
@@ -113,7 +113,7 @@ impl MarcajeRepo {
     fecha: NaiveDate,
     excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"SELECT id
+    const QUERY: &str = "SELECT id
       FROM marcajes
       WHERE usuario = ? AND fecha = ?
       AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
@@ -146,7 +146,7 @@ impl MarcajeRepo {
     hora: NaiveTime,
     excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"SELECT id
+    const QUERY: &str = "SELECT id
         FROM marcajes
         WHERE usuario = ? AND fecha = ?
         AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
@@ -182,7 +182,7 @@ impl MarcajeRepo {
     hora_fin: NaiveTime,
     excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"SELECT id
+    const QUERY: &str = "SELECT id
         FROM marcajes
         WHERE usuario = ? AND fecha = ?
         AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
@@ -234,14 +234,26 @@ impl MarcajeRepo {
   ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.hora_inicio DESC";
 
-    let filter = if usuario_reg.is_some() {
-      "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador = ? 
-         AND NOT EXISTS (SELECT id FROM incidencias AS i 
-         WHERE i.marcaje = r.id)"
-    } else {
-      "r.usuario = ? AND r.fecha = ? 
-         AND NOT EXISTS (SELECT id FROM incidencias AS i
-         WHERE i.marcaje = r.id)"
+    let filter = match usuario_reg {
+      Some(usr) if usr != 0 => {
+        "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador = ? 
+          AND NOT EXISTS (SELECT id FROM incidencias AS i 
+          WHERE i.marcaje = r.id)"
+      }
+      Some(_) => {
+        // Cuando el usuario es igual a cero significa que
+        // un supervidor puede ver todos los marcajes que
+        // se registrarón por alguien que no era el usuario
+        // del marcaje
+        "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador IS NOT NULL 
+          AND NOT EXISTS (SELECT id FROM incidencias AS i 
+          WHERE i.marcaje = r.id)"
+      }
+      _ => {
+        "r.usuario = ? AND r.fecha = ? 
+          AND NOT EXISTS (SELECT id FROM incidencias AS i
+          WHERE i.marcaje = r.id)"
+      }
     };
 
     use sqlx::Arguments;
@@ -254,9 +266,11 @@ impl MarcajeRepo {
       .map_err(|_| DBError::Parametros("Fecha"))?;
 
     if let Some(ur) = usuario_reg {
-      args
-        .add(ur)
-        .map_err(|_| DBError::Parametros("Usuario registrador"))?;
+      if ur != 0 {
+        args
+          .add(ur)
+          .map_err(|_| DBError::Parametros("Usuario registrador"))?;
+      }
     }
 
     self
@@ -291,7 +305,7 @@ impl MarcajeRepo {
     filter_params: Option<sqlx::mysql::MySqlArguments>,
     order: Option<&str>,
   ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
-    const SELECT: &str = r"SELECT r.id, r.fecha,
+    const SELECT: &str = "SELECT r.id, r.fecha,
         r.hora_inicio, r.hora_fin, r.horario,
         u.id AS u_id, u.nombre AS u_nombre,
         u.primer_apellido AS u_primer_apellido,

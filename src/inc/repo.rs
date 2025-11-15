@@ -3,7 +3,10 @@ use chrono::{NaiveDate, NaiveDateTime};
 use sqlx::Row;
 
 use crate::{
-  inc::{EstadoIncidencia, IncidenciaMarcaje, dominio::Incidencia},
+  inc::{
+    EstadoIncidencia, IncidenciaMarcaje, IncidenciaSolictud, IncidenciaTraza,
+    dominio::Incidencia,
+  },
   infra::{DBError, DominiosWithCacheUsuario, PoolConexion, Transaccion},
   marcaje::DescriptorMarcaje,
   usuarios::DescriptorUsuario,
@@ -30,7 +33,7 @@ impl IncidenciaRepo {
     &self,
     reg: &Incidencia,
   ) -> Result<u32, DBError> {
-    const QUERY: &str = r"INSERT INTO incidencias
+    const QUERY: &str = "INSERT INTO incidencias
       (tipo, fecha_solicitud, hora_inicio, hora_fin, marcaje, estado,
        error, usuario_creador, usuario_gestor, fecha, motivo_solicitud,
        motivo_rechazo, fecha_resolucion, fecha_estado, usuario)
@@ -59,6 +62,41 @@ impl IncidenciaRepo {
     Ok(result.last_insert_id() as u32)
   }
 
+  /// Cambia el estado a solicitud desde rechazado
+  ///
+  /// La entidad incidencia lleva el estado del que proviene
+  ///
+  /// Si no proviene de un estado conocido no se actualiza y
+  /// devuelve false
+  pub(in crate::inc) async fn cambiar_estado_solictud(
+    &self,
+    trans: &mut Transaccion<'_>,
+    inc: &IncidenciaSolictud,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = "UPDATE incidencias
+      SET estado = ?,
+       motivo_solicitud = ?, fecha_solicitud = ?,
+       hora_inicio = ?, hora_fin = ?, usuario_creador = ?,
+       motivo_rechazo = null, fecha_estado = null,
+       error = null, usuario_gestor = null
+      WHERE id = ? and estado = ?";
+
+    let result = sqlx::query(QUERY)
+      .bind(EstadoIncidencia::Solicitud as u8)
+      .bind(&inc.motivo_solicitud)
+      .bind(inc.fecha_solicitud)
+      .bind(inc.hora_inicio)
+      .bind(inc.hora_fin)
+      .bind(inc.usuario_creador)
+      .bind(inc.id)
+      .bind(inc.estado as u8)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    Ok(result.rows_affected() > 0)
+  }
+
   /// Cambia el estado a resuelto
   ///
   /// Si no proviene de un estado conocido no se actualiza y
@@ -70,7 +108,7 @@ impl IncidenciaRepo {
     usuario_gestor: u32,
     fecha_resolucion: NaiveDateTime,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"UPDATE incidencias
+    const QUERY: &str = "UPDATE incidencias
       SET estado = ?, error = null, usuario_gestor = ?,
        fecha_resolucion = ?, fecha_estado = null
       WHERE id = ? and estado IN (?, ?)";
@@ -101,7 +139,7 @@ impl IncidenciaRepo {
     usuario_gestor: u32,
     fecha_estado: NaiveDateTime,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"UPDATE incidencias
+    const QUERY: &str = "UPDATE incidencias
       SET estado = ?, usuario_gestor = ?,
         fecha_estado = ?, motivo_rechazo = ?
       WHERE id = ? and estado = ?";
@@ -133,7 +171,7 @@ impl IncidenciaRepo {
     // se blanquea porque antes de cambiar el estado
     // se cambio a estado resolución para bloquear
     // el registro
-    const QUERY: &str = r"UPDATE incidencias
+    const QUERY: &str = "UPDATE incidencias
       SET estado = ?, error = ?, fecha_estado = ?,
       usuario_gestor = null, fecha_resolucion = null
       WHERE id = ?";
@@ -150,13 +188,52 @@ impl IncidenciaRepo {
     Ok(())
   }
 
+  /// Devuelve una incidencia para traza
+  pub(in crate::inc) async fn incidencia_para_traza(
+    &self,
+    inc_id: u32,
+  ) -> Result<IncidenciaTraza, DBError> {
+    const QUERY: &str = "SELECT
+      motivo_solicitud, fecha_solicitud,
+      hora_inicio, hora_fin,
+      motivo_rechazo, fecha_estado,
+      usuario_creador, usuario_gestor, error
+      FROM incidencias
+      WHERE id = ?";
+
+    let row = sqlx::query(QUERY)
+      .bind(inc_id)
+      .fetch_optional(self.pool.conexion())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    if let Some(row) = row {
+      Ok(IncidenciaTraza {
+        motivo_solicitud: row.get("motivo_solicitud"),
+        fecha_solicitud: row.get("fecha_solicitud"),
+        hora_inicio: row.get("hora_inicio"),
+        hora_fin: row.get("hora_fin"),
+        motivo_rechazo: row.get("motivo_rechazo"),
+        fecha_estado: row.get("fecha_estado"),
+        usuario_creador: row.get("usuario_creador"),
+        usuario_gestor: row.try_get::<u32, _>("usuario_gestor").ok(),
+        error: row.get("error"),
+      })
+    } else {
+      Err(DBError::registro_vacio(format!(
+        "No se ha encontrado la incidencia: {}",
+        &inc_id
+      )))
+    }
+  }
+
   /// Devuelve una incidencia con la info mínima necesaria para el marcaje.
   pub(in crate::inc) async fn incidencia_para_marcaje(
     &self,
     inc_id: u32,
   ) -> Result<IncidenciaMarcaje, DBError> {
-    const QUERY: &str = r"SELECT
-      i.id, i.tipo, i.usuario, i.fecha, i.hora_inicio,
+    const QUERY: &str = "SELECT
+      i.tipo, i.usuario, i.fecha, i.hora_inicio,
       i.hora_fin, i.marcaje, i.estado, i.usuario_creador,
       m.hora_inicio AS m_hora_inicio, m.hora_fin AS m_hora_fin      
       FROM incidencias i
@@ -194,8 +271,15 @@ impl IncidenciaRepo {
   }
 
   /// Lista las incidencias que cumplen los filtros indicados.
+  ///
+  /// Si se indica ID solo se devuelve esa incidencia
+  ///
+  /// Si el usuario es cero se filtran todas las incidencias
+  /// que se hicieron por registradores. Este filtro es para
+  /// los supervisores
   pub(in crate::inc) async fn incidencias(
     &self,
+    id: Option<u32>,
     fecha_inicio: Option<NaiveDate>,
     fecha_fin: Option<NaiveDate>,
     estados: &[EstadoIncidencia],
@@ -226,30 +310,40 @@ impl IncidenciaRepo {
       WHERE ",
     );
 
-    qb.push("estado IN (");
-    {
-      let mut separated = qb.separated(", ");
-      for e in estados {
-        separated.push_bind(*e as u8);
+    if let Some(id_incidencia) = id {
+      // Si hay ID, buscar solo por ID
+      qb.push("i.id = ");
+      qb.push_bind(id_incidencia);
+    } else {
+      // Si no hay ID, aplicar los filtros normales
+      qb.push("estado IN (");
+      {
+        let mut separated = qb.separated(", ");
+        for e in estados {
+          separated.push_bind(*e as u8);
+        }
       }
-    }
-    qb.push(")");
+      qb.push(")");
 
-    if let (Some(fi), Some(ff)) = (fecha_inicio, fecha_fin) {
-      qb.push(" AND ");
-      qb.push("fecha_solicitud BETWEEN ");
-      qb.push_bind(fi);
-      qb.push(" AND ");
-      qb.push_bind(ff);
-    }
+      if let (Some(fi), Some(ff)) = (fecha_inicio, fecha_fin) {
+        qb.push(" AND ");
+        qb.push("i.fecha_solicitud BETWEEN ");
+        qb.push_bind(fi);
+        qb.push(" AND ");
+        qb.push_bind(ff);
+      }
 
-    if let Some(u) = usuario {
-      qb.push(" AND ");
-      qb.push("usuario_creador = ");
-      qb.push_bind(u);
-    }
+      if let Some(u) = usuario {
+        qb.push(" AND ");
+        if u == 0 {
+          qb.push("i.usuario_creador <> i.usuario").push_bind(u);
+        } else {
+          qb.push("i.usuario_creador = ").push_bind(u);
+        }
+      }
 
-    qb.push(" ORDER BY i.fecha_solicitud ASC, i.estado ASC, i.fecha ASC");
+      qb.push(" ORDER BY i.fecha_solicitud ASC, i.estado ASC, i.fecha ASC");
+    }
 
     let rows = qb
       .build()

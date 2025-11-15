@@ -20,9 +20,18 @@
 //!   la eliminación de marcajes realidos por él.
 //!
 //! Flujo de las incidencias:
-//!  - El usuario realiza una solicitud indicando el tipo
-//!    de incidencia.
-//!  - Los gestores de incidencias o supervidores aceptan las
+//!  - El emmpleado, registrador o supervidor realiza una
+//!    solicitud indicando el tipo de incidencia. Si el
+//!    usuario es registrador puede eliminar marcajes
+//!    que creo el. El supervidor puede actuar en nombre
+//!    del registrador por si está de baja. El registrador
+//!    solo puede ver los marcajes que ha hecho el mismo. 
+//!    El supervisor puede ver todos los marcajes de todos
+//!    los registradores, y el empleado solo puede ver los
+//!    suyos, incluso si fueron hechos por registradores.
+//!    Estas son todas aquellas cuyo campo usuario del marcaje
+//!    difiere del campo usuario referencia (usuario registrador).
+//!  - Los gestores de incidencias aceptan las
 //!    solicitudes o las rechazan motivándolas. Cuando se acepta
 //!    una solicitud, se crea un nuevo marcaje si el tipo
 //!    es nuevo, se crea un marcaje asociado a el origen, en caso
@@ -35,6 +44,10 @@
 //!    a procesarla.
 //!  - El usuario puede ver en todo momento el estado de
 //!    su solicitud y actuar en función de su estado.
+//!    El empleado y registrador solo puede ver sus solicitudes. 
+//!    El supervisor puede ver todas las hechas por el registrador.
+//!    Estas son todas aquellas que el campos usuario del marcaje
+//!    difiere del campo creador de la incidenca
 //!
 //! Diagrama de estados:
 //!   Solicitud -> Resolver, Rechazar
@@ -43,12 +56,6 @@
 //!   ErrorResolver -> Resolver
 //!   Rechazar -> Rechazada
 //!   Rechazada -> Solicitud
-//!
-//! Consideraciones:
-//! - El registrador solo puede poner solicudes de marcajes
-//!   que creo él.
-//! - El usuario solo puede ver las incidencias que creo él.
-//! - El supervisor puede ver todas.
 
 /// Módulo que gestiona toda las iteraciones sobre incidencias
 /// con la base de datos

@@ -22,6 +22,7 @@
 //! - Auditoría de acciones realizadas en el sistema.
 //!
 //! Se usará una base de datos mysql para almacenar los datos de la aplicación.
+//! Los cmapos pk auto-incrementales deben empezar en uno.
 //!
 //! # Ejecución:
 //! ```bash

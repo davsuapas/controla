@@ -1,6 +1,7 @@
 import dayjs, { Dayjs } from "dayjs"
 import { DescriptorUsuario, Horario } from "./usuarios"
 import { DominiosWithCacheUsuarioDTO } from "./dto";
+import { formatTimeFromServer } from "./formatos";
 
 export class DescriptorMarcaje {
   constructor(
@@ -12,8 +13,8 @@ export class DescriptorMarcaje {
   static fromRequest(obj: any): DescriptorMarcaje {
     return new DescriptorMarcaje(
       obj.id,
-      obj.hora_inicio,
-      obj.hora_fin || null,
+      formatTimeFromServer(obj.hora_inicio),
+      formatTimeFromServer(obj.hora_fin),
     );
   }
 }

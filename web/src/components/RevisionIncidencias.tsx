@@ -20,6 +20,8 @@ import { NetErrorControlado } from '../net/interceptor';
 import { logError } from '../error';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 
+// Pemite revisar las incidencias que se solicitan
+// para rectificar los marcajes
 export default function RevisionIncidencia() {
   const usuario = useUsuarioLogeado().getUsrLogeado();
   const dialogo = useDialogs();
@@ -117,7 +119,7 @@ export default function RevisionIncidencia() {
         new IncidenciaProcesoDTO(
           incidencia.id,
           incidencia.accion!,
-          incidencia.motivoRechazo
+          incidencia.motivoRechazo ? incidencia.motivoRechazo.trim() : null
         )
       );
 
@@ -186,7 +188,6 @@ export default function RevisionIncidencia() {
     setIsLoading(false);
   }
 
-  // Pasa las filas y función de actualización al IncidenciaList
   return (
     <PageContainer
       title={'Revisión incidencias'}
@@ -209,6 +210,7 @@ export default function RevisionIncidencia() {
             EstadoIncidencia.Solicitud,
             EstadoIncidencia.ErrorResolver,
           ]}
+          columnaAccion
           actions={incidenciaActions}
           rows={rows}
           setRows={setRows}

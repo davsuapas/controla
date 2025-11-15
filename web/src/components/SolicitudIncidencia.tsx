@@ -40,27 +40,6 @@ interface SolicitudIncidenciaProps {
   isLoading?: boolean;
 }
 
-// Enumerado para tipos de solicitud
-enum TipoSolicitud {
-  INDEFINIDA = 0,
-  SALIDA_ERRONEA = 1,
-  ELIMINAR = 2,
-  MARCAJE_NO_REALIZADO = 3
-}
-
-function fromTipoSolicitud(tipo: TipoSolicitud): TipoIncidencia | undefined {
-  switch (tipo) {
-    case TipoSolicitud.MARCAJE_NO_REALIZADO:
-      return TipoIncidencia.NuevoMarcaje;
-    case TipoSolicitud.ELIMINAR:
-      return TipoIncidencia.EliminacionMarcaje;
-    case TipoSolicitud.SALIDA_ERRONEA:
-      return TipoIncidencia.CorrecionSalida;
-    default:
-      return undefined;
-  }
-}
-
 // Componente que expone los marcajes por fecha y permite
 // realiza solicitud de incidencias para un usuario.
 // Las incidencias pueden ser: Salidas erróneas,
@@ -75,14 +54,15 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [fecha, setFecha] = React.useState<Dayjs | null>(dayjs());
 
-  // Estados para el modal
-  const [modalOpen, setModalOpen] = React.useState(false);
-  const [tipoSolicitud, setTipoSolicitud] =
-    React.useState<TipoSolicitud>(TipoSolicitud.INDEFINIDA);
-  const [marcajeSeleccionado, setMarcajeSeleccionado] =
-    React.useState<Marcaje | undefined>(undefined);
   const [solicitudesProcesadas, setSolicitudesProcesadas] =
     React.useState<Set<number>>(new Set());
+
+  // Estados para el modal con la información de la solictud
+  const [modalOpenInfo, setModalOpenInfo] = React.useState(false);
+  const [tipoSolicitud, setTipoSolicitud] =
+    React.useState<TipoIncidencia | undefined>(undefined);
+  const [marcajeSeleccionado, setMarcajeSeleccionado] =
+    React.useState<Marcaje | undefined>(undefined);
 
   // Almacena todas las solictudes creadas para 
   // que puedan ser consultadas, por ejemplo para
@@ -122,7 +102,6 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
       setIsLoading(true);
 
       try {
-
         listData = await api().marcajes.marcajes_sin_inc(
           usuarioId.toString(),
           fecha,
@@ -153,29 +132,29 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
 
   // Permite abrir un formalario para corregir marcajes
   // mediante solicitud
-  const abrirModal = (tipo: TipoSolicitud, marcaje?: Marcaje) => {
+  const abrirModalInfo = (tipo: TipoIncidencia, marcaje?: Marcaje) => {
     setMarcajeSeleccionado(marcaje);
     setTipoSolicitud(tipo);
-    setModalOpen(true);
+    setModalOpenInfo(true);
   };
 
   // Cierra la modal mediante un borón aceptar y otro cancelar
-  const cerrarModal = React.useCallback(
+  const cerrarModalInfo = React.useCallback(
     (info: InfoSolicitud | undefined) => {
-      setModalOpen(false);
+      setModalOpenInfo(false);
 
       if (info) {
-        procesarSolicitud(tipoSolicitud, info, marcajeSeleccionado);
+        procesarSolicitud(tipoSolicitud!, info, marcajeSeleccionado);
       }
 
-      setTipoSolicitud(TipoSolicitud.INDEFINIDA);
+      setTipoSolicitud(undefined);
       setMarcajeSeleccionado(undefined);
     },
     [tipoSolicitud, marcajeSeleccionado]);
 
   // Procesa las solicitud con las correciones
   const procesarSolicitud = async (
-    tipoSolicitud: TipoSolicitud,
+    tipo: TipoIncidencia,
     info: InfoSolicitud,
     marcaje?: Marcaje) => {
     let msgNotifica = "Solicitud no reconocida"
@@ -184,21 +163,21 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
       return;
     }
 
-    switch (tipoSolicitud) {
-      case TipoSolicitud.SALIDA_ERRONEA:
+    switch (tipo) {
+      case TipoIncidencia.CorrecionSalida:
         msgNotifica = 'Solicitud "salida errónea" creada satistactóriamente'
         break;
 
-      case TipoSolicitud.ELIMINAR:
+      case TipoIncidencia.EliminacionMarcaje:
         msgNotifica = 'Solicitud de eliminación creada satistactóriamente'
         break;
 
-      case TipoSolicitud.MARCAJE_NO_REALIZADO:
+      case TipoIncidencia.NuevoMarcaje:
         msgNotifica = 'Solicitud "marcaje no realizado" creada satistactóriamente'
         break;
 
       default:
-        console.warn('Tipo de solicitud no reconocido:', tipoSolicitud);
+        console.warn('Tipo de solicitud no reconocido:', tipo);
         notifica.show(msgNotifica, {
           severity: 'success',
           autoHideDuration: 5000,
@@ -210,7 +189,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
     try {
       await api().inc.crearIncidencia(
         Incidencia.crearSolicitud(
-          fromTipoSolicitud(tipoSolicitud)!,
+          tipo!,
           props.usuarioId!,
           fecha,
           info.horaEntrada ?? null,
@@ -249,7 +228,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   // Abre una solictud para corregir salidas erróneas
   const handleSolicitudClick = React.useCallback(
     (marcaje: Marcaje) => () => {
-      abrirModal(TipoSolicitud.SALIDA_ERRONEA, marcaje);
+      abrirModalInfo(TipoIncidencia.CorrecionSalida, marcaje);
     },
     []
   );
@@ -257,14 +236,14 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   // Abre una solictud de eliminación
   const handleEliminarClick = React.useCallback(
     (marcaje: Marcaje) => () => {
-      abrirModal(TipoSolicitud.ELIMINAR, marcaje);
+      abrirModalInfo(TipoIncidencia.EliminacionMarcaje, marcaje);
     },
     []
   );
 
   // Abre una solictud para crear un nuevo marcaje
   const handleMarcajeNoRealizado = () => {
-    abrirModal(TipoSolicitud.MARCAJE_NO_REALIZADO);
+    abrirModalInfo(TipoIncidencia.NuevoMarcaje);
   };
 
   const columns = React.useMemo<GridColDef[]>(
@@ -351,43 +330,6 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
     [solicitudesProcesadas]
   );
 
-  // Configura la pantalla modal dependiendo del tipo
-  const getModalProps = (
-    fecha: dayjs.Dayjs,
-    tipoSolicitud: TipoSolicitud,
-    marcajeSeleccionado?: Marcaje) => {
-    if (tipoSolicitud === TipoSolicitud.SALIDA_ERRONEA) {
-      return {
-        titulo: 'CORREGIR SALIDA',
-        mostrarEntrada: false,
-        mostrarSalida: true,
-        info: {
-          horaEntrada: undefined,
-          horaSalida: marcajeSeleccionado?.horaFin ?
-            createDayjsFromTime(fecha, marcajeSeleccionado.horaFin) : undefined
-        }
-      };
-    }
-
-    if (tipoSolicitud === TipoSolicitud.MARCAJE_NO_REALIZADO) {
-      return {
-        titulo: 'NUEVO MARCAJE',
-        mostrarEntrada: true,
-        mostrarSalida: true,
-        info: { horaEntrada: undefined, horaSalida: undefined }
-      };
-    }
-
-    if (tipoSolicitud === TipoSolicitud.ELIMINAR) {
-      return {
-        titulo: 'ELIMINAR MARCAJE',
-        mostrarEntrada: false,
-        mostrarSalida: false,
-        info: { horaEntrada: undefined, horaSalida: undefined }
-      };
-    }
-  };
-
   return (
     <LocalizationProviderES>
       <Stack spacing={2} sx={{ height: '100%', mt: 1.5 }}>
@@ -447,12 +389,16 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
           }}
         />
 
-        {fecha && tipoSolicitud != TipoSolicitud.INDEFINIDA && (
+        {fecha && tipoSolicitud && (
           <ModalInfoSolicitud
-            open={modalOpen}
-            onClose={cerrarModal}
+            open={modalOpenInfo}
+            onClose={cerrarModalInfo}
             fecha={fecha}
-            {...getModalProps(fecha, tipoSolicitud, marcajeSeleccionado)!}
+            {...crearModalInfoSolicitudProps(
+              fecha, tipoSolicitud,
+              undefined,
+              marcajeSeleccionado?.horaFin ?
+                marcajeSeleccionado.horaFin : undefined)!}
           />
         )}
       </Stack>
@@ -460,7 +406,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   );
 }
 
-interface InfoSolicitud {
+export interface InfoSolicitud {
   horaEntrada: Dayjs | undefined;
   horaSalida: Dayjs | undefined;
   motivo?: string;
@@ -471,7 +417,49 @@ interface InfoSolicitudErrors {
   horaSalida: string;
 }
 
-interface ModalInfoSolicitudProps {
+// Configura las propiedades para la pantalla de información
+// de una solicitud
+export function crearModalInfoSolicitudProps(
+  fecha: dayjs.Dayjs,
+  tipo: TipoIncidencia,
+  horaInicio?: string,
+  horaFin?: string
+) {
+  if (tipo === TipoIncidencia.CorrecionSalida) {
+    return {
+      titulo: 'CORREGIR SALIDA',
+      mostrarEntrada: false,
+      mostrarSalida: true,
+      info: {
+        horaEntrada: undefined,
+        horaSalida: horaFin ? createDayjsFromTime(fecha, horaFin) : undefined
+      }
+    };
+  }
+
+  if (tipo === TipoIncidencia.NuevoMarcaje) {
+    return {
+      titulo: 'NUEVO MARCAJE',
+      mostrarEntrada: true,
+      mostrarSalida: true,
+      info: {
+        horaEntrada: horaInicio ? createDayjsFromTime(fecha, horaInicio) : undefined,
+        horaSalida: horaFin ? createDayjsFromTime(fecha, horaFin) : undefined
+      }
+    };
+  }
+
+  if (tipo === TipoIncidencia.EliminacionMarcaje) {
+    return {
+      titulo: 'ELIMINAR MARCAJE',
+      mostrarEntrada: false,
+      mostrarSalida: false,
+      info: { horaEntrada: undefined, horaSalida: undefined }
+    };
+  }
+}
+
+export interface ModalInfoSolicitudProps {
   open: boolean;
   onClose: (datos: InfoSolicitud | undefined) => void;
   fecha: Dayjs;
@@ -481,7 +469,11 @@ interface ModalInfoSolicitudProps {
   titulo?: string;
 }
 
-function ModalInfoSolicitud({
+// Permite editar la información para crear una solictud de incidenia
+// Dependiendo del tipo la información puede ser diferente
+// pidiendo la hora de entrada, salida y un campo para motivar
+// la solictud.
+export function ModalInfoSolicitud({
   open,
   onClose,
   fecha,

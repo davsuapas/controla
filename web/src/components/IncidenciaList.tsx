@@ -41,6 +41,11 @@ function getEstadoColor(estado: EstadoIncidencia):
 export class IncidenciaGrid extends Incidencia {
   accion?: EstadoIncidencia;
   errorServidor?: boolean;
+
+  static fromIncidencia(inc: Incidencia): IncidenciaGrid {
+    const incGrid = new IncidenciaGrid(inc);
+    return incGrid;
+  }
 }
 
 interface FormularioData {
@@ -61,10 +66,11 @@ export interface IncidenciaAction {
 
 interface IncidenciaListProps {
   estadosFiltro: EstadoIncidencia[];
-  usuarioFiltro?: Usuario;
+  // Si el id es 0, se filtra para un usuario supervisor. Ver el API
+  usuarioFiltro?: number;
   actions?: IncidenciaAction[];
+  columnaAccion?: boolean;
   rows?: IncidenciaGrid[];
-  // Permite utilizar rows desde el componente padre
   setRows?: React.Dispatch<React.SetStateAction<IncidenciaGrid[]>>;
   isLoading?: boolean;
   setIsLoading?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -138,7 +144,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           fechaInicio,
           fechaFin,
           estados: estadosFiltrar,
-          usuarioId: props.usuarioFiltro ? props.usuarioFiltro.id : null
+          usuarioId: props.usuarioFiltro ? props.usuarioFiltro : null
         });
       }
 
@@ -146,7 +152,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
         fechaInicio,
         fechaFin,
         estadosFiltrar,
-        props.usuarioFiltro ? props.usuarioFiltro.id : null)
+        props.usuarioFiltro ? props.usuarioFiltro : null)
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
         logError('incidencias-listar.cargar', error);
@@ -161,11 +167,9 @@ export default function IncidenciaList(props: IncidenciaListProps) {
     }
 
     // Convierte Incidencia[] a IncidenciaGrid[]
-    const gridData: IncidenciaGrid[] = listData.map(incidencia => ({
-      ...incidencia,
-      accion: undefined,
-      errorServidor: undefined
-    }));
+    const gridData: IncidenciaGrid[] = listData.map(incidencia => (
+      IncidenciaGrid.fromIncidencia(incidencia)
+    ));
     setRowsState(gridData);
 
     setIsLoading(false);
@@ -181,7 +185,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
         {
           field: 'id',
           headerName: 'ID',
-          minWidth: 10
+          width: 10
         },
         {
           field: 'estado',
@@ -211,8 +215,6 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           field: 'tipo',
           headerName: 'TIPO',
           minWidth: 170,
-          valueGetter: (tipo) =>
-            NombresTipoIncidencia[tipo as TipoIncidencia],
           renderCell: (params) => {
             return (
               <Chip
@@ -225,46 +227,51 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           }
         },
         {
+          field: 'marcaje',
+          headerName: 'E/S',
+          minWidth: 140,
+          renderCell: (params) => {
+            return timeToStr(params.row.marcaje?.hora_inicio) +
+              ' - ' + timeToStr(params.row.marcaje?.hora_fin)
+          }
+        },
+        {
           field: 'fecha',
           headerName: 'FECHA',
           minWidth: 120,
         },
         {
-          field: 'horaInicio',
-          headerName: 'ENTRADA',
-          minWidth: 100,
-          valueGetter: (horaInicio) => {
-            return timeToStr(horaInicio);
-          }
-        },
-        {
-          field: 'horaFin',
-          headerName: 'SALIDA',
-          minWidth: 120,
-          valueGetter: (horaFin) => {
-            return timeToStr(horaFin);
-          }
-        },
-        {
-          field: 'accion',
-          headerName: 'ACCION',
-          minWidth: 120,
+          field: 'rectificacion',
+          headerName: 'E/S',
+          minWidth: 140,
           renderCell: (params) => {
-            const nombre = NombresEstadoIncidencia[
-              params.value as EstadoIncidencia] ?? '';
-            return (
-              <span style={{
-                color: theme.palette.success.main, fontWeight: 600
-              }}>
-                {nombre}
-              </span>
-            );
+            return timeToStr(params.row.horaInicio) +
+              ' - ' + timeToStr(params.row.horaFin)
           }
         },
       ];
 
       // Solo agregar columna de acciones si se pasaron acciones
       if (props.actions && props.actions.length > 0) {
+        if (props.columnaAccion) {
+          baseColumns.push({
+            field: 'accion',
+            headerName: 'ACCION',
+            minWidth: 120,
+            renderCell: (params) => {
+              const nombre = NombresEstadoIncidencia[
+                params.value as EstadoIncidencia] ?? '';
+              return (
+                <span style={{
+                  color: theme.palette.success.main, fontWeight: 600
+                }}>
+                  {nombre}
+                </span>
+              );
+            }
+          })
+        }
+
         baseColumns.push({
           field: 'actions',
           type: 'actions',
@@ -306,11 +313,18 @@ export default function IncidenciaList(props: IncidenciaListProps) {
         { field: 'fechaSolicitud' }, { field: 'tipo' }],
     },
     {
-      groupId: 'modificación_solicitud',
+      groupId: 'rectificacion',
       headerName: 'RECTIFICACIÓN MARCAJE',
       description: 'Dependen del tipo de solicitud',
       children: [
-        { field: 'fecha' }, { field: 'horaInicio' }, { field: 'horaFin' }],
+        { field: 'fecha' }, { field: 'rectificacion' }],
+    },
+    {
+      groupId: 'marcaje',
+      headerName: 'MARCAJE',
+      description: 'Referencia al marcaje realizado',
+      children: [
+        { field: 'marcaje' }],
     },
   ];
 

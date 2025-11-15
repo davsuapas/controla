@@ -19,7 +19,7 @@ pub enum ServicioError {
 }
 
 impl ServicioError {
-  // Devuelve un mensaje formateado para el interface de
+  // Devuelve un mensaje formateado para el interface de usuario
   #[inline]
   pub fn mensaje_usuario(&self) -> String {
     format!("@@:{}", &self.mensaje())

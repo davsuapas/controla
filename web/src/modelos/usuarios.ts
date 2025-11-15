@@ -23,7 +23,11 @@ export const ROLES: Map<RolID, {
   [RolID.Empleado, {
     nombre: 'Empleado',
     ruta_login: '/incidencias/solicitud',
-    rutas_acceso: ['/miarea/*', '/incidencias/solicitud']
+    rutas_acceso: [
+      '/miarea/*',
+      '/incidencias/solicitud',
+      '/incidencias/gestion'
+    ]
   }],
   [RolID.Registrador, {
     nombre: 'Registrador',
@@ -37,7 +41,10 @@ export const ROLES: Map<RolID, {
   [RolID.Gestor, {
     nombre: 'Gestor',
     ruta_login: '/incidencias/revision',
-    rutas_acceso: ['/miarea/*', '/incidencias/revision']
+    rutas_acceso: [
+      '/miarea/*',
+      '/incidencias/revision'
+    ]
   }],
   [RolID.Supervisor, {
     nombre: 'Supervisor',
@@ -45,13 +52,17 @@ export const ROLES: Map<RolID, {
     rutas_acceso: [
       '/miarea/*',
       '/incidencias/solicitud/privilegios',
-      '/incidencias/revision'
+      '/incidencias/revision',
+      '/incidencias/gestion/supervisor'
     ]
   }],
   [RolID.Admin, {
     nombre: 'Admin',
     ruta_login: '/usuarios',
-    rutas_acceso: ['/miarea/*', '/usuarios/*']
+    rutas_acceso: [
+      '/miarea/*',
+      '/usuarios/*'
+    ]
   }],
   [RolID.Director, {
     nombre: 'Director',
@@ -146,11 +157,11 @@ export class Usuario {
   }
 
   activoToStr(): string {
-    return this.activo ? dateToStr(this.activo) : 'No activo';
+    return this.activo ? dateToStr(this.activo)! : 'No activo';
   }
 
   inicioToStr(): string {
-    return this.inicio ? dateToStr(this.inicio) : 'No logeado';
+    return this.inicio ? dateToStr(this.inicio)! : 'No logeado';
   }
 
   anyRoles(ids: RolID[]): boolean {

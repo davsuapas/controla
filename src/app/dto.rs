@@ -4,7 +4,10 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  inc::{EstadoIncidencia, Incidencia, IncidenciaProceso, TipoIncidencia},
+  inc::{
+    EstadoIncidencia, Incidencia, IncidenciaProceso, IncidenciaSolictud,
+    TipoIncidencia,
+  },
   infra::{Dni, DominiosWithCacheUsuario, Password, ShortDateTimeFormat},
   marcaje::{DescriptorMarcaje, Marcaje},
   usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
@@ -311,6 +314,32 @@ impl From<Incidencia> for IncidenciaDTO {
       usuario_gestor: inc.usuario_gestor,
       motivo_solicitud: inc.motivo_solicitud,
       motivo_rechazo: inc.motivo_rechazo,
+    }
+  }
+}
+
+// Define la entidad de intercambio para incidencias tipo solicitud.
+#[derive(Deserialize)]
+pub struct IncidenciaSolictudDTO {
+  pub id: u32,
+  pub estado: u8,
+  pub motivo_solicitud: Option<String>,
+  pub fecha_solicitud: NaiveDateTime,
+  pub hora_inicio: Option<NaiveTime>,
+  pub hora_fin: Option<NaiveTime>,
+  pub usuario_creador: u32,
+}
+
+impl From<IncidenciaSolictudDTO> for IncidenciaSolictud {
+  fn from(inc: IncidenciaSolictudDTO) -> Self {
+    IncidenciaSolictud {
+      id: inc.id,
+      estado: EstadoIncidencia::from(inc.estado),
+      motivo_solicitud: inc.motivo_solicitud,
+      fecha_solicitud: inc.fecha_solicitud,
+      hora_inicio: inc.hora_inicio,
+      hora_fin: inc.hora_fin,
+      usuario_creador: inc.usuario_creador,
     }
   }
 }

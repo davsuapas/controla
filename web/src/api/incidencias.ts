@@ -9,6 +9,8 @@ import { formatDateForServer } from "../modelos/formatos";
 
 export interface IncidenciaApi {
   crearIncidencia(inc: Incidencia): Promise<void>;
+  // Se crea una solicitud desde un estado previo
+  cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia>;
   // Procesa las incidencias y devuelve las incidencias procesadas
   // según un filtro y las incidencias con errores faltales
   procesar(
@@ -38,6 +40,14 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
 
   async crearIncidencia(inc: Incidencia): Promise<void> {
     return this.axios.post('api/incidencias', instanceToPlain(inc));
+  }
+
+  async cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia> {
+    const response = await this.axios.put(
+      'api/incidencias/cambiar/a/solicitud', inc);
+
+    return Incidencia.fromRequest(
+      DominiosWithCacheUsuarioDTO.fromResponse(response.data))[0];
   }
 
   async procesar(
@@ -84,6 +94,11 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
 export class IncidenciaTestApi implements IncidenciaApi {
   async crearIncidencia(_: Incidencia): Promise<void> {
     return;
+  }
+
+  async cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia> {
+    const incs = await this.incidencias(null, null, [], null);
+    return incs[0];
   }
 
   async procesar(
@@ -198,7 +213,7 @@ export class IncidenciaTestApi implements IncidenciaApi {
         motivoRechazo: null
       },
       {
-        id: 6,
+        id: 99,
         tipo: TipoIncidencia.EliminacionMarcaje,
         fechaSolicitud: "2024-01-19",
         fechaResolucion: null,

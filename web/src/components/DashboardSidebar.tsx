@@ -15,6 +15,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RuleIcon from '@mui/icons-material/Rule';
+import AddTaskIcon from '@mui/icons-material/AddTask';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -248,12 +249,28 @@ export default function DashboardSidebar({
                     selected={!!matchPath('/incidencias/solicitud/privilegios', pathname)}
                   />
                   <DashboardSidebarPageItem
-                    id="incidencias_revisar"
+                    id="incidencias_revision"
                     title="Revisión"
                     icon={<RuleIcon />}
                     href="/incidencias/revision"
                     visible={user.acceso_a_ruta('/incidencias/revision')}
                     selected={!!matchPath('/incidencias/revision', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="incidencias_gestion"
+                    title="Gestión/Consulta"
+                    icon={<AddTaskIcon />}
+                    href="/incidencias/gestion"
+                    visible={user.acceso_a_ruta('/incidencias/gestion')}
+                    selected={!!matchPath('/incidencias/gestion', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="incidencias_gestion_super"
+                    title="Gestión/Consulta supervisor"
+                    icon={<VpnKeyIcon />}
+                    href="/incidencias/gestion/supervisor"
+                    visible={user.acceso_a_ruta('/incidencias/gestion/supervisor')}
+                    selected={!!matchPath('/incidencias/gestion/supervisor', pathname)}
                   />
                 </List>
               }

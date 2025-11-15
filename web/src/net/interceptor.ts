@@ -92,11 +92,18 @@ axios.interceptors.response.use(
           'Error interno. Contacte con el administrador';
 
         if (typeof data === 'string' && data.startsWith('@@:')) {
-          const mensajeUsuario = data.substring(3);
+          let mensajeUsuario = data.substring(3).trim();
+          let duracion = 15000;
+
+          if (mensajeUsuario === "") {
+            mensajeUsuario = msg_error_interno
+            duracion = 5000
+          }
+
           notifica.show(mensajeUsuario,
             {
               severity: 'error',
-              autoHideDuration: 15000,
+              autoHideDuration: duracion,
             });
         } else {
           console.log('Error 500 interno:', data);

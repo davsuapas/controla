@@ -2,8 +2,8 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 use crate::marcaje::DescriptorMarcaje;
 
-// Si se modifica esta enumeración, hay que modificar también
-// la enumeración equivalente en web/src/modelos/incidencias.ts
+/// Si se modifica esta enumeración, hay que modificar también
+/// la enumeración equivalente en web/src/modelos/incidencias.ts
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 pub enum EstadoIncidencia {
@@ -36,8 +36,8 @@ impl From<u8> for EstadoIncidencia {
   }
 }
 
-// Si se modiifca esta enumeración, hay que modificar también
-// la enumeración equivalente en web/src/modelos/incidencias.ts
+/// Si se modiifca esta enumeración, hay que modificar también
+/// la enumeración equivalente en web/src/modelos/incidencias.ts
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TipoIncidencia {
@@ -78,7 +78,19 @@ pub struct Incidencia {
   pub motivo_rechazo: Option<String>,
 }
 
-// Define la entidad mínima necesaria para realizar una incidencia de marcaje.
+/// Incidencia para crear una solicitud desde un estado previo conocido
+#[derive(Debug)]
+pub struct IncidenciaSolictud {
+  pub id: u32,
+  pub estado: EstadoIncidencia,
+  pub motivo_solicitud: Option<String>,
+  pub fecha_solicitud: NaiveDateTime,
+  pub hora_inicio: Option<NaiveTime>,
+  pub hora_fin: Option<NaiveTime>,
+  pub usuario_creador: u32,
+}
+
+/// Define la entidad mínima necesaria para realizar una incidencia de marcaje.
 #[derive(Debug)]
 pub struct IncidenciaMarcaje {
   pub tipo: TipoIncidencia,
@@ -90,7 +102,21 @@ pub struct IncidenciaMarcaje {
   pub usuario_creador: u32,
 }
 
-// Define la entidad con la info para procesar las incidencias.
+/// Define la entidad mínima necesaria para trazas.
+#[derive(Debug)]
+pub struct IncidenciaTraza {
+  pub motivo_solicitud: Option<String>,
+  pub fecha_solicitud: NaiveDateTime,
+  pub hora_inicio: Option<NaiveTime>,
+  pub hora_fin: Option<NaiveTime>,
+  pub motivo_rechazo: Option<String>,
+  pub fecha_estado: Option<NaiveDateTime>,
+  pub usuario_creador: u32,
+  pub usuario_gestor: Option<u32>,
+  pub error: Option<String>,
+}
+
+/// Define la entidad con la info para procesar las incidencias.
 #[derive(Debug)]
 pub struct IncidenciaProceso {
   pub id: u32,

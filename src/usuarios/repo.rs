@@ -68,7 +68,7 @@ impl UsuarioRepo {
     secreto: &str,
     usuario: &Usuario,
   ) -> Result<u32, DBError> {
-    const QUERY: &str = r"INSERT INTO usuarios 
+    const QUERY: &str = "INSERT INTO usuarios 
       (dni, dni_hash, email, nombre, primer_apellido, segundo_apellido,
       password, activo, inicio) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
@@ -114,7 +114,7 @@ impl UsuarioRepo {
     usuario: &Usuario,
     inicio: Option<NaiveDateTime>,
   ) -> Result<(), DBError> {
-    const QUERY: &str = r"UPDATE usuarios SET
+    const QUERY: &str = "UPDATE usuarios SET
       dni = ?, dni_hash = ?, email = ?, nombre = ?,
       primer_apellido = ?, segundo_apellido = ?,
       activo = ?, inicio = ?
@@ -156,7 +156,7 @@ impl UsuarioRepo {
     usuario: u32,
     password: &Password,
   ) -> Result<(), DBError> {
-    const QUERY: &str = r"UPDATE usuarios SET password = ? WHERE id = ?;";
+    const QUERY: &str = "UPDATE usuarios SET password = ? WHERE id = ?;";
 
     let pass = password.encriptar(secreto).map_err(DBError::cripto_from)?;
 
@@ -181,7 +181,7 @@ impl UsuarioRepo {
     usuario: u32,
     inicio: NaiveDateTime,
   ) -> Result<(), DBError> {
-    const QUERY: &str = r"UPDATE usuarios SET inicio = ? WHERE id = ?;";
+    const QUERY: &str = "UPDATE usuarios SET inicio = ? WHERE id = ?;";
 
     let res = sqlx::query(QUERY)
       .bind(inicio)
@@ -205,7 +205,7 @@ impl UsuarioRepo {
     secreto: &str,
     dni: &Dni,
   ) -> Result<bool, DBError> {
-    const QUERY: &str = r"SELECT CAST(COUNT(*) AS UNSIGNED) 
+    const QUERY: &str = "SELECT CAST(COUNT(*) AS UNSIGNED) 
       FROM usuarios 
       WHERE dni_hash = ?;";
 
@@ -226,7 +226,7 @@ impl UsuarioRepo {
     clave: &str,
     usuario: u32,
   ) -> Result<Option<Password>, DBError> {
-    const QUERY: &str = r"SELECT password
+    const QUERY: &str = "SELECT password
         FROM usuarios
         WHERE id = ? AND activo IS NOT NULL";
 
@@ -254,7 +254,7 @@ impl UsuarioRepo {
     &self,
     secreto: &str,
   ) -> Result<Vec<Usuario>, DBError> {
-    const QUERY: &str = r"SELECT id, dni, email,
+    const QUERY: &str = "SELECT id, dni, email,
       nombre, primer_apellido, segundo_apellido,
       activo, inicio 
       FROM usuarios;";
@@ -280,7 +280,7 @@ impl UsuarioRepo {
     secreto: &str,
     id: u32,
   ) -> Result<Usuario, DBError> {
-    const QUERY: &str = r"SELECT id, dni, email,
+    const QUERY: &str = "SELECT id, dni, email,
       nombre, primer_apellido, segundo_apellido,
       activo, inicio 
       FROM usuarios
@@ -310,7 +310,7 @@ impl UsuarioRepo {
     secreto: &str,
     dni: &Dni,
   ) -> Result<Usuario, DBError> {
-    const QUERY: &str = r"SELECT id, dni, email,
+    const QUERY: &str = "SELECT id, dni, email,
       nombre, primer_apellido, segundo_apellido,
       activo, inicio 
       FROM usuarios
@@ -337,7 +337,7 @@ impl UsuarioRepo {
     &self,
     rol: Rol,
   ) -> Result<Vec<DescriptorUsuario>, DBError> {
-    const QUERY: &str = r"SELECT u.id, u.nombre,
+    const QUERY: &str = "SELECT u.id, u.nombre,
           u.primer_apellido, u.segundo_apellido 
           FROM usuarios u
           JOIN roles_usuario ru ON u.id = ru.usuario
@@ -366,7 +366,7 @@ impl UsuarioRepo {
     &self,
     usuario: u32,
   ) -> Result<SmallVec<[Rol; 7]>, DBError> {
-    const QUERY: &str = r"SELECT rol 
+    const QUERY: &str = "SELECT rol 
       FROM roles_usuario 
       WHERE usuario = ?;";
 
@@ -404,7 +404,7 @@ impl UsuarioRepo {
 
     // Busca un horario que esté entre las horas de inicio y fin
     // del día de la semana.
-    const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+    const QUERY: &str = "SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
          JOIN usuario_horarios uh ON h.id = uh.horario
         WHERE uh.usuario = ?
@@ -448,7 +448,7 @@ impl UsuarioRepo {
     } else {
       // Si no encuentra un horario entre las horas de inicio y fin,
       // devuelve el más cercano al inicio.
-      const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+      const QUERY: &str = "SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
             FROM horarios h
             JOIN usuario_horarios uh ON h.id = uh.horario
             WHERE uh.usuario = ?
@@ -511,7 +511,7 @@ impl UsuarioRepo {
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
     let dia = crate::infra::letra_dia_semana(hora.weekday());
 
-    const QUERY: &str = r"SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
+    const QUERY: &str = "SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
          JOIN usuario_horarios uh ON h.id = uh.horario
         WHERE uh.usuario = ?
@@ -547,7 +547,7 @@ impl UsuarioRepo {
     &self,
     id: u32,
   ) -> Result<u32, DBError> {
-    const QUERY: &str = r"SELECT CAST(COUNT(id) AS UNSIGNED) 
+    const QUERY: &str = "SELECT CAST(COUNT(id) AS UNSIGNED) 
         FROM marcajes
         WHERE usuario = ?";
 
@@ -566,7 +566,7 @@ impl UsuarioRepo {
     usuario: u32,
     hora: NaiveDateTime,
   ) -> Result<NaiveDate, DBError> {
-    const QUERY: &str = r"SELECT MAX(fecha_creacion) 
+    const QUERY: &str = "SELECT MAX(fecha_creacion) 
     FROM usuario_horarios 
     WHERE usuario = ? 
     AND fecha_creacion < ?";

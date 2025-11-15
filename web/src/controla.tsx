@@ -28,6 +28,7 @@ import SolicitudIncSupervisores from './components/SolicitudIncSupervisores';
 import ErrorPage from './components/ErrorPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import RevisionIncidencia from './components/RevisionIncidencias';
+import GestionIncidencia from './components/GestionIncidencia';
 
 crearAPI(false);
 
@@ -81,6 +82,13 @@ const ProtectedDashboard = () => {
     <ProtectedRoute>
       <Dashboard />
     </ProtectedRoute>
+  );
+};
+
+// Componente wrapper que combina protección + dashboard
+const GestionIncidenciaSuper = () => {
+  return (
+    <GestionIncidencia supervisor />
   );
 };
 
@@ -174,6 +182,16 @@ const rutas = [
               {
                 path: 'revision',
                 Component: RevisionIncidencia,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'gestion',
+                Component: GestionIncidencia,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'gestion/supervisor',
+                Component: GestionIncidenciaSuper,
                 errorElement: <ErrorPage />,
               },
             ]

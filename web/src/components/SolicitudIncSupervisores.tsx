@@ -17,13 +17,13 @@ export default function SolicitudIncSupervisores() {
 
   // Por defecto, solo puede hacer solicitudes de incidencias
   // de los marcajes realizados por el registrador
-  let usuarioReg: number | undefined = usuario.id;
+  let usuarioReg: number = usuario.id;
 
   if (usuario.tieneRol(RolID.Supervisor)) {
-    // Si el usuario es el supervisor puede realizar todos
-    // los tipos de solicitud para cualquier empleado
-    // incluso aunque no registrará el el marcaje
-    usuarioReg = undefined;
+    // Si usuarioReg es igual a cero se buscarán
+    // todos los marcajes del usuario selecionado que
+    // hayan sido registradas por cualquier rol registrador
+    usuarioReg = 0;
   }
 
   const handleEmpleadoChange = React.useCallback(

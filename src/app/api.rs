@@ -16,8 +16,9 @@ use crate::{
     dto::{
       DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioOutDTO,
       IncidenciaDTO, IncidenciaInProcesoDTO, IncidenciaOutProcesoDTO,
-      IncidenciasFiltroParams, MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO,
-      PasswordUsuarioDTO, UsuarioDTO, vec_dominio_to_dtos,
+      IncidenciaSolictudDTO, IncidenciasFiltroParams, MarcajeInDTO,
+      MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO, UsuarioDTO,
+      vec_dominio_to_dtos,
     },
   },
   inc::{EstadoIncidencia, IncidenciaProceso},
@@ -75,6 +76,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
     .route("/marcajes", post(registrar))
     .route("/incidencias", post(crear_incidencia))
+    .route(
+      "/incidencias/cambiar/a/solicitud",
+      put(cambiar_incidencia_solicitud),
+    )
     .route("/incidencias/procesar", post(procesar_incidencias))
     .route("/incidencias/por/fechas", post(incidencias_por_fechas))
     .layer(axum::middleware::from_fn(
@@ -234,7 +239,7 @@ async fn marcaje_sin_inc_por_fecha(
     .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
 }
 
-/// Api para obtener el marcjae sin incidencias
+/// Api para obtener el marcaje sin incidencias
 /// por fecha y marcaje creado por un usuario registrador
 async fn marcaje_sin_inc_por_fecha_reg(
   State(state): State<Arc<AppState>>,
@@ -333,14 +338,41 @@ async fn registrar(
 /// Api para crear una solicitud de incidencia por el usuario
 async fn crear_incidencia(
   State(state): State<Arc<AppState>>,
-  Json(solicitud): Json<IncidenciaDTO>,
+  Json(inc): Json<IncidenciaDTO>,
 ) -> impl IntoResponse {
   state
     .inc_servicio
-    .agregar(&solicitud.into())
+    .agregar(&inc.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para crear una solicitud desde un estado previo.
+///
+/// El estado previo viene en la propia incidencia
+///
+/// Devuelve las incidencias modificada
+async fn cambiar_incidencia_solicitud(
+  State(state): State<Arc<AppState>>,
+  Json(solicitud): Json<IncidenciaSolictudDTO>,
+) -> impl IntoResponse {
+  let id = solicitud.id;
+
+  state
+    .inc_servicio
+    .cambiar_estado_a_solicitud(&solicitud.into())
+    .await
+    .map_err(|err| {
+      (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())
+    })?;
+
+  state
+    .inc_servicio
+    .incidencias(Some(id), None, None, &[], None)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs)))
 }
 
 /// Api para procesar las incidencias.
@@ -375,6 +407,7 @@ async fn procesar_incidencias(
   let incs = match state
     .inc_servicio
     .incidencias(
+      None,
       entrada.param_filtro_inc.fecha_inicio,
       entrada.param_filtro_inc.fecha_fin,
       estados_vec.as_slice(),
@@ -411,6 +444,7 @@ async fn incidencias_por_fechas(
   state
     .inc_servicio
     .incidencias(
+      None,
       param.fecha_inicio,
       param.fecha_fin,
       estados_vec.as_slice(),
