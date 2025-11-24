@@ -10,16 +10,16 @@ use crate::infra::{desencriptar, encriptar};
 use crate::usuarios::DescriptorUsuario;
 
 /// Estructura que representa un array de entidades
-/// que cotiene descriptores de usuarios
+/// que contiene descriptores de usuarios
 /// y una colección de descriptores de usuario
 /// cacheados que corresponde con todos los usuarios de
 /// la entidades
-pub struct DominiosWithCacheUsuario<T> {
+pub struct DominioWithCacheUsuario<T> {
   pub items: Vec<T>,
   pub cache: HashMap<u32, DescriptorUsuario>,
 }
 
-impl<T> DominiosWithCacheUsuario<T> {
+impl<T> DominioWithCacheUsuario<T> {
   pub fn new(capacidad_entidad: usize) -> Self {
     Self {
       items: Vec::with_capacity(capacidad_entidad),

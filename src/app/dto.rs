@@ -8,7 +8,7 @@ use crate::{
     EstadoIncidencia, Incidencia, IncidenciaProceso, IncidenciaSolictud,
     TipoIncidencia,
   },
-  infra::{Dni, DominiosWithCacheUsuario, Password, ShortDateTimeFormat},
+  infra::{Dni, DominioWithCacheUsuario, Password, ShortDateTimeFormat},
   marcaje::{DescriptorMarcaje, Marcaje},
   usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
 };
@@ -18,6 +18,7 @@ pub struct IncidenciasFiltroParams {
   pub fecha_inicio: Option<NaiveDate>,
   pub fecha_fin: Option<NaiveDate>,
   pub estados: Vec<u8>,
+  pub supervisor: bool,
   pub usuario: Option<u32>,
 }
 
@@ -351,11 +352,11 @@ pub(in crate::app) struct DominiosWithCacheUsuarioDTO<T> {
   pub cache: HashMap<u32, DescriptorUsuarioDTO>,
 }
 
-impl<T, U> From<DominiosWithCacheUsuario<T>> for DominiosWithCacheUsuarioDTO<U>
+impl<T, U> From<DominioWithCacheUsuario<T>> for DominiosWithCacheUsuarioDTO<U>
 where
   U: From<T>,
 {
-  fn from(domain: DominiosWithCacheUsuario<T>) -> Self {
+  fn from(domain: DominioWithCacheUsuario<T>) -> Self {
     DominiosWithCacheUsuarioDTO {
       items: domain.items.into_iter().map(U::from).collect(),
       cache: domain

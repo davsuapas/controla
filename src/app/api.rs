@@ -50,6 +50,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route("/usuarios", post(crear_usuario))
     .route("/usuarios", put(actualizar_usuario))
     .route("/usuarios/password", put(actualizar_passw_usuario))
+    .route(
+      "/usuarios/{id}/finalizar/marcaje/{fecha}",
+      put(marcaje_finalizar),
+    )
     .route("/usuarios", get(usuarios))
     .route("/usuarios/{id}", get(usuario))
     .route(
@@ -72,6 +76,10 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     .route(
       "/usuarios/{id}/marcajes/sin/inc/{fecha}/registrador/{usuario_reg}",
       get(marcaje_sin_inc_por_fecha_reg),
+    )
+    .route(
+      "/usuarios/{id}/marcajes/fecha/{fecha}/sin/finalizar",
+      get(marcaje_sin_finalizar),
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
     .route("/marcajes", post(registrar))
@@ -204,6 +212,19 @@ async fn actualizar_passw_usuario(
     .map(|_| StatusCode::NO_CONTENT)
 }
 
+/// Api que finaliza un marcaje de un usuario en una fecha determinada
+async fn marcaje_finalizar(
+  State(state): State<Arc<AppState>>,
+  Path(param): Path<UsuarioFechaParams>,
+) -> impl IntoResponse {
+  state
+    .marcaje_servicio
+    .finalizar_marcaje(param.id, param.fecha)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
+}
+
 /// Api para obtener todos los usuarios
 async fn usuarios(State(state): State<Arc<AppState>>) -> impl IntoResponse {
   state
@@ -257,6 +278,27 @@ async fn marcaje_sin_inc_por_fecha_reg(
     .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
 }
 
+/// Api que verifica si un marcaje tiene su hora fin sin marcar para un usuario
+///
+/// Si no esta finalizado devuelve true sino false
+async fn marcaje_sin_finalizar(
+  State(state): State<Arc<AppState>>,
+  Path(param): Path<UsuarioFechaParams>,
+) -> impl IntoResponse {
+  state
+    .marcaje_servicio
+    .hora_fin_vacia(param.id, param.fecha.date())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|vacia| {
+      if vacia {
+        StatusCode::OK
+      } else {
+        StatusCode::NO_CONTENT
+      }
+    })
+}
+
 /// Api para obtener el registro por usuario y fecha.
 async fn marcaje_por_fecha(
   State(state): State<Arc<AppState>>,
@@ -296,7 +338,7 @@ async fn horario_usuario_sin_asignar(
     .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioOutDTO>(horarios)))
 }
 
-/// Api para obtener el horario de un usuario máa próximo
+/// Api para obtener el horario de un usuario más próximo
 async fn horario_cercano(
   State(state): State<Arc<AppState>>,
   Path(params): Path<UsuarioFechaParams>,
@@ -369,7 +411,7 @@ async fn cambiar_incidencia_solicitud(
 
   state
     .inc_servicio
-    .incidencias(Some(id), None, None, &[], None)
+    .incidencias(Some(id), None, None, &[], false, None)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|regs| Json(DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs)))
@@ -411,6 +453,7 @@ async fn procesar_incidencias(
       entrada.param_filtro_inc.fecha_inicio,
       entrada.param_filtro_inc.fecha_fin,
       estados_vec.as_slice(),
+      entrada.param_filtro_inc.supervisor,
       entrada.param_filtro_inc.usuario,
     )
     .await
@@ -448,6 +491,7 @@ async fn incidencias_por_fechas(
       param.fecha_inicio,
       param.fecha_fin,
       estados_vec.as_slice(),
+      param.supervisor,
       param.usuario,
     )
     .await

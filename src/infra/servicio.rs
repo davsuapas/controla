@@ -1,5 +1,5 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use ring::{
   aead, hkdf,
   rand::{self, SecureRandom},
@@ -53,6 +53,11 @@ pub fn letra_dia_semana(dia_semana: chrono::Weekday) -> &'static str {
   }
 }
 
+pub trait TimeConvert {
+  /// Convierte a formato corto
+  fn to_short_time(&self) -> NaiveTime;
+}
+
 pub trait ShortDateTimeFormat {
   /// Devuelve la fecha y hora en formato corto".
   fn formato_corto(&self) -> String;
@@ -87,6 +92,12 @@ impl ShortDateTimeFormat for NaiveTime {
 
   fn formato_sql(&self) -> String {
     self.format("%H:%M").to_string()
+  }
+}
+
+impl TimeConvert for NaiveTime {
+  fn to_short_time(&self) -> NaiveTime {
+    NaiveTime::from_hms_opt(self.hour(), self.minute(), 0).unwrap()
   }
 }
 

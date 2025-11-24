@@ -19,12 +19,14 @@ export interface IncidenciaApi {
     fechaInicio: dayjs.Dayjs | null,
     fechaFin: dayjs.Dayjs | null,
     estados: EstadoIncidencia[],
+    supervisor: boolean,
     usuarioId: number | null
   ): Promise<{ inc_erroneas: number[], incs: Incidencia[] }>;
   incidencias(
     fechaInicio: dayjs.Dayjs | null,
     fechaFin: dayjs.Dayjs | null,
     estados: EstadoIncidencia[],
+    supervisor: boolean,
     usuarioId: number | null
   ): Promise<Incidencia[]>;
 }
@@ -56,6 +58,7 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
     fechaInicio: dayjs.Dayjs | null,
     fechaFin: dayjs.Dayjs | null,
     estados: EstadoIncidencia[],
+    supervisor: boolean,
     usuarioId: number | null
   ): Promise<{ inc_erroneas: number[], incs: Incidencia[] }> {
     const response = await this.axios.post(
@@ -63,7 +66,7 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
       {
         usuario_gestor: usuario_gestor,
         param_filtro_inc: paramFiltro(
-          fechaInicio, fechaFin, estados, usuarioId),
+          fechaInicio, fechaFin, estados, supervisor, usuarioId),
         incidencias: incidencias
       }
     );
@@ -79,11 +82,12 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
     fechaInicio: dayjs.Dayjs | null,
     fechaFin: dayjs.Dayjs | null,
     estados: EstadoIncidencia[],
+    supervisor: boolean,
     usuarioId: number | null
   ): Promise<Incidencia[]> {
     const response = await this.axios.post(
       'api/incidencias/por/fechas', paramFiltro(
-        fechaInicio, fechaFin, estados, usuarioId));
+        fechaInicio, fechaFin, estados, supervisor, usuarioId));
 
     return Incidencia.fromRequest(
       DominiosWithCacheUsuarioDTO.fromResponse(response.data));
@@ -96,8 +100,8 @@ export class IncidenciaTestApi implements IncidenciaApi {
     return;
   }
 
-  async cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia> {
-    const incs = await this.incidencias(null, null, [], null);
+  async cambiarIncidenciaASolictud(_: {}): Promise<Incidencia> {
+    const incs = await this.incidencias(null, null, [], false, null);
     return incs[0];
   }
 
@@ -107,11 +111,12 @@ export class IncidenciaTestApi implements IncidenciaApi {
     ___: dayjs.Dayjs | null,
     ____: dayjs.Dayjs | null,
     _____: EstadoIncidencia[],
-    ______: number | null
+    ______: boolean,
+    _______: number | null
   ): Promise<{ inc_erroneas: number[], incs: Incidencia[] }> {
     return {
       inc_erroneas: [2],
-      incs: await this.incidencias(null, null, [], null)
+      incs: await this.incidencias(null, null, [], false, null)
     };
   }
 
@@ -119,7 +124,8 @@ export class IncidenciaTestApi implements IncidenciaApi {
     _: dayjs.Dayjs | null,
     __: dayjs.Dayjs | null,
     ___: EstadoIncidencia[],
-    ____: number | null
+    ____: boolean,
+    _____: number | null
   ): Promise<Incidencia[]> {
     const incidencias: Incidencia[] = [
       {
@@ -240,15 +246,19 @@ function paramFiltro(
   fechaInicio: dayjs.Dayjs | null,
   fechaFin: dayjs.Dayjs | null,
   estados: EstadoIncidencia[],
+  supervisor: boolean,
   usuarioId: number | null): {
     fecha_inicio: string | null;
     fecha_fin: string | null;
-    estados: EstadoIncidencia[]; usuario: number | null;
+    estados: EstadoIncidencia[];
+    supervisor: boolean;
+    usuario: number | null;
   } {
   return {
     fecha_inicio: fechaInicio ? formatDateForServer(fechaInicio) : null,
     fecha_fin: fechaFin ? formatDateForServer(fechaFin) : null,
     estados: estados,
+    supervisor: supervisor,
     usuario: usuarioId
   };
 }

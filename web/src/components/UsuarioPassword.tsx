@@ -110,7 +110,7 @@ export default function UsuarioPassword() {
       await api().usuarios.actualizar_password(
         usuarioId, formValues.password!);
 
-      notifica.show('Password cambiada satisfactóriamente.', {
+      notifica.show('Password cambiada satisfactóriamente', {
         severity: 'success',
         autoHideDuration: 5000,
       });

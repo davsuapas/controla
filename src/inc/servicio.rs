@@ -7,7 +7,7 @@ use crate::{
     EstadoIncidencia, Incidencia, IncidenciaMarcaje, IncidenciaProceso,
     IncidenciaRepo, IncidenciaSolictud, TipoIncidencia,
   },
-  infra::{DominiosWithCacheUsuario, ServicioError, Transaccion},
+  infra::{DominioWithCacheUsuario, ServicioError, Transaccion},
   marcaje::{Marcaje, MarcajeServicio},
   traza::{TipoTraza, TrazaBuilder, TrazaServicio},
 };
@@ -661,18 +661,18 @@ impl IncidenciaServicio {
   /// Lista las incidencias que cumplen los filtros indicados.
   ///
   /// Si se indica ID solo se devuelve esa incidencia
-  #[inline]
   pub async fn incidencias(
     &self,
     id: Option<u32>,
     fecha_inicio: Option<NaiveDate>,
     fecha_fin: Option<NaiveDate>,
     estados: &[EstadoIncidencia],
+    supervisor: bool,
     usuario: Option<u32>,
-  ) -> Result<DominiosWithCacheUsuario<Incidencia>, ServicioError> {
+  ) -> Result<DominioWithCacheUsuario<Incidencia>, ServicioError> {
     self
       .repo
-      .incidencias(id, fecha_inicio, fecha_fin, estados, usuario)
+      .incidencias(id, fecha_inicio, fecha_fin, estados, supervisor, usuario)
       .await
       .map_err(|err| {
         tracing::error!(

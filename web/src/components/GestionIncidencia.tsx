@@ -18,7 +18,7 @@ import { api } from '../api/fabrica';
 // o bien que contienen algún conflicto.
 // Se vuelve a crear una solicitud volviendo a pedir la
 // info de solicitud.
-export default function GestionIncidencia(props: { supervisor?: boolean }) {
+export default function GestionIncidencia() {
   const notifica = useNotifications();
   const usuario = useUsuarioLogeado().getUsrLogeado();
 
@@ -113,7 +113,7 @@ export default function GestionIncidencia(props: { supervisor?: boolean }) {
             EstadoIncidencia.Rechazada,
             EstadoIncidencia.Resuelta,
           ]}
-          usuarioFiltro={props.supervisor ? 0 : usuario.id}
+          usuarioFiltro={usuario.id}
           actions={incidenciaActions}
           rows={rows}
           setRows={setRows}

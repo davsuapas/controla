@@ -9,8 +9,9 @@ import useNotifications from '../hooks/useNotifications/useNotifications';
 import { logError } from '../error';
 
 interface SelectorEmpleadoProps {
-  onChange: (empleado: DescriptorUsuario | undefined) => void;
+  onChange: (empleado: DescriptorUsuario) => void;
   onLoadingChange?: (isLoading: boolean) => void;
+  usuarioPorDefecto?: number;
   disabled?: boolean;
   label?: string;
   fullWidth?: boolean;
@@ -21,7 +22,8 @@ export default function SelectorEmpleado({
   disabled = false,
   label = 'Empleado',
   fullWidth = true,
-  onLoadingChange
+  onLoadingChange,
+  usuarioPorDefecto: seleccionUsuario
 }: SelectorEmpleadoProps) {
   const [empleados, setEmpleados] = useState<DescriptorUsuario[]>([]);
   const [empleado, setEmpleado] =
@@ -38,8 +40,20 @@ export default function SelectorEmpleado({
       setEmpleados(empls);
 
       if (empls.length > 0) {
-        setEmpleado(empls[0])
-        onChange(empls[0]);
+        let empleadoASeleccionar: DescriptorUsuario | undefined;
+
+        // Si se especificó seleccionUsuario, buscar ese usuario
+        if (seleccionUsuario !== undefined) {
+          empleadoASeleccionar = empls.find(e => e.id === seleccionUsuario);
+        }
+
+        // Si no se encontró o no se especificó, seleccionar el primero
+        if (!empleadoASeleccionar) {
+          empleadoASeleccionar = empls[0];
+        }
+
+        setEmpleado(empleadoASeleccionar);
+        onChange(empleadoASeleccionar);
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
@@ -68,7 +82,9 @@ export default function SelectorEmpleado({
       const id = Number(event.target.value);
       const empleadoSeleccionado = empleados.find(u => u.id === id);
       setEmpleado(empleadoSeleccionado)
-      onChange(empleadoSeleccionado);
+      if (empleadoSeleccionado) {
+        onChange(empleadoSeleccionado);
+      }
     },
     [empleados]
   );

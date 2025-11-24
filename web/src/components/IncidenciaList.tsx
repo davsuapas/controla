@@ -15,9 +15,10 @@ import { Button, Card, CardContent, Checkbox, FormControl, FormControlLabel, Gri
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import LocalizationProviderES from '../theme/location';
-import { DescriptorUsuario, Usuario } from '../modelos/usuarios';
+import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
 import { timeToStr } from '../modelos/formatos';
+import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 
 // Función para obtener el color del estado
 function getEstadoColor(estado: EstadoIncidencia):
@@ -66,7 +67,6 @@ export interface IncidenciaAction {
 
 interface IncidenciaListProps {
   estadosFiltro: EstadoIncidencia[];
-  // Si el id es 0, se filtra para un usuario supervisor. Ver el API
   usuarioFiltro?: number;
   actions?: IncidenciaAction[];
   columnaAccion?: boolean;
@@ -78,6 +78,7 @@ interface IncidenciaListProps {
     fechaInicio: dayjs.Dayjs | null;
     fechaFin: dayjs.Dayjs | null;
     estados: EstadoIncidencia[];
+    supervisor: boolean;
     usuarioId: number | null;
   }) => void;
 }
@@ -96,6 +97,8 @@ export default function IncidenciaList(props: IncidenciaListProps) {
 
   const theme = useTheme();
   const notifica = useNotifications();
+  const usuario = useUsuarioLogeado().getUsrLogeado();
+  const supervisor = usuario.tieneRol(RolID.Supervisor);
 
   // Usa las rows externas si se proporcionan, si no usa el estado interno
   const [internalRows, setInternalRows] = React.useState<IncidenciaGrid[]>([]);
@@ -144,6 +147,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           fechaInicio,
           fechaFin,
           estados: estadosFiltrar,
+          supervisor,
           usuarioId: props.usuarioFiltro ? props.usuarioFiltro : null
         });
       }
@@ -152,6 +156,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
         fechaInicio,
         fechaFin,
         estadosFiltrar,
+        supervisor,
         props.usuarioFiltro ? props.usuarioFiltro : null)
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {

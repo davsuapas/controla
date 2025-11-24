@@ -20,7 +20,6 @@ impl TrazaServicio {
   /// una transacción que afecta a otros datos.
   /// Es necesario proporcionar una transacción
   /// para asegurar la consistencia de los datos.
-  #[inline]
   pub async fn agregar(
     &self,
     trans: &mut Transaccion<'_>,

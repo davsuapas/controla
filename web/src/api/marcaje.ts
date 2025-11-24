@@ -5,13 +5,19 @@ import dayjs from "dayjs";
 import { formatDateTimeForServer } from "../modelos/formatos";
 
 export interface MarcajeApi {
-  marcajes_por_fecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Marcaje[]>;
-  marcajes_sin_inc(
+  marcajesSinInc(
     usuarioId: string,
     fecha: dayjs.Dayjs,
     usuarioReg: string | undefined): Promise<Marcaje[]>;
-  ultimos_marcajes(usuarioId: string): Promise<Marcaje[]>;
+  marcajesPorFecha(usuarioId: string, fecha: dayjs.Dayjs): Promise<Marcaje[]>;
+  ultimosMarcajes(usuarioId: string): Promise<Marcaje[]>;
   registrar(reg: MarcajeOutDTO): Promise<void>;
+  // Devuelve si existe algún marcaje para un usuario y fecha
+  // tiene su hora final sin registrar (nula)
+  marcajeSinFinalizar(usuarioId: number, fecha: dayjs.Dayjs): Promise<boolean>;
+  // Registra la salida del marcaje que se encuentra sin registrar (nulo)
+  // para un usuario y una fecha
+  registrarSalida(usuarioId: number, horaFin: dayjs.Dayjs): Promise<void>;
 }
 
 
@@ -23,7 +29,7 @@ export class MarcajeAxiosApi implements MarcajeApi {
     this.axios = axiosInstance;
   }
 
-  async marcajes_sin_inc(
+  async marcajesSinInc(
     usuarioId: string,
     fecha: dayjs.Dayjs,
     usuarioReg: string | undefined): Promise<Marcaje[]> {
@@ -38,7 +44,7 @@ export class MarcajeAxiosApi implements MarcajeApi {
       DominiosWithCacheUsuarioDTO.fromResponse(response.data));
   }
 
-  async marcajes_por_fecha(
+  async marcajesPorFecha(
     usuarioId: string, fecha: dayjs.Dayjs): Promise<Marcaje[]> {
     const response = await this.axios.get(
       `api/usuarios/${usuarioId}/marcajes/por/fecha/${formatDateTimeForServer(fecha)}`);
@@ -47,7 +53,7 @@ export class MarcajeAxiosApi implements MarcajeApi {
       DominiosWithCacheUsuarioDTO.fromResponse(response.data));
   }
 
-  async ultimos_marcajes(usuarioId: string): Promise<Marcaje[]> {
+  async ultimosMarcajes(usuarioId: string): Promise<Marcaje[]> {
     const response = await this.axios.get(
       `api/usuarios/${usuarioId}/ultimos_marcajes`);
 
@@ -58,23 +64,35 @@ export class MarcajeAxiosApi implements MarcajeApi {
   async registrar(reg: MarcajeOutDTO): Promise<void> {
     return this.axios.post('api/marcajes', reg);
   }
+
+  async marcajeSinFinalizar(usuarioId: number, fecha: dayjs.Dayjs): Promise<boolean> {
+    const response = await this.axios.get(
+      `api/usuarios/${usuarioId}/marcajes/fecha/${formatDateTimeForServer(fecha)}/sin/finalizar`);
+
+    return response.status == 200;
+  }
+
+  async registrarSalida(usuarioId: number, horaFin: dayjs.Dayjs): Promise<void> {
+    return this.axios.put(
+      `api/usuarios/${usuarioId}/finalizar/marcaje/${formatDateTimeForServer(horaFin)}`);
+  }
 }
 
 // Implementación de MarcajeApi en modo test
 export class MarcajeTestApi implements MarcajeApi {
-  async marcajes_sin_inc(
+  async marcajesSinInc(
     usuario: string,
     _: dayjs.Dayjs,
     __: string | undefined): Promise<Marcaje[]> {
-    return this.ultimos_marcajes(usuario)
+    return this.ultimosMarcajes(usuario)
   }
 
-  async marcajes_por_fecha(
+  async marcajesPorFecha(
     usuario: string, __: dayjs.Dayjs): Promise<Marcaje[]> {
-    return this.ultimos_marcajes(usuario)
+    return this.ultimosMarcajes(usuario)
   }
 
-  async ultimos_marcajes(_: string): Promise<Marcaje[]> {
+  async ultimosMarcajes(_: string): Promise<Marcaje[]> {
     const dto = DominiosWithCacheUsuarioDTO.fromResponse({
       items: [
         // Caso 1: Registro normal completo
@@ -210,6 +228,14 @@ export class MarcajeTestApi implements MarcajeApi {
   }
 
   async registrar(_: MarcajeOutDTO): Promise<void> {
+    return;
+  }
+
+  async marcajeSinFinalizar(_: number, __: dayjs.Dayjs): Promise<boolean> {
+    return false;
+  }
+
+  async registrarSalida(_: number, __: dayjs.Dayjs): Promise<void> {
     return;
   }
 }

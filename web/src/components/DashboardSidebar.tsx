@@ -11,11 +11,11 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import PasswordIcon from '@mui/icons-material/Password';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
-import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RuleIcon from '@mui/icons-material/Rule';
 import AddTaskIcon from '@mui/icons-material/AddTask';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -206,11 +206,19 @@ export default function DashboardSidebar({
                 >
                   <DashboardSidebarPageItem
                     id="marcaje_manual"
-                    title="Marcaje manual"
+                    title="Manual"
                     icon={<AppRegistrationIcon />}
                     href="/marcaje/manual"
                     visible={user.acceso_a_ruta('/marcaje/manual')}
                     selected={!!matchPath('/marcaje/manual', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="marcaje_auto"
+                    title="Automático"
+                    icon={<AutoFixHighIcon />}
+                    href="/marcaje/auto"
+                    visible={user.acceso_a_ruta('/marcaje/auto')}
+                    selected={!!matchPath('/marcaje/auto', pathname)}
                   />
                 </List>
               }
@@ -234,19 +242,11 @@ export default function DashboardSidebar({
                 >
                   <DashboardSidebarPageItem
                     id="incidencias_solicitud"
-                    title="Solicitud empleado"
+                    title="Solicitud"
                     icon={<AppRegistrationIcon />}
                     href="/incidencias/solicitud"
                     visible={user.acceso_a_ruta('/incidencias/solicitud')}
                     selected={!!matchPath('/incidencias/solicitud', pathname)}
-                  />
-                  <DashboardSidebarPageItem
-                    id="incidencias_solicitud_super"
-                    title="Solicitud con privilegios"
-                    icon={<VpnKeyIcon />}
-                    href="/incidencias/solicitud/privilegios"
-                    visible={user.acceso_a_ruta('/incidencias/solicitud/privilegios')}
-                    selected={!!matchPath('/incidencias/solicitud/privilegios', pathname)}
                   />
                   <DashboardSidebarPageItem
                     id="incidencias_revision"
@@ -263,14 +263,6 @@ export default function DashboardSidebar({
                     href="/incidencias/gestion"
                     visible={user.acceso_a_ruta('/incidencias/gestion')}
                     selected={!!matchPath('/incidencias/gestion', pathname)}
-                  />
-                  <DashboardSidebarPageItem
-                    id="incidencias_gestion_super"
-                    title="Gestión/Consulta supervisor"
-                    icon={<VpnKeyIcon />}
-                    href="/incidencias/gestion/supervisor"
-                    visible={user.acceso_a_ruta('/incidencias/gestion/supervisor')}
-                    selected={!!matchPath('/incidencias/gestion/supervisor', pathname)}
                   />
                 </List>
               }

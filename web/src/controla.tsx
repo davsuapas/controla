@@ -23,12 +23,12 @@ import Logout from './components/Logout';
 import UsuarioShow from './components/UsuarioShow';
 import MarcajeManual from './components/MarcajeManual';
 import { crearAPI } from './api/fabrica';
-import SolicitudIncEmpleado from './components/SolicitudIncEmpleado';
-import SolicitudIncSupervisores from './components/SolicitudIncSupervisores';
+import SolicitudIncidencia from './components/SolicitudIncidencia';
 import ErrorPage from './components/ErrorPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import RevisionIncidencia from './components/RevisionIncidencias';
 import GestionIncidencia from './components/GestionIncidencia';
+import MarcajeAuto from './components/MarcajeAuto';
 
 crearAPI(false);
 
@@ -82,13 +82,6 @@ const ProtectedDashboard = () => {
     <ProtectedRoute>
       <Dashboard />
     </ProtectedRoute>
-  );
-};
-
-// Componente wrapper que combina protección + dashboard
-const GestionIncidenciaSuper = () => {
-  return (
-    <GestionIncidencia supervisor />
   );
 };
 
@@ -163,6 +156,11 @@ const rutas = [
                 Component: MarcajeManual,
                 errorElement: <ErrorPage />,
               },
+              {
+                path: 'auto',
+                Component: MarcajeAuto,
+                errorElement: <ErrorPage />,
+              }
             ]
           },
           {
@@ -171,12 +169,7 @@ const rutas = [
             children: [
               {
                 path: 'solicitud',
-                Component: SolicitudIncEmpleado,
-                errorElement: <ErrorPage />,
-              },
-              {
-                path: 'solicitud/privilegios',
-                Component: SolicitudIncSupervisores,
+                Component: SolicitudIncidencia,
                 errorElement: <ErrorPage />,
               },
               {
@@ -187,11 +180,6 @@ const rutas = [
               {
                 path: 'gestion',
                 Component: GestionIncidencia,
-                errorElement: <ErrorPage />,
-              },
-              {
-                path: 'gestion/supervisor',
-                Component: GestionIncidenciaSuper,
                 errorElement: <ErrorPage />,
               },
             ]

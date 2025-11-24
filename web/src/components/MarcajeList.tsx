@@ -42,7 +42,7 @@ export default function MarcajeList({ marcajes: marcajes }: MarcajeListProps) {
     <TableContainer component={Paper}
       sx={{ maxWidth: '100%', maxHeight: '50vh', overflow: 'auto' }}>
       <Table
-        aria-label="customized table" size='small' stickyHeader
+        aria-label="customized table" stickyHeader
         sx={{ minWidth: 700 }}>
         <TableHead>
           <TableRow>

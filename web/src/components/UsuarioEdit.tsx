@@ -123,7 +123,7 @@ function UsuarioEditForm({
     try {
       await onSubmit(formValues);
 
-      notifica.show('Usuario actualizado satisfactóriamente.', {
+      notifica.show('Usuario actualizado satisfactóriamente', {
         severity: 'success',
         autoHideDuration: 5000,
       });

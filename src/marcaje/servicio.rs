@@ -3,7 +3,8 @@ use chrono::NaiveDate;
 use crate::{
   config::ConfigTrabajo,
   infra::{
-    DominiosWithCacheUsuario, ServicioError, ShortDateTimeFormat, Transaccion,
+    DominioWithCacheUsuario, ServicioError, ShortDateTimeFormat, TimeConvert,
+    Transaccion,
   },
   marcaje::{Marcaje, MarcajeRepo},
   usuarios::UsuarioServicio,
@@ -119,7 +120,6 @@ impl MarcajeServicio {
   /// Actualiza el campo modificado_por del marcaje
   ///
   /// Devuelve True si se actualizo
-  #[inline]
   pub async fn actualizar_modificado_por(
     &self,
     trans: &mut Transaccion<'_>,
@@ -144,7 +144,6 @@ impl MarcajeServicio {
   /// Marca un marcaje como eliminado
   ///
   /// Devuelve True si se actualizo
-  #[inline]
   pub async fn marcar_marcaje_eliminado(
     &self,
     trans: &mut Transaccion<'_>,
@@ -164,15 +163,108 @@ impl MarcajeServicio {
       })
   }
 
-  /// Obtiene los marcaje dado el usuario y la fecha para
-  /// el registrador que no tengan asigandas una incidencia
-  #[inline]
+  /// Registrar una marcaje como finalizado.
+  ///
+  /// Verifica que la hora de inicio del marcaje,
+  /// cuya hora fin sea nula, sea anterior a la hora fin
+  /// que se quiere registrar.
+  /// Si el registro no existe devuelve un error.
+  pub async fn finalizar_marcaje(
+    &self,
+    usuario: u32,
+    fecha_hora_fin: chrono::NaiveDateTime,
+  ) -> Result<(), ServicioError> {
+    let hora_fin = fecha_hora_fin.time().to_short_time();
+
+    tracing::info!(
+      usuario = usuario,
+      fecha_hora_fin = %fecha_hora_fin,
+      "Iniciando el servicio para finalizar el marcaje del usuario"
+    );
+
+    match self
+      .repo
+      .marcaje_sin_hora_fin(usuario, fecha_hora_fin.date())
+      .await
+    {
+      Ok(Some(marcaje)) => {
+        if marcaje.hora_inicio.unwrap() >= hora_fin {
+          return Err(ServicioError::Usuario(format!(
+            "La hora de fin: {} debe ser posterior a la hora de inicio: {} \
+            del marcaje sin finalizar para el usuario: {} en la fecha: {}",
+            hora_fin,
+            marcaje.hora_inicio.unwrap(),
+            usuario,
+            fecha_hora_fin.date().formato_corto()
+          )));
+        }
+
+        if !self
+          .repo
+          .actualizar_hora_fin(marcaje.id, hora_fin)
+          .await
+          .map_err(|err| {
+            tracing::error!(
+              id_marcaje = marcaje.id,
+              hora_fin = %fecha_hora_fin,
+              error = %err,
+              "Registrando la hora fin del marcaje para finalizarlo"
+            );
+            ServicioError::from(err)
+          })?
+        {
+          return Err(ServicioError::Usuario(format!(
+            "No existe ningún marcaje iniciado para el usuario: {} \
+            en la fecha: {}. No se puede registrar la hora de salida.",
+            usuario,
+            fecha_hora_fin.date().formato_corto()
+          )));
+        }
+
+        tracing::debug!(
+          id_marcaje = marcaje.id,
+          hora_fin = %hora_fin,
+          "Se ha finalizado el marcaje auto del usuario correctamente"
+        );
+
+        Ok(())
+      }
+      Ok(None) => Err(ServicioError::Usuario(format!(
+        "No existe ningún marcaje iniciado para el usuario: {} \
+        en la fecha: {}. No se puede registrar la hora de salida.",
+        usuario,
+        fecha_hora_fin.date().formato_corto()
+      ))),
+      Err(err) => {
+        tracing::error!(
+          usuario = usuario,
+          fecha = %fecha_hora_fin.date(),
+          error = %err,
+          "Buscando el marcaje sin finalizar para registrar la hora fin"
+        );
+        Err(ServicioError::from(err))
+      }
+    }
+  }
+
+  /// Obtiene los marcaje si no se han asignado a una incidencia.
+  ///
+  /// Dependiendo del valor de usuario_reg se añaden más filtros
+  /// Ver [`crate::marcaje::MarcajeRepo::marcajes_inc_por_fecha_reg`]
+  /// para más información
   pub async fn marcajes_inc_por_fecha_reg(
     &self,
     usuario: u32,
     fecha: NaiveDate,
     usuario_reg: Option<u32>,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, ServicioError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, ServicioError> {
+    tracing::debug!(
+      usuario = usuario,
+      fecha = %fecha,
+      usuario_reg = ?usuario_reg,
+      "Obtiene los marcajes por fecha no asignados a incidencias"
+    );
+
     self
       .repo
       .marcajes_inc_por_fecha_reg(usuario, fecha, usuario_reg)
@@ -189,13 +281,26 @@ impl MarcajeServicio {
       })
   }
 
+  // Determina si la hora fin esta vacía para un
+  // un usuario y fecha de marcaje
+  pub async fn hora_fin_vacia(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+  ) -> Result<bool, ServicioError> {
+    return self
+      .repo
+      .hora_fin_vacia(usuario, fecha, 0)
+      .await
+      .map_err(ServicioError::from);
+  }
+
   /// Obtiene el marcaje dado un usuario y la fecha
-  #[inline]
   pub async fn marcaje_por_fecha(
     &self,
     usuario: u32,
     fecha: NaiveDate,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, ServicioError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, ServicioError> {
     self
       .repo
       .marcajes_por_fecha(usuario, fecha)
@@ -212,11 +317,10 @@ impl MarcajeServicio {
   }
 
   /// Obtiene los últimos marcajes horarios de un usuario.
-  #[inline]
   pub async fn ultimos_marcajes(
     &self,
     usuario: u32,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, ServicioError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, ServicioError> {
     self
       .repo
       .ultimos_marcajes(
@@ -256,6 +360,29 @@ impl MarcajeServicio {
         con alguna hora de fin sin registrar \
         para el usuario: {} en la fecha: {}. \
         Por favor, registre antes la hora de fin.",
+        &reg.usuario,
+        &reg.fecha.formato_corto()
+      )));
+    }
+
+    // Si la hora fin es nula el marcaje es automático
+    if reg.hora_fin.is_none()
+      && self
+        .repo
+        .hora_asignada_posterior(
+          reg.usuario,
+          reg.fecha,
+          reg.hora_inicio,
+          excluir_marcaje_id,
+        )
+        .await
+        .map_err(ServicioError::from)?
+    {
+      return Err(ServicioError::Usuario(format!(
+        "Existen un marcaje registrado posterior a la hora: {} \
+        para el usuario: {} en la fecha: {}. No cree marcajes manuales \
+        si registra marcajes automáticos.",
+        reg.hora_inicio,
         &reg.usuario,
         &reg.fecha.formato_corto()
       )));

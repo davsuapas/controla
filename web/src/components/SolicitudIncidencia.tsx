@@ -1,3 +1,4 @@
+import PageContainer from './PageContainer';
 import * as React from 'react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import Stack from '@mui/material/Stack';
@@ -6,6 +7,7 @@ import {
   GridActionsCellItem,
   GridColDef,
 } from '@mui/x-data-grid';
+import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { api } from '../api/fabrica';
 import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
@@ -30,25 +32,27 @@ import TextField from '@mui/material/TextField';
 import { Incidencia, TipoIncidencia } from '../modelos/incidencias';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
+import SelectorEmpleado from './SelectorEmpleado';
+import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 
 const HORA_NO_VALIDA = 'Hora no valida';
-
-interface SolicitudIncidenciaProps {
-  usuarioId: number | undefined;
-  solicitudEliminacion: boolean;
-  usuarioRegId?: number;
-  isLoading?: boolean;
-}
 
 // Componente que expone los marcajes por fecha y permite
 // realiza solicitud de incidencias para un usuario.
 // Las incidencias pueden ser: Salidas erróneas,
 // eliminación de algún marcaje (solo roles específicos)
 // y creación de uno nueva.
-export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
+// Si el usuario tiene el rol registrador o supervisor podrá
+// crear incidencias de los usuarios que registro en nombre
+// del empleado.
+// El supervisor puede crear incidencias de todos marcajes
+// realizados por los usuarios registradores
+// Esta pantalla solo puede ser usada por empleados,
+// registradores o supervisores
+export default function SolicitudIncidencia() {
   const theme = useTheme();
   const notifica = useNotifications();
-  const { getUsrLogeado } = useUsuarioLogeado()
+  const usuarioLog = useUsuarioLogeado().getUsrLogeado()
 
   const [rows, setRows] = React.useState<Marcaje[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -57,6 +61,9 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   const [solicitudesProcesadas, setSolicitudesProcesadas] =
     React.useState<Set<number>>(new Set());
 
+  const [empleado, setEmpleado] =
+    React.useState<number | undefined>(usuarioLog.id);
+
   // Estados para el modal con la información de la solictud
   const [modalOpenInfo, setModalOpenInfo] = React.useState(false);
   const [tipoSolicitud, setTipoSolicitud] =
@@ -64,45 +71,61 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   const [marcajeSeleccionado, setMarcajeSeleccionado] =
     React.useState<Marcaje | undefined>(undefined);
 
+  const solicitudEliminacion =
+    usuarioLog.tieneRol(RolID.Registrador) || usuarioLog.tieneRol(RolID.Supervisor)
+
+  const usuarioSoloEmpleado = usuarioLog.tieneRol(RolID.Empleado) &&
+    !usuarioLog.tieneRol(RolID.Registrador) && !usuarioLog.tieneRol(RolID.Supervisor);
+
+  const handleEmpleadoChange = React.useCallback(
+    (empleado: DescriptorUsuario) => {
+      setEmpleado(empleado.id);
+    },
+    []
+  );
+
   // Almacena todas las solictudes creadas para 
   // que puedan ser consultadas, por ejemplo para
   // ser marcadas en el grid
-  const agregarSolicitudCreada = (marcajeId: number) => {
+  const agregarSolicitudCreada = React.useCallback((marcajeId: number) => {
     setSolicitudesProcesadas(prev => new Set(prev).add(marcajeId));
-  };
+  }, []);
 
-  // Limpia las solicitudes almacenadas
-  const limpiarSolicitudCreada = () => {
+  const limpiarSolicitudCreada = React.useCallback(() => {
     setSolicitudesProcesadas(new Set());
-  };
+  }, []);
 
   // Carga los marcajes por fecha
   const loadData = React.useCallback(
     async (
-      isLoading: boolean | undefined,
-      usuarioId: number | undefined,
-      usuarioReg: number | undefined,
+      usuarioId: number,
       fecha: Dayjs) => {
       let listData: Marcaje[] = [];
 
-      if (isLoading) {
-        // Si se esta cargando algo por el componente
-        // padre pongo mi componente en modo carga
-        setIsLoading(true);
-        return listData;
-      }
-
-      if (!usuarioId) {
-        if (!isLoading) {
-          setIsLoading(false);
-        }
-        return listData;
-      }
-
       setIsLoading(true);
 
+      // Por defecto, solo se obtienen las solicitudes
+      // del usuario
+      let usuarioReg: number | undefined;
+
+      // Si el usuario que se logeo es el mismo que el
+      // se selecciona se obtienen todos sus marcajes,
+      // ya que se esta actuando como rol empleado
+      if (usuarioId != usuarioLog.id) {
+        if (usuarioLog.tieneRol(RolID.Supervisor)) {
+          // Si usuarioReg es igual a cero se buscarán
+          // todos los marcajes del usuario selecionado que
+          // hayan sido registradas por cualquier rol registrador
+          usuarioReg = 0;
+        } else if (usuarioLog.tieneRol(RolID.Registrador)) {
+          // Solo se pueden obtener solicitudes de incidencias
+          // de los marcajes realizados por el registrador
+          usuarioReg = usuarioLog.id;
+        }
+      }
+
       try {
-        listData = await api().marcajes.marcajes_sin_inc(
+        listData = await api().marcajes.marcajesSinInc(
           usuarioId.toString(),
           fecha,
           usuarioReg?.toString()
@@ -125,18 +148,26 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   );
 
   React.useEffect(() => {
-    if (fecha) {
-      loadData(props.isLoading, props.usuarioId, props.usuarioRegId, fecha);
+    if (usuarioSoloEmpleado && fecha) {
+      loadData(usuarioLog.id, fecha);
+      return;
     }
-  }, [props.isLoading, props.usuarioId, props.usuarioRegId, fecha]);
+
+    if (empleado && fecha) {
+      loadData(empleado, fecha);
+    }
+  }, [empleado, fecha]);
 
   // Permite abrir un formalario para corregir marcajes
   // mediante solicitud
-  const abrirModalInfo = (tipo: TipoIncidencia, marcaje?: Marcaje) => {
-    setMarcajeSeleccionado(marcaje);
-    setTipoSolicitud(tipo);
-    setModalOpenInfo(true);
-  };
+  const abrirModalInfo = React.useCallback(
+    (tipo: TipoIncidencia, marcaje?: Marcaje) => {
+      setMarcajeSeleccionado(marcaje);
+      setTipoSolicitud(tipo);
+      setModalOpenInfo(true);
+    },
+    []
+  );
 
   // Cierra la modal mediante un borón aceptar y otro cancelar
   const cerrarModalInfo = React.useCallback(
@@ -153,77 +184,77 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
     [tipoSolicitud, marcajeSeleccionado]);
 
   // Procesa las solicitud con las correciones
-  const procesarSolicitud = async (
-    tipo: TipoIncidencia,
-    info: InfoSolicitud,
-    marcaje?: Marcaje) => {
-    let msgNotifica = "Solicitud no reconocida"
+  const procesarSolicitud = React.useCallback(
+    async (
+      tipo: TipoIncidencia,
+      info: InfoSolicitud,
+      marcaje?: Marcaje
+    ) => {
+      let msgNotifica = 'Solicitud no reconocida';
 
-    if (!fecha) {
-      return;
-    }
+      if (!fecha) {
+        return;
+      }
 
-    switch (tipo) {
-      case TipoIncidencia.CorrecionSalida:
-        msgNotifica = 'Solicitud "salida errónea" creada satistactóriamente'
-        break;
+      switch (tipo) {
+        case TipoIncidencia.CorrecionSalida:
+          msgNotifica = 'Solicitud "salida errónea" creada satisfactoriamente';
+          break;
 
-      case TipoIncidencia.EliminacionMarcaje:
-        msgNotifica = 'Solicitud de eliminación creada satistactóriamente'
-        break;
+        case TipoIncidencia.EliminacionMarcaje:
+          msgNotifica = 'Solicitud de eliminación creada satisfactoriamente';
+          break;
 
-      case TipoIncidencia.NuevoMarcaje:
-        msgNotifica = 'Solicitud "marcaje no realizado" creada satistactóriamente'
-        break;
+        case TipoIncidencia.NuevoMarcaje:
+          msgNotifica = 'Solicitud "marcaje no realizado" creada satisfactoriamente';
+          break;
 
-      default:
-        console.warn('Tipo de solicitud no reconocido:', tipo);
+        default:
+          console.warn('Tipo de solicitud no reconocido:', tipo);
+          notifica.show(msgNotifica, {
+            severity: 'success',
+            autoHideDuration: 5000,
+          });
+          return;
+      }
+
+      try {
+        await api().inc.crearIncidencia(
+          Incidencia.crearSolicitud(
+            tipo,
+            empleado!,
+            fecha,
+            info.horaEntrada ?? null,
+            info.horaSalida ?? null,
+            marcaje ? new DescriptorMarcaje(marcaje.id, null, null) : null,
+            usuarioLog.id,
+            info.motivo ?? null
+          )
+        );
+
         notifica.show(msgNotifica, {
           severity: 'success',
           autoHideDuration: 5000,
         });
 
-        return;
-    }
+        if (marcaje) {
+          agregarSolicitudCreada(marcaje.id);
+        }
+      } catch (error) {
+        if (error instanceof NetErrorControlado) {
+          return;
+        }
 
-    try {
-      await api().inc.crearIncidencia(
-        Incidencia.crearSolicitud(
-          tipo!,
-          props.usuarioId!,
-          fecha,
-          info.horaEntrada ?? null,
-          info.horaSalida ?? null,
-          marcaje ? new DescriptorMarcaje(marcaje?.id, null, null) : null,
-          getUsrLogeado().id,
-          info.motivo ?? null,
-        ))
+        logError('solicitud-incidencia.crear', error);
 
-      notifica.show(msgNotifica, {
-        severity: 'success',
-        autoHideDuration: 5000,
-      });
-
-      if (marcaje) {
-        // Fuerza a repintar el grid para marcar la fila como solicitada
-        agregarSolicitudCreada(marcaje.id)
-      };
-    } catch (error) {
-      if (error instanceof NetErrorControlado) {
-        return;
-      }
-
-      logError('solicitud-incidencia.crear', error);
-
-      notifica.show(
-        'Error inesperado al crear una solicitud de incidencia',
-        {
+        notifica.show('Error inesperado al crear una solicitud de incidencia', {
           severity: 'error',
           autoHideDuration: 5000,
-        },
-      );
-    }
-  }
+        });
+      }
+    },
+    []
+  );
 
   // Abre una solictud para corregir salidas erróneas
   const handleSolicitudClick = React.useCallback(
@@ -313,7 +344,7 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
                 onClick={handleSolicitudClick(row)}
               />
             </Tooltip>,
-            props.solicitudEliminacion && (
+            solicitudEliminacion && (
               <Tooltip title="Eliminar marcaje" key="elimi-marcaje-tooltip">
                 <GridActionsCellItem
                   key="eliminacion-marcaje"
@@ -331,78 +362,90 @@ export default function SolicitudIncidencia(props: SolicitudIncidenciaProps) {
   );
 
   return (
-    <LocalizationProviderES>
-      <Stack spacing={2} sx={{ height: '100%', mt: 1.5 }}>
-        <DatePicker
-          name="fecha"
-          label="Fecha"
-          value={fecha}
-          onChange={(v) => setFecha(v)}
-          sx={{ width: '100%' }}
-        />
-
-        <Grid container spacing={1} justifyContent="flex-end">
-          <Grid size={{ xs: 12, sm: 12, md: 5 }}
-            sx={{ display: 'flex', flexDirection: 'column' }}>
-            <Button
-              variant="contained"
-              sx={{
-                width: { xs: '100%', sm: 'auto' },
-                minWidth: 120,
+    <PageContainer title={'Solicitud incidencia'}>
+      <Box sx={{ mt: 3, ...FULL_HEIGHT_WIDTH }}>
+        <LocalizationProviderES>
+          <Stack spacing={2} sx={{ height: '100%' }}>
+            {!usuarioSoloEmpleado && (
+              <>
+                <SelectorEmpleado
+                  onChange={handleEmpleadoChange}
+                  disabled={false}
+                  onLoadingChange={setIsLoading}
+                  usuarioPorDefecto={usuarioLog.id}
+                />
+                <Box sx={{ mb: 2 }} />
+              </>
+            )}
+            <DatePicker
+              name="fecha"
+              label="Fecha"
+              value={fecha}
+              onChange={(v) => setFecha(v)}
+              sx={{ width: '100%' }}
+            />
+            <Grid container spacing={1} justifyContent="flex-end">
+              <Grid size={{ xs: 12, sm: 12, md: 5 }}
+                sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    width: { xs: '100%', sm: 'auto' },
+                    minWidth: 120,
+                  }}
+                  onClick={handleMarcajeNoRealizado}
+                >
+                  MARCAJE NO REALIZADO
+                </Button>
+              </Grid>
+            </Grid>
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              ignoreDiacritics
+              disableColumnSorting
+              disableColumnFilter
+              disableRowSelectionOnClick
+              pageSizeOptions={[]}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 25, page: 0 },
+                },
               }}
-              onClick={handleMarcajeNoRealizado}
-            >
-              MARCAJE NO REALIZADO
-            </Button>
-          </Grid>
-        </Grid>
-
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          ignoreDiacritics
-          disableColumnSorting
-          disableColumnFilter
-          disableRowSelectionOnClick
-          pageSizeOptions={[]}
-          initialState={{
-            pagination: {
-              paginationModel: { pageSize: 25, page: 0 },
-            },
-          }}
-          loading={isLoading}
-          showToolbar
-          getRowClassName={(params) =>
-            solicitudesProcesadas.has(params.row.id) ? 'fila-con-solicitud' : ''
-          }
-          sx={{
-            '& .fila-con-solicitud': dataGridStyles.marcarFila(theme)
-          }}
-          slotProps={{
-            loadingOverlay: {
-              variant: 'circular-progress',
-              noRowsVariant: 'circular-progress',
-            },
-            baseIconButton: {
-              size: 'small',
-            },
-          }}
-        />
-
-        {fecha && tipoSolicitud && (
-          <ModalInfoSolicitud
-            open={modalOpenInfo}
-            onClose={cerrarModalInfo}
-            fecha={fecha}
-            {...crearModalInfoSolicitudProps(
-              fecha, tipoSolicitud,
-              undefined,
-              marcajeSeleccionado?.horaFin ?
-                marcajeSeleccionado.horaFin : undefined)!}
-          />
-        )}
-      </Stack>
-    </LocalizationProviderES>
+              loading={isLoading}
+              showToolbar
+              getRowClassName={(params) =>
+                solicitudesProcesadas.has(params.row.id) ? 'fila-con-solicitud' : ''
+              }
+              sx={{
+                '& .fila-con-solicitud': dataGridStyles.marcarFila(theme)
+              }}
+              slotProps={{
+                loadingOverlay: {
+                  variant: 'circular-progress',
+                  noRowsVariant: 'circular-progress',
+                },
+                baseIconButton: {
+                  size: 'small',
+                },
+              }}
+            />
+            {fecha && tipoSolicitud && (
+              <ModalInfoSolicitud
+                open={modalOpenInfo}
+                onClose={cerrarModalInfo}
+                fecha={fecha}
+                {...crearModalInfoSolicitudProps(
+                  fecha, tipoSolicitud,
+                  undefined,
+                  marcajeSeleccionado?.horaFin ?
+                    marcajeSeleccionado.horaFin : undefined)!}
+              />
+            )}
+          </Stack>
+        </LocalizationProviderES>
+      </Box>
+    </PageContainer>
   );
 }
 

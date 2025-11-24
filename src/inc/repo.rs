@@ -7,7 +7,7 @@ use crate::{
     EstadoIncidencia, IncidenciaMarcaje, IncidenciaSolictud, IncidenciaTraza,
     dominio::Incidencia,
   },
-  infra::{DBError, DominiosWithCacheUsuario, PoolConexion, Transaccion},
+  infra::{DBError, DominioWithCacheUsuario, PoolConexion, Transaccion},
   marcaje::DescriptorMarcaje,
   usuarios::DescriptorUsuario,
 };
@@ -274,17 +274,18 @@ impl IncidenciaRepo {
   ///
   /// Si se indica ID solo se devuelve esa incidencia
   ///
-  /// Si el usuario es cero se filtran todas las incidencias
-  /// que se hicieron por registradores. Este filtro es para
-  /// los supervisores
+  /// Si como parámetro se especifica que es supervisor
+  /// se obtiene las incidencias que se hicieron por los
+  /// registradores o las suyas propias.
   pub(in crate::inc) async fn incidencias(
     &self,
     id: Option<u32>,
     fecha_inicio: Option<NaiveDate>,
     fecha_fin: Option<NaiveDate>,
     estados: &[EstadoIncidencia],
+    supervisor: bool,
     usuario: Option<u32>,
-  ) -> Result<DominiosWithCacheUsuario<Incidencia>, DBError> {
+  ) -> Result<DominioWithCacheUsuario<Incidencia>, DBError> {
     let mut qb = sqlx::QueryBuilder::<sqlx::MySql>::new(
       r"SELECT
       i.id, i.tipo, i.fecha_solicitud,
@@ -328,15 +329,17 @@ impl IncidenciaRepo {
       if let (Some(fi), Some(ff)) = (fecha_inicio, fecha_fin) {
         qb.push(" AND ");
         qb.push("i.fecha_solicitud BETWEEN ");
-        qb.push_bind(fi);
+        qb.push_bind(fi.and_hms_opt(0, 0, 0).unwrap()); // Inicio del día
         qb.push(" AND ");
-        qb.push_bind(ff);
+        qb.push_bind(ff.and_hms_opt(23, 59, 59).unwrap()); // Fin del día
       }
 
       if let Some(u) = usuario {
         qb.push(" AND ");
-        if u == 0 {
-          qb.push("i.usuario_creador <> i.usuario").push_bind(u);
+        if supervisor {
+          qb.push("(i.usuario_creador <> i.usuario or i.usuario_creador = ")
+            .push_bind(u)
+            .push(")");
         } else {
           qb.push("i.usuario_creador = ").push_bind(u);
         }
@@ -352,7 +355,7 @@ impl IncidenciaRepo {
       .map_err(DBError::from_sqlx)?;
 
     let capacidad = rows.len();
-    let mut resultado = DominiosWithCacheUsuario::<Incidencia>::new(capacidad);
+    let mut resultado = DominioWithCacheUsuario::<Incidencia>::new(capacidad);
 
     for row in rows {
       resultado.push_usuario(DescriptorUsuario {

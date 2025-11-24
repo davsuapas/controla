@@ -4,10 +4,10 @@ use sqlx::Row;
 
 use crate::{
   infra::{
-    DBError, DominiosWithCacheUsuario, PoolConexion, ShortDateTimeFormat,
+    DBError, DominioWithCacheUsuario, PoolConexion, ShortDateTimeFormat,
     Transaccion,
   },
-  marcaje::Marcaje,
+  marcaje::{DescriptorMarcaje, Marcaje},
   mysql_params,
   usuarios::{DescriptorUsuario, Horario},
 };
@@ -100,8 +100,25 @@ impl MarcajeRepo {
     Ok(result.rows_affected() > 0)
   }
 
+  pub(in crate::marcaje) async fn actualizar_hora_fin(
+    &self,
+    id: u32,
+    hora_fin: NaiveTime,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = "UPDATE marcajes SET hora_fin = ? WHERE id = ?";
+
+    let result = sqlx::query(QUERY)
+      .bind(hora_fin)
+      .bind(id)
+      .execute(self.pool.conexion())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    Ok(result.rows_affected() > 0)
+  }
+
   /// Verifica si la hora de fin para cualquier marcaje
-  /// horario, para un determinado usuario y fecha, está vacía.
+  /// horario de un determinado usuario y fecha está vacía.
   ///
   /// Se puede excluir un marcaje pasado como parámetro
   /// Si no quiere excluir ningún marcaje use 0
@@ -125,6 +142,40 @@ impl MarcajeRepo {
         .bind(usuario)
         .bind(fecha)
         .bind(excluir_marcaje_id)
+        .fetch_optional(self.pool.conexion())
+        .await
+        .map_err(DBError::from_sqlx)?
+        .is_some(),
+    )
+  }
+
+  /// Verifica si existen horas posteriores a la hora dada
+  /// de un marcaje horario para un usuario y fecha.
+  ///
+  /// Se puede excluir un marcaje pasado como parámetro
+  /// Si no quiere excluir ningún marcaje use 0
+  /// La exclusión puede ser muy útil cuando se quiere
+  /// realizar una modificación de este marcaje
+  pub(in crate::marcaje) async fn hora_asignada_posterior(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+    hora: NaiveTime,
+    excluir_marcaje_id: u32,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = "SELECT id
+        FROM marcajes
+        WHERE usuario = ? AND fecha = ?
+        AND id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+        AND hora_inicio >= ?
+        LIMIT 1;";
+
+    Ok(
+      sqlx::query(QUERY)
+        .bind(usuario)
+        .bind(fecha)
+        .bind(excluir_marcaje_id)
+        .bind(hora)
         .fetch_optional(self.pool.conexion())
         .await
         .map_err(DBError::from_sqlx)?
@@ -165,7 +216,6 @@ impl MarcajeRepo {
         .is_some(),
     )
   }
-
   /// Verifica si un rango de horas como parámetro se solapa
   /// con otro rango de horas ya asignado a un usuario en un marcaje.
   /// También verifica que la hora no se encuentre entre los rangos de horas.
@@ -205,12 +255,43 @@ impl MarcajeRepo {
     )
   }
 
+  /// Obtiene el descriptor marcaje cuya hora fin es nula
+  pub(in crate::marcaje) async fn marcaje_sin_hora_fin(
+    &self,
+    usuario: u32,
+    fecha: NaiveDate,
+  ) -> Result<Option<DescriptorMarcaje>, DBError> {
+    const QUERY: &str = "SELECT id, hora_inicio, hora_fin
+      FROM marcajes
+      WHERE usuario = ? AND fecha = ?
+      AND hora_fin IS NULL
+      AND modificado_por IS NULL AND eliminado IS NULL
+      LIMIT 1;";
+
+    let row = sqlx::query(QUERY)
+      .bind(usuario)
+      .bind(fecha)
+      .fetch_optional(self.pool.conexion())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    if let Some(row) = row {
+      Ok(Some(DescriptorMarcaje {
+        id: row.get("id"),
+        hora_inicio: row.get("hora_inicio"),
+        hora_fin: row.get("hora_fin"),
+      }))
+    } else {
+      Ok(None)
+    }
+  }
+
   /// Obtiene los últimos marcajes horarios de un usuario.
   pub(in crate::marcaje) async fn ultimos_marcajes(
     &self,
     usuario: u32,
     top: Option<&str>,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
 
     self
@@ -224,17 +305,25 @@ impl MarcajeRepo {
   }
 
   /// Obtiene los marcaje dado el usuario y la fecha
-  /// para el registrador como 1parámetro
+  /// para el registrador como parámetro
   /// que no tengan asigandas una incidencia
   pub(in crate::marcaje) async fn marcajes_inc_por_fecha_reg(
     &self,
     usuario: u32,
     fecha: NaiveDate,
     usuario_reg: Option<u32>,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.hora_inicio DESC";
 
     let filter = match usuario_reg {
+      Some(usr) if usr == usuario => {
+        // Si el usuario registrador es igual al usuario,
+        // el registrador actua como empleado y solo se
+        // filtra por sus solicitudes y no por las que registró
+        "r.usuario = ? AND r.fecha = ? 
+          AND NOT EXISTS (SELECT id FROM incidencias AS i 
+          WHERE i.marcaje = r.id)"
+      }
       Some(usr) if usr != 0 => {
         "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador = ? 
           AND NOT EXISTS (SELECT id FROM incidencias AS i 
@@ -266,7 +355,7 @@ impl MarcajeRepo {
       .map_err(|_| DBError::Parametros("Fecha"))?;
 
     if let Some(ur) = usuario_reg {
-      if ur != 0 {
+      if ur != usuario && ur != 0 {
         args
           .add(ur)
           .map_err(|_| DBError::Parametros("Usuario registrador"))?;
@@ -283,7 +372,7 @@ impl MarcajeRepo {
     &self,
     usuario: u32,
     fecha: NaiveDate,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.hora_inicio DESC";
 
     self
@@ -304,7 +393,7 @@ impl MarcajeRepo {
     filter: Option<&str>,
     filter_params: Option<sqlx::mysql::MySqlArguments>,
     order: Option<&str>,
-  ) -> Result<DominiosWithCacheUsuario<Marcaje>, DBError> {
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const SELECT: &str = "SELECT r.id, r.fecha,
         r.hora_inicio, r.hora_fin, r.horario,
         u.id AS u_id, u.nombre AS u_nombre,
@@ -357,7 +446,7 @@ impl MarcajeRepo {
     };
 
     let capacidad = rows.len();
-    let mut resultado = DominiosWithCacheUsuario::<Marcaje>::new(capacidad);
+    let mut resultado = DominioWithCacheUsuario::<Marcaje>::new(capacidad);
 
     for row in rows {
       resultado.push_usuario(DescriptorUsuario {

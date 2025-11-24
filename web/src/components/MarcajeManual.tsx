@@ -50,7 +50,7 @@ export default function MarcajeManual() {
   const notifica = useNotifications();
 
   const handleEmpleadoChange = React.useCallback(
-    (empleado: DescriptorUsuario | undefined) => {
+    (empleado: DescriptorUsuario) => {
       setFormData(prev => ({
         ...prev,
         empleado,
@@ -124,7 +124,7 @@ export default function MarcajeManual() {
             )
           );
 
-          notifica.show('Marcaje registrado satisfactóriamente.', {
+          notifica.show('Marcaje registrado satisfactóriamente', {
             severity: 'success',
             autoHideDuration: 5000,
           });

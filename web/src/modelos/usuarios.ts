@@ -18,15 +18,15 @@ export const ROLES: Map<RolID, {
   nombre: string;
   ruta_login: string;
   rutas_acceso: string[];
-  // otras propiedades que necesites
 }> = new Map([
   [RolID.Empleado, {
     nombre: 'Empleado',
-    ruta_login: '/incidencias/solicitud',
+    ruta_login: '/marcaje/auto',
     rutas_acceso: [
       '/miarea/*',
+      '/marcaje/auto',
       '/incidencias/solicitud',
-      '/incidencias/gestion'
+      '/incidencias/gestion',
     ]
   }],
   [RolID.Registrador, {
@@ -35,7 +35,9 @@ export const ROLES: Map<RolID, {
     rutas_acceso: [
       '/miarea/*',
       '/marcaje/manual',
-      '/incidencias/solicitud/privilegios'
+      '/marcaje/auto',
+      '/incidencias/solicitud',
+      '/incidencias/gestion'
     ]
   }],
   [RolID.Gestor, {
@@ -51,9 +53,9 @@ export const ROLES: Map<RolID, {
     ruta_login: '/incidencias/revision',
     rutas_acceso: [
       '/miarea/*',
-      '/incidencias/solicitud/privilegios',
+      '/incidencias/solicitud',
       '/incidencias/revision',
-      '/incidencias/gestion/supervisor'
+      '/incidencias/gestion'
     ]
   }],
   [RolID.Admin, {

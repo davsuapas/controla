@@ -16,14 +16,14 @@ import { logError } from '../error';
 
 interface ResumenMarcajesProps {
   ultimosMarcajes: boolean,
-  usuarioId: string | undefined;
-  fecha: dayjs.Dayjs | undefined;
-  horaInicio: dayjs.Dayjs | undefined;
+  usuarioId?: string;
+  fecha?: dayjs.Dayjs;
+  horaInicio?: dayjs.Dayjs;
   refreshTrigger?: number;
 }
 
 // Muestra en una tabla los últimos marcajes de un usuario
-// si la propierdad ultimos_marcajes es true, si no muestra
+// si la propiedad ultimos_marcajes es true, si no muestra
 // el marcaje por usuario y fecha.
 // También, muestra el horario más cercano si se proporciona
 // una fecha y hora, si no se devuelve el horario según la fecha
@@ -44,9 +44,9 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
       try {
         let MarcajesData: Marcaje[] = [];
         if (ultimosMarcajes || (!ultimosMarcajes && !fecha)) {
-          MarcajesData = await api().marcajes.ultimos_marcajes(usuarioId);
+          MarcajesData = await api().marcajes.ultimosMarcajes(usuarioId);
         } else {
-          MarcajesData = await api().marcajes.marcajes_por_fecha(
+          MarcajesData = await api().marcajes.marcajesPorFecha(
             usuarioId, fecha!);
         }
         setMarcaje(MarcajesData);
@@ -68,8 +68,6 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
     }, []);
 
   // Carga los horarios (depende de usuarioId, fecha y horaInicio)
-  // La horaIinicio trae la fecha de hoy, pero la que vale es la fecha 
-  // el registrador asigna en el form
   const cargarHorarios = React.useCallback(
     async (
       usuarioId: string,

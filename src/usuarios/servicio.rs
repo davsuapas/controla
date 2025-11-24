@@ -400,7 +400,6 @@ impl UsuarioServicio {
   /// en la base de datos y añade una traza.
   /// 
   /// Devuelve si la password proporcionada es correcta.
-  #[inline]
   pub async fn login_usuario(
       &self, dni: &Dni, password: &Password
     ) -> Result<Option<Usuario>, ServicioError> {
@@ -491,7 +490,6 @@ impl UsuarioServicio {
 }
 
   /// Devuelve todos los usuarios existentes.
-  #[inline]
   pub async fn usuarios(&self) -> Result<Vec<Usuario>, ServicioError> {
     self.repo.usuarios(&self.cnfg.secreto).await.map_err(|err| {
       tracing::error!(error = %err, "Obteniendo usuarios");
@@ -500,7 +498,6 @@ impl UsuarioServicio {
   }
 
   /// Devuelve un usuario por su ID.
-  #[inline]
   pub async fn usuario(&self, id: u32) -> Result<Usuario, ServicioError> {
     self
       .repo
@@ -512,8 +509,6 @@ impl UsuarioServicio {
       })
   }
 
-  /// Devuelve los usuarios que tienen un rol específico.
-  #[inline]
   pub async fn usuarios_por_rol(
     &self,
     rol: Rol,
@@ -532,7 +527,6 @@ impl UsuarioServicio {
   /// Si no se proporciona una hora, devuelve el horario del día actual.
   /// simpre que no este asignado.
   /// Si se proporciona una hora, devuelve el horario más cercano a esa hora.
-  #[inline]
   pub async fn horarios_usuario_sin_asignar(
     &self,
     usuario: u32,
@@ -561,6 +555,11 @@ impl UsuarioServicio {
     usuario: u32,
     hora: NaiveDateTime,
   ) -> Result<Vec<Horario>, ServicioError> {
+    tracing::debug!(
+      usuario = usuario,
+      hora = %hora,
+      "Consultando el horario más cercano del usuario");
+
     let res = self.repo
         .horario_cercano(usuario, hora, 0)
         .await
@@ -569,12 +568,19 @@ impl UsuarioServicio {
       Ok(horarios) => Ok(horarios),
       Err(err) => match err {
         DBError::RegistroVacio(e) => {
-          tracing::info!(
+          tracing::warn!(
             error = %e,
            "Consulta horario cercano");
           Ok(vec![])
         },
-        _ => Err(ServicioError::from(err)),
+        _ => {
+          tracing::error!(
+            usuario = usuario,
+            hora = ?hora,
+            error = %err,
+          "Consulta horario cercano");
+          Err(ServicioError::from(err))
+        } 
       },
     }
   }
@@ -585,7 +591,6 @@ impl UsuarioServicio {
   /// Si no quiere excluir ningún marcaje use 0
   /// La exclusión puede ser muy útil cuando se quiere
   /// realizar una modificación de este marcaje
-  #[inline]
   pub async fn horario_cercano(
     &self,
     usuario: u32,

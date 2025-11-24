@@ -129,7 +129,7 @@ export default function UsuarioCreate() {
         UsuarioOutDTO.fromUsuario(usr),
       );
 
-      notifica.show('Usuario creado satisfactóriamente.', {
+      notifica.show('Usuario creado satisfactóriamente', {
         severity: 'success',
         autoHideDuration: 5000,
       });

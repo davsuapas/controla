@@ -54,7 +54,7 @@ export class MarcajeOutDTO {
     usuarioLogeado: DescriptorUsuario,
     fecha: dayjs.Dayjs,
     horaInicio: dayjs.Dayjs,
-    horaFin: dayjs.Dayjs | undefined,
+    horaFin?: dayjs.Dayjs,
   ): MarcajeOutDTO {
     const usuarioReg = usuarioId == usuarioLogeado.id ? null : usuarioLogeado.id
 

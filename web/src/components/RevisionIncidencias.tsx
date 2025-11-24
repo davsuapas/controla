@@ -35,6 +35,7 @@ export default function RevisionIncidencia() {
     fechaInicio: null as dayjs.Dayjs | null,
     fechaFin: null as dayjs.Dayjs | null,
     estados: [EstadoIncidencia.Solicitud, EstadoIncidencia.ErrorResolver],
+    supervisor: false,
     usuarioId: null as number | null
   });
 
@@ -143,6 +144,7 @@ export default function RevisionIncidencia() {
         filtrosActuales.fechaInicio,
         filtrosActuales.fechaFin,
         filtrosActuales.estados,
+        filtrosActuales.supervisor,
         filtrosActuales.usuarioId
       );
 

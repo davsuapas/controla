@@ -401,9 +401,23 @@ impl UsuarioRepo {
   ) -> Result<Horario, DBError> {
     let fecha_creacion = self.fecha_creacion_horario(usuario, hora).await?;
     let dia = crate::infra::letra_dia_semana(hora.weekday());
+    let fecha = hora.date();
+    let hora_buscar = hora.time();
+
+    tracing::debug!(
+      usuario = usuario,
+      fecha = %fecha,
+      hora = %hora_buscar,
+      fecha_creacion = %fecha_creacion,
+      dia = %dia,
+      excluir_marcaje_id = excluir_marcaje_id,
+      "Buscando el horario más cercano del usuario"
+    );
 
     // Busca un horario que esté entre las horas de inicio y fin
-    // del día de la semana.
+    // del día de la semana siempre que no este asignado
+    // y la hora inicio debe ser mayor que la hora de fin del
+    // último marcaje previo
     const QUERY: &str = "SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
         FROM horarios h
          JOIN usuario_horarios uh ON h.id = uh.horario
@@ -426,9 +440,6 @@ impl UsuarioRepo {
               AND h2.hora_inicio < h.hora_inicio),
         '00:00:00')";
 
-    let fecha = hora.date();
-    let hora_buscar = hora.time();
-
     let result = sqlx::query(QUERY)
       .bind(usuario)
       .bind(fecha_creacion)
@@ -446,8 +457,10 @@ impl UsuarioRepo {
     if let Some(row) = result {
       Ok(UsuarioRepo::horario_from_row(&row))
     } else {
-      // Si no encuentra un horario entre las horas de inicio y fin,
-      // devuelve el más cercano al inicio.
+      // Si no encuentra un horario mayor a la hora de inicio,
+      // devuelve el más cercano al inicio siempre que no este asignado
+      // y la hora inicio debe ser mayor que la hora de fin del
+      // último marcaje previo
       const QUERY: &str = "SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
             FROM horarios h
             JOIN usuario_horarios uh ON h.id = uh.horario
@@ -467,9 +480,9 @@ impl UsuarioRepo {
               JOIN horarios h2 ON r2.horario = h2.id
               WHERE r2.usuario = uh.usuario
                AND r2.fecha = ?
-               AND r.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
+               AND r2.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
                AND h2.hora_inicio < h.hora_inicio),
-            00:00:00')
+            '00:00:00')
             LIMIT 1;";
 
       let result = sqlx::query(QUERY)
