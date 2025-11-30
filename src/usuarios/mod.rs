@@ -1,14 +1,17 @@
 //! Gestiona toda la funcionalidad asociada a los usuarios
-//! incluyendo la autenticación, autorización y gestión de horarios.
+//! incluyendo la autenticación, autorización, gestión de horarios
+//! y calendarios asociados a los empleados.
 //!
 //! Los perfiles de usuarios podrán ser:
 //! - Administrador
 //! - Empleado
-//! - Gestor de inciadencias
+//! - Gestor de incidencias
 //! - Registrador
 //! - Inspector
 //! - Director
 //! - Supervisor
+//!
+//! La definición de cada rol se encuentra en: [`dominio::Rol`]
 
 /// Módulo que gestiona el acceso a datos para los usuarios
 mod repo;

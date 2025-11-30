@@ -25,6 +25,7 @@ export const ROLES: Map<RolID, {
     rutas_acceso: [
       '/miarea/*',
       '/marcaje/auto',
+      '/marcaje/consulta',
       '/incidencias/solicitud',
       '/incidencias/gestion',
     ]
@@ -36,6 +37,7 @@ export const ROLES: Map<RolID, {
       '/miarea/*',
       '/marcaje/manual',
       '/marcaje/auto',
+      '/marcaje/consulta',
       '/incidencias/solicitud',
       '/incidencias/gestion'
     ]
@@ -53,6 +55,7 @@ export const ROLES: Map<RolID, {
     ruta_login: '/incidencias/revision',
     rutas_acceso: [
       '/miarea/*',
+      '/marcaje/consulta',
       '/incidencias/solicitud',
       '/incidencias/revision',
       '/incidencias/gestion'
@@ -208,6 +211,32 @@ export class Usuario {
       obj.roles,
     );
   }
+}
+
+// Obtiene el usuario registrador para filtrar
+export function filtroUsuarioRegistra(
+  usuario: number, usuarioLog: Usuario): number | undefined {
+  // Por defecto, solo se obtienen las solicitudes
+  // del usuario
+  let usuarioReg: number | undefined;
+
+  // Si el usuario que se logeo es el mismo que el
+  // se selecciona se obtienen todos sus marcajes,
+  // ya que se esta actuando como rol empleado
+  if (usuario != usuarioLog.id) {
+    if (usuarioLog.tieneRol(RolID.Supervisor)) {
+      // Si usuarioReg es igual a cero se buscarán
+      // todos los marcajes del usuario selecionado que
+      // hayan sido registradas por cualquier rol registrador
+      usuarioReg = 0;
+    } else if (usuarioLog.tieneRol(RolID.Registrador)) {
+      // Solo se pueden obtener solicitudes de incidencias
+      // de los marcajes realizados por el registrador
+      usuarioReg = usuarioLog.id;
+    }
+  }
+
+  return usuarioReg;
 }
 
 export enum DiaSemana {

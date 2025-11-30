@@ -2,9 +2,14 @@ import { AxiosInstance } from "axios";
 import { Marcaje } from "../modelos/marcaje";
 import { DominiosWithCacheUsuarioDTO, MarcajeOutDTO } from "../modelos/dto";
 import dayjs from "dayjs";
-import { formatDateTimeForServer } from "../modelos/formatos";
+import { formatDateForServer, formatDateTimeForServer } from "../modelos/formatos";
 
 export interface MarcajeApi {
+  marcajes(
+    usuarioId: number,
+    fecha_inicio: dayjs.Dayjs | null,
+    fecha_fin: dayjs.Dayjs | null,
+    usuario_reg: number | null): Promise<Marcaje[]>;
   marcajesSinInc(
     usuarioId: string,
     fecha: dayjs.Dayjs,
@@ -27,6 +32,25 @@ export class MarcajeAxiosApi implements MarcajeApi {
 
   constructor(axiosInstance: AxiosInstance) {
     this.axios = axiosInstance;
+  }
+
+  async marcajes(
+    usuarioId: number,
+    fecha_inicio: dayjs.Dayjs | null,
+    fecha_fin: dayjs.Dayjs | null,
+    usuario_reg: number | null): Promise<Marcaje[]> {
+
+    const response = await this.axios.post('api/marcajes/entre/fechas',
+      {
+        'usuario': usuarioId,
+        'fecha_inicio': formatDateForServer(fecha_inicio),
+        'fecha_fin': formatDateForServer(fecha_fin),
+        'usuario_reg': usuario_reg
+      }
+    );
+
+    return Marcaje.fromRequest(
+      DominiosWithCacheUsuarioDTO.fromResponse(response.data));
   }
 
   async marcajesSinInc(
@@ -80,6 +104,14 @@ export class MarcajeAxiosApi implements MarcajeApi {
 
 // Implementación de MarcajeApi en modo test
 export class MarcajeTestApi implements MarcajeApi {
+  async marcajes(
+    _: number,
+    __: dayjs.Dayjs | null,
+    ___: dayjs.Dayjs | null,
+    ____: number | null): Promise<Marcaje[]> {
+    return this.ultimosMarcajes('')
+  }
+
   async marcajesSinInc(
     usuario: string,
     _: dayjs.Dayjs,

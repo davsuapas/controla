@@ -247,6 +247,43 @@ impl MarcajeServicio {
     }
   }
 
+  /// Obtiene los marcajes entre fechas para un usuario.
+  ///
+  /// Dependiendo del valor de usuario_reg se añaden más filtros
+  /// Ver [`MarcajeRepo::marcajes_inc_por_fecha_reg`]
+  /// para más información
+  pub async fn marcajes_entre_fechas_reg(
+    &self,
+    usuario: u32,
+    fecha_inicio: Option<NaiveDate>,
+    fecha_fin: Option<NaiveDate>,
+    usuario_reg: Option<u32>,
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, ServicioError> {
+    tracing::debug!(
+      usuario = usuario,
+      fecha_inicio = ?fecha_inicio,
+      fecha_fin = ?fecha_fin,
+      usuario_reg = ?usuario_reg,
+      "Obtiene los marcajes entre fechas para un usuario"
+    );
+
+    self
+      .repo
+      .marcajes_entre_fechas_reg(usuario, fecha_inicio, fecha_fin, usuario_reg)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          usuario = usuario,
+          fecha_inicio = ?fecha_inicio,
+          fecha_fin = ?fecha_fin,
+          usuario_reg = ?usuario_reg,
+          error = %err,
+          "Obtiene los marcajes entre fechas para un usuario"
+        );
+        ServicioError::from(err)
+      })
+  }
+
   /// Obtiene los marcaje si no se han asignado a una incidencia.
   ///
   /// Dependiendo del valor de usuario_reg se añaden más filtros

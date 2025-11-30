@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import PageContainer from './PageContainer';
-import ResumenMarcaje from './ResumenMarcaje';
+import ResumenMarcaje from './MarcajeResumen';
 import FormGroup from '@mui/material/FormGroup';
 import Grid from '@mui/material/Grid';
 import { useState } from 'react';

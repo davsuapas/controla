@@ -7,7 +7,7 @@ import { EstadoIncidencia, Incidencia } from '../modelos/incidencias';
 import React from 'react';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import dayjs from 'dayjs';
-import { crearModalInfoSolicitudProps, InfoSolicitud, ModalInfoSolicitud } from './SolicitudIncidencia';
+import { crearModalInfoSolicitudProps, InfoSolicitud, ModalInfoSolicitud } from './IncidenciaSolicitud';
 import { NetErrorControlado } from '../net/interceptor';
 import { logError } from '../error';
 import useNotifications from '../hooks/useNotifications/useNotifications';

@@ -33,7 +33,7 @@ import { Incidencia, TipoIncidencia } from '../modelos/incidencias';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
 import SelectorEmpleado from './SelectorEmpleado';
-import { DescriptorUsuario, RolID } from '../modelos/usuarios';
+import { DescriptorUsuario, filtroUsuarioRegistra, RolID } from '../modelos/usuarios';
 
 const HORA_NO_VALIDA = 'Hora no valida';
 
@@ -104,31 +104,11 @@ export default function SolicitudIncidencia() {
 
       setIsLoading(true);
 
-      // Por defecto, solo se obtienen las solicitudes
-      // del usuario
-      let usuarioReg: number | undefined;
-
-      // Si el usuario que se logeo es el mismo que el
-      // se selecciona se obtienen todos sus marcajes,
-      // ya que se esta actuando como rol empleado
-      if (usuarioId != usuarioLog.id) {
-        if (usuarioLog.tieneRol(RolID.Supervisor)) {
-          // Si usuarioReg es igual a cero se buscarán
-          // todos los marcajes del usuario selecionado que
-          // hayan sido registradas por cualquier rol registrador
-          usuarioReg = 0;
-        } else if (usuarioLog.tieneRol(RolID.Registrador)) {
-          // Solo se pueden obtener solicitudes de incidencias
-          // de los marcajes realizados por el registrador
-          usuarioReg = usuarioLog.id;
-        }
-      }
-
       try {
         listData = await api().marcajes.marcajesSinInc(
           usuarioId.toString(),
           fecha,
-          usuarioReg?.toString()
+          filtroUsuarioRegistra(usuarioId, usuarioLog)?.toString()
         );
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {

@@ -1,4 +1,4 @@
-import ResumenMarcaje from './ResumenMarcaje';
+import ResumenMarcaje from './MarcajeResumen';
 import Grid from '@mui/material/Grid';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import Button from '@mui/material/Button';
@@ -27,8 +27,7 @@ export default function MarcajeAuto() {
   const usuarioLog = useUsuarioLogeado().getUsrLogeado();
   const notifica = useNotifications();
 
-  const usuarioSoloEmpleado = usuarioLog.tieneRol(RolID.Empleado) &&
-    !usuarioLog.tieneRol(RolID.Registrador);
+  const usuarioSoloEmpleado = !usuarioLog.tieneRol(RolID.Registrador);
 
   const [empleado, setEmpleado] = React.useState<number>(usuarioLog.id);
 

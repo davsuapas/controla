@@ -13,6 +13,7 @@ import useNotifications from '../hooks/useNotifications/useNotifications';
 import Chip from '@mui/material/Chip';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
+import Backdrop from '@mui/material/Backdrop';
 
 interface ResumenMarcajesProps {
   ultimosMarcajes: boolean,
@@ -76,8 +77,6 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
 
       let horario: Horario[] = [];
 
-      setIsLoading(false);
-
       try {
         if (fecha && horaInicio) {
           const hora: dayjs.Dayjs = fecha
@@ -123,24 +122,6 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
     }
   }, [props.usuarioId, props.fecha, props.horaInicio]);
 
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          m: 1,
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ flex: 1, overflow: 'hidden' }}>
       <Divider />
@@ -172,7 +153,16 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             </Box>
           )}
         </Box>
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
+        <Box sx={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+          <Backdrop
+            sx={{
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              position: 'absolute'
+            }}
+            open={isLoading}
+          >
+            <CircularProgress color="inherit" />
+          </Backdrop>
           <MarcajeList marcajes={marcaje} />
         </Box>
       </Stack>

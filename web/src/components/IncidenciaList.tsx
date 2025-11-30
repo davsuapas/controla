@@ -11,14 +11,13 @@ import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import { logError } from '../error';
 import { EstadoIncidencia, Incidencia, NombresEstadoIncidencia, NombresTipoIncidencia, TipoIncidencia } from '../modelos/incidencias';
-import { Button, Card, CardContent, Checkbox, FormControl, FormControlLabel, Grid, InputLabel, MenuItem, Popover, Select, Stack, Tooltip, useTheme, Typography, Box, Chip, Divider } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
+import { Button, Card, CardContent, FormControl, Grid, InputLabel, MenuItem, Popover, Select, Stack, Tooltip, useTheme, Typography, Box, Chip, Divider } from '@mui/material';
 import dayjs from 'dayjs';
-import LocalizationProviderES from '../theme/location';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
 import { timeToStr } from '../modelos/formatos';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { SelectorFechas, SelectorFechasRef } from './SelectorFechas';
 
 // Función para obtener el color del estado
 function getEstadoColor(estado: EstadoIncidencia):
@@ -47,13 +46,6 @@ export class IncidenciaGrid extends Incidencia {
     const incGrid = new IncidenciaGrid(inc);
     return incGrid;
   }
-}
-
-interface FormularioData {
-  ultimasInc: boolean;
-  fechaInicio: dayjs.Dayjs;
-  fechaFin: dayjs.Dayjs;
-  estado: EstadoIncidencia | 0;
 }
 
 // Define el tipo para las acciones
@@ -88,12 +80,9 @@ interface IncidenciaListProps {
 // usuario se pueden hacer una o varias accciones y filtrar
 // por unos determinados estados
 export default function IncidenciaList(props: IncidenciaListProps) {
-  const [formData, setFormData] = React.useState<FormularioData>({
-    ultimasInc: true,
-    fechaInicio: dayjs(),
-    fechaFin: dayjs(),
-    estado: 0
-  });
+  const selectorFechasRef = React.useRef<SelectorFechasRef>(null);
+
+  const [estado, setEstado] = React.useState<number>(0);
 
   const theme = useTheme();
   const notifica = useNotifications();
@@ -125,21 +114,21 @@ export default function IncidenciaList(props: IncidenciaListProps) {
   // para ese usuario
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
+
     let listData: Incidencia[] = [];
     try {
       // Si no se selecciona un estado para filtrar
       // se filtra por todos
-      const estadosFiltrar = formData.estado == 0
+      const estadosFiltrar = estado == 0
         ? props.estadosFiltro
-        : [formData.estado];
+        : [estado];
 
-      let fechaInicio = null;
-      let fechaFin = null;
-
-      if (!formData.ultimasInc) {
-        fechaInicio = formData.fechaInicio;
-        fechaFin = formData.fechaFin;
+      if (!selectorFechasRef.current) {
+        console.log('filtrosRef.current es vacío en IncidenciaList');
+        return;
       }
+
+      const { fechaInicio, fechaFin } = selectorFechasRef.current.getFormData();
 
       // Notificar al padre sobre los filtros aplicados
       if (props.onFilterChange) {
@@ -178,7 +167,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
     setRowsState(gridData);
 
     setIsLoading(false);
-  }, [formData]);
+  }, [selectorFechasRef]);
 
   React.useEffect(() => {
     loadData();
@@ -333,16 +322,6 @@ export default function IncidenciaList(props: IncidenciaListProps) {
     },
   ];
 
-  // Se asignan los valores del formulario a una entidad
-  const handleFieldChange =
-    (name: string,
-      value: dayjs.Dayjs | boolean | EstadoIncidencia | 0 | null) => {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    };
-
   // Filtra la tabla de incidencias
   const handleFiltrar = () => {
     loadData();
@@ -364,84 +343,44 @@ export default function IncidenciaList(props: IncidenciaListProps) {
 
   return (
     <Stack spacing={2} sx={{ height: '100%', mt: 1.5 }}>
-      <LocalizationProviderES>
-        <Grid container spacing={2} sx={{ ml: 0.2, mb: 2, width: '100%' }}>
-          <Grid container spacing={2} sx={{ width: '100%' }}>
-            <Grid size={{ xs: 12, sm: 12, md: 2 }} sx={{ mt: 1 }}>
-              <FormControl>
-                <FormControlLabel
-                  name="ultimasInc"
-                  control={
-                    <Checkbox
-                      size="large"
-                      checked={formData.ultimasInc}
-                      onChange={event =>
-                        handleFieldChange('ultimasInc', event.target.checked)}
-                    />
-                  }
-                  label="Últimas incidencias"
-                />
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 12, md: 2 }}>
-              <DatePicker
-                name='fechaInicio'
-                label="Fecha inicio"
-                value={formData.fechaInicio || null}
-                disabled={formData.ultimasInc}
-                onChange={value =>
-                  handleFieldChange('fechaInicio', value)}
-                sx={{ width: '100%' }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 12, md: 2 }}>
-              <DatePicker
-                name='fechaFin'
-                label="Fecha fin"
-                value={formData.fechaFin || null}
-                disabled={formData.ultimasInc}
-                onChange={value =>
-                  handleFieldChange('fechaFin', value)}
-                sx={{ width: '100%' }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 12, md: 2 }}>
-              <FormControl>
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  name="estado"
-                  value={formData.estado}
-                  onChange={value =>
-                    handleFieldChange('estado', value.target.value)}
-                  autoWidth
-                >
-                  <MenuItem value="0">
-                    Todos
-                  </MenuItem>
-                  {props.estadosFiltro.map(estado => (
-                    <MenuItem key={estado} value={estado}>
-                      {NombresEstadoIncidencia[estado]}
-                    </MenuItem>
-                  ))}
-                </Select>              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 12, md: 1 }}>
-              <Button
-                variant="contained"
-                sx={{
-                  width: { xs: '100%', sm: 'auto' },
-                  minWidth: 120,
-                  mt: 0.5
-                }}
-                disabled={isLoading}
-                onClick={handleFiltrar}
-              >
-                FILTRAR
-              </Button>
-            </Grid>
-          </Grid>
+      <Grid container spacing={2} sx={{ ml: 0.2, mb: 2, width: '100%' }}>
+        <SelectorFechas
+          ref={selectorFechasRef}
+          labelUltimosRegistros={'Últimas incidencias'} />
+        <Grid size={{ xs: 12, sm: 12, md: 2 }}>
+          <FormControl>
+            <InputLabel>Estado</InputLabel>
+            <Select
+              name="estado"
+              value={estado}
+              onChange={value => setEstado(value.target.value)}
+              autoWidth
+            >
+              <MenuItem value="0">
+                Todos
+              </MenuItem>
+              {props.estadosFiltro.map(estado => (
+                <MenuItem key={estado} value={estado}>
+                  {NombresEstadoIncidencia[estado]}
+                </MenuItem>
+              ))}
+            </Select>              </FormControl>
         </Grid>
-      </LocalizationProviderES>
+        <Grid size={{ xs: 12, sm: 12, md: 1 }}>
+          <Button
+            variant="contained"
+            sx={{
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: 120,
+              mt: 0.5
+            }}
+            disabled={isLoading}
+            onClick={handleFiltrar}
+          >
+            FILTRAR
+          </Button>
+        </Grid>
+      </Grid>
       <DataGrid
         rows={rowsState}
         columnGroupingModel={columnGroupingModel}

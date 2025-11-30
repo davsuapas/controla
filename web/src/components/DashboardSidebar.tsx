@@ -16,6 +16,7 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import RuleIcon from '@mui/icons-material/Rule';
 import AddTaskIcon from '@mui/icons-material/AddTask';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import WysiwygIcon from '@mui/icons-material/Wysiwyg';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
@@ -219,6 +220,14 @@ export default function DashboardSidebar({
                     href="/marcaje/auto"
                     visible={user.acceso_a_ruta('/marcaje/auto')}
                     selected={!!matchPath('/marcaje/auto', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="marcaje_consulta"
+                    title="Consulta"
+                    icon={<WysiwygIcon />}
+                    href="/marcaje/consulta"
+                    visible={user.acceso_a_ruta('/marcaje/consulta')}
+                    selected={!!matchPath('/marcaje/consulta', pathname)}
                   />
                 </List>
               }

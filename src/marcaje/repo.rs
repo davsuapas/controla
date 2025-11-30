@@ -304,9 +304,74 @@ impl MarcajeRepo {
       .await
   }
 
+  /// Obtiene los marcaje dado el usuario entre dos fechas.
+  ///
+  /// Si la fechas son Nones se filtra solos por usuario.
+  /// Si el usuario_reg es igual a 0, significa que es supervisor
+  /// y puede ver todos los marcajes de caulquier usuario.
+  /// Si el usuario es diferente el usuario_reg, significa
+  /// que es usuario registrador y por tanto puede ver solo
+  /// los marcajes que registro el.
+  /// Si son iguales el usuario es empleado y solo puede ver
+  /// sus marcajes.
+  ///
+  /// Los marcajes deben no tener asignada una incidencia.
+  pub(in crate::marcaje) async fn marcajes_entre_fechas_reg(
+    &self,
+    usuario: u32,
+    fecha_inicio: Option<NaiveDate>,
+    fecha_fin: Option<NaiveDate>,
+    usuario_reg: Option<u32>,
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
+    const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
+
+    let filter = match (usuario_reg, fecha_inicio, fecha_fin) {
+      (Some(usr), Some(_), Some(_)) if usr == usuario || usr == 0 => {
+        "r.usuario = ? AND r.fecha BETWEEN ? AND ?"
+      }
+      (Some(_), Some(_), Some(_)) => {
+        r"r.usuario = ? AND r.fecha BETWEEN ? AND ?
+         AND r.usuario_registrador = ?"
+      }
+      (Some(usr), None, None) if usr == usuario || usr == 0 => "r.usuario = ?",
+      (Some(_), None, None) => "r.usuario = ? AND r.usuario_registrador = ?",
+      (None, Some(_), Some(_)) => "r.usuario = ? AND r.fecha BETWEEN ? AND ?",
+      _ => "r.usuario = ?",
+    };
+
+    use sqlx::Arguments;
+    let mut args = sqlx::mysql::MySqlArguments::default();
+    args
+      .add(usuario)
+      .map_err(|_| DBError::Parametros("Usuario"))?;
+
+    if let (Some(fi), Some(ff)) = (fecha_inicio, fecha_fin) {
+      args
+        .add(fi.formato_sql())
+        .map_err(|_| DBError::Parametros("Fecha inicio"))?;
+      args
+        .add(ff.formato_sql())
+        .map_err(|_| DBError::Parametros("Fecha fin"))?;
+    }
+
+    if let Some(ur) = usuario_reg {
+      if ur != usuario && ur != 0 {
+        args
+          .add(ur)
+          .map_err(|_| DBError::Parametros("Usuario registrador"))?;
+      }
+    }
+
+    self
+      .marcajes(None, Some(filter), Some(args), Some(ORDER_BY))
+      .await
+  }
+
   /// Obtiene los marcaje dado el usuario y la fecha
-  /// para el registrador como parámetro
-  /// que no tengan asigandas una incidencia
+  ///
+  /// Los marcajes deben no tener asignada una incidencia
+  /// Dependiendo del usuario registrador pasado como parámetro
+  /// se filtran los marcajes de diferente forma.
   pub(in crate::marcaje) async fn marcajes_inc_por_fecha_reg(
     &self,
     usuario: u32,

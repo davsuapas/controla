@@ -23,14 +23,15 @@ import Logout from './components/Logout';
 import UsuarioShow from './components/UsuarioShow';
 import MarcajeManual from './components/MarcajeManual';
 import { crearAPI } from './api/fabrica';
-import SolicitudIncidencia from './components/SolicitudIncidencia';
+import SolicitudIncidencia from './components/IncidenciaSolicitud';
 import ErrorPage from './components/ErrorPage';
 import ErrorBoundary from './components/ErrorBoundary';
-import RevisionIncidencia from './components/RevisionIncidencias';
-import GestionIncidencia from './components/GestionIncidencia';
+import RevisionIncidencia from './components/IncidenciaRevision';
+import GestionIncidencia from './components/IncidenciaGestion';
 import MarcajeAuto from './components/MarcajeAuto';
+import MarcajeConsulta from './components/MarcajeConsulta';
 
-crearAPI(false);
+crearAPI(true);
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
@@ -159,6 +160,11 @@ const rutas = [
               {
                 path: 'auto',
                 Component: MarcajeAuto,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'consulta',
+                Component: MarcajeConsulta,
                 errorElement: <ErrorPage />,
               }
             ]

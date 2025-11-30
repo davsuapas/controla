@@ -7,7 +7,7 @@ use axum::{
   response::IntoResponse,
   routing::{get, post, put},
 };
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
 
 use crate::{
@@ -25,6 +25,14 @@ use crate::{
   infra::{Dni, Password},
   usuarios::Rol,
 };
+
+#[derive(Deserialize)]
+pub struct FiltroParams {
+  pub usuario: u32,
+  pub fecha_inicio: Option<NaiveDate>,
+  pub fecha_fin: Option<NaiveDate>,
+  pub usuario_reg: Option<u32>,
+}
 
 #[derive(Deserialize)]
 struct UsuarioFechaParams {
@@ -83,6 +91,7 @@ pub fn rutas(app: Arc<AppState>) -> Router {
     )
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
     .route("/marcajes", post(registrar))
+    .route("/marcajes/entre/fechas", post(marcajes_entre_fechas))
     .route("/incidencias", post(crear_incidencia))
     .route(
       "/incidencias/cambiar/a/solicitud",
@@ -247,7 +256,25 @@ async fn usuario(
     .map(|u| Json(UsuarioDTO::from(u)))
 }
 
-/// Api para obtener el marcaje sin incidencias por fecha
+/// Api para obtener los marcajes entre fechas para un usuario
+async fn marcajes_entre_fechas(
+  State(state): State<Arc<AppState>>,
+  Json(param): Json<FiltroParams>,
+) -> impl IntoResponse {
+  state
+    .marcaje_servicio
+    .marcajes_entre_fechas_reg(
+      param.usuario,
+      param.fecha_inicio,
+      param.fecha_fin,
+      param.usuario_reg,
+    )
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
+}
+
+/// Api para obtener los marcajes sin incidencias por fecha
 async fn marcaje_sin_inc_por_fecha(
   State(state): State<Arc<AppState>>,
   Path(param): Path<UsuarioFechaParams>,
