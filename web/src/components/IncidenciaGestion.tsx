@@ -104,7 +104,7 @@ export default function GestionIncidencia() {
     [row]);
 
   return (
-    <PageContainer title={'Gestor/Consultas incidencias'}>
+    <PageContainer title={'Gestor incidencias'}>
       <Box sx={FULL_HEIGHT_WIDTH}>
         <IncidenciaList
           estadosFiltro={[

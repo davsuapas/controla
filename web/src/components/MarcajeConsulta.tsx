@@ -8,11 +8,13 @@ import { logError } from '../error';
 import PageContainer from './PageContainer';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { api } from '../api/fabrica';
-import { Backdrop, Button, CircularProgress, Grid } from '@mui/material';
+import { Backdrop, Button, CircularProgress, Grid, useMediaQuery, useTheme } from '@mui/material';
 import { SelectorFechas, SelectorFechasRef } from './SelectorFechas';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { DescriptorUsuario, filtroUsuarioRegistra, RolID } from '../modelos/usuarios';
 import SelectorEmpleado from './SelectorEmpleado';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 // Muestra los marcajes según un filtro
 // Esta pantalla solo puede ser usada por empleados, registrador o supervisor
@@ -31,6 +33,10 @@ export default function ConsultaMarcaje() {
     !usuarioLog.tieneRol(RolID.Supervisor);
 
   const [empleado, setEmpleado] = React.useState<number>(usuarioLog.id);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
 
   // Carga los últimos marcajes (solo depende de usuarioId)
   const cargarMarcaje = React.useCallback(
@@ -85,40 +91,86 @@ export default function ConsultaMarcaje() {
     cargarMarcaje()
   }, [cargarMarcaje]);
 
+  const toggleExpand = React.useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
+
   return (
     <PageContainer title={'Marcajes registrados'}>
-      <Box sx={{ ...FULL_HEIGHT_WIDTH }}>
-        {!usuarioSoloEmpleado && (
-          <>
-            <SelectorEmpleado
-              onChange={handleEmpleadoChange}
-              onLoadingChange={setBloquear}
-              usuarioPorDefecto={usuarioLog.id}
-            />
-            <Box sx={{ mb: 3 }} />
-          </>
-        )}
-        <Grid container spacing={2}
-          sx={{ mt: 2, ml: 0.2, mb: 2, width: '100%' }}>
-          <SelectorFechas
-            ref={selectorFechasRef}
-            labelUltimosRegistros={'Últimos marcajes'} />
-          <Grid size={{ xs: 12, sm: 12, md: 1 }}>
-            <Button
-              variant="contained"
-              sx={{
-                width: { xs: '100%', sm: 'auto' },
-                minWidth: 120,
-                mt: 0.5
-              }}
-              disabled={isLoading || bloquear}
-              onClick={handleFiltrar}
-            >
-              FILTRAR
-            </Button>
+      <Box sx={{
+        ...FULL_HEIGHT_WIDTH,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Contenido superior - Se oculta en móvil cuando está expandido */}
+        <Box sx={{
+          display: isMobile && isExpanded ? 'none' : 'block',
+          flexShrink: 0
+        }}>
+          {!usuarioSoloEmpleado && (
+            <>
+              <SelectorEmpleado
+                onChange={handleEmpleadoChange}
+                onLoadingChange={setBloquear}
+                usuarioPorDefecto={usuarioLog.id}
+              />
+              <Box sx={{ mb: 3 }} />
+            </>
+          )}
+          <Grid container spacing={2}
+            sx={{ mt: 2, ml: 0.2, mb: 2, width: '100%' }}>
+            <SelectorFechas
+              ref={selectorFechasRef}
+              labelUltimosRegistros={'Últimos marcajes'} />
+            <Grid size={{ xs: 12, sm: 12, md: 1 }}>
+              <Button
+                variant="contained"
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  minWidth: 120,
+                  mt: 0.5
+                }}
+                disabled={isLoading || bloquear}
+                onClick={handleFiltrar}
+              >
+                FILTRAR
+              </Button>
+            </Grid>
           </Grid>
-        </Grid>
-        <Box sx={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+        </Box>
+        {/* Botón para expandir/contraer en móviles */}
+        {isMobile && (
+          <Box
+            onClick={toggleExpand}
+            sx={{
+              height: 20,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+              '&:active': {
+                bgcolor: 'action.hover'
+              },
+              transition: 'background-color 0.2s'
+            }}
+          >
+            {isExpanded ? (
+              <ExpandMoreIcon sx={{ color: 'text.secondary' }} />
+            ) : (
+              <ExpandLessIcon sx={{ color: 'text.secondary' }} />
+            )}
+          </Box>
+        )}
+        {/* Contenedor de la tabla */}
+        <Box sx={{
+          flex: 1,
+          minHeight: 250,
+          position: 'relative',
+        }}>
           <Backdrop
             sx={{
               zIndex: (theme) => theme.zIndex.drawer + 1,

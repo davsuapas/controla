@@ -220,6 +220,96 @@ export class MarcajeTestApi implements MarcajeApi {
           hora_inicio: '08:00',
           hora_fin: null,
           hora_trabajadas: null
+        },
+        {
+          id: 7,
+          usuario: 1,
+          usuario_reg: 2,
+          horario: {
+            dia: 'S',
+            hora_inicio: '08:00',
+            hora_fin: '12:00',
+            horas_a_trabajar: 4
+          },
+          fecha: '2024-01-20',
+          hora_inicio: '08:00',
+          hora_fin: null,
+          hora_trabajadas: null
+        },
+        {
+          id: 8,
+          usuario: 1,
+          usuario_reg: 2,
+          horario: {
+            dia: 'S',
+            hora_inicio: '08:00',
+            hora_fin: '12:00',
+            horas_a_trabajar: 4
+          },
+          fecha: '2024-01-20',
+          hora_inicio: '08:00',
+          hora_fin: null,
+          hora_trabajadas: null
+        },
+        {
+          id: 9,
+          usuario: 1,
+          usuario_reg: 2,
+          horario: {
+            dia: 'S',
+            hora_inicio: '08:00',
+            hora_fin: '12:00',
+            horas_a_trabajar: 4
+          },
+          fecha: '2024-01-20',
+          hora_inicio: '08:00',
+          hora_fin: null,
+          hora_trabajadas: null
+        },
+        {
+          id: 10,
+          usuario: 1,
+          usuario_reg: 2,
+          horario: {
+            dia: 'S',
+            hora_inicio: '08:00',
+            hora_fin: '12:00',
+            horas_a_trabajar: 4
+          },
+          fecha: '2024-01-20',
+          hora_inicio: '08:00',
+          hora_fin: null,
+          hora_trabajadas: null
+        },
+        {
+          id: 11,
+          usuario: 1,
+          usuario_reg: 2,
+          horario: {
+            dia: 'S',
+            hora_inicio: '08:00',
+            hora_fin: '12:00',
+            horas_a_trabajar: 4
+          },
+          fecha: '2024-01-20',
+          hora_inicio: '08:00',
+          hora_fin: null,
+          hora_trabajadas: null
+        },
+        {
+          id: 12,
+          usuario: 1,
+          usuario_reg: 2,
+          horario: {
+            dia: 'S',
+            hora_inicio: '08:00',
+            hora_fin: '12:00',
+            horas_a_trabajar: 4
+          },
+          fecha: '2024-01-20',
+          hora_inicio: '08:00',
+          hora_fin: null,
+          hora_trabajadas: null
         }
       ],
       cache: {

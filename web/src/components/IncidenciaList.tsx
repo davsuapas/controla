@@ -11,13 +11,15 @@ import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import { logError } from '../error';
 import { EstadoIncidencia, Incidencia, NombresEstadoIncidencia, NombresTipoIncidencia, TipoIncidencia } from '../modelos/incidencias';
-import { Button, Card, CardContent, FormControl, Grid, InputLabel, MenuItem, Popover, Select, Stack, Tooltip, useTheme, Typography, Box, Chip, Divider } from '@mui/material';
+import { Button, Card, CardContent, FormControl, Grid, InputLabel, MenuItem, Popover, Select, Stack, Tooltip, useTheme, Typography, Box, Chip, Divider, useMediaQuery } from '@mui/material';
 import dayjs from 'dayjs';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
 import { timeToStr } from '../modelos/formatos';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { SelectorFechas, SelectorFechasRef } from './SelectorFechas';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 // Función para obtener el color del estado
 function getEstadoColor(estado: EstadoIncidencia):
@@ -80,11 +82,14 @@ interface IncidenciaListProps {
 // usuario se pueden hacer una o varias accciones y filtrar
 // por unos determinados estados
 export default function IncidenciaList(props: IncidenciaListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
+
   const selectorFechasRef = React.useRef<SelectorFechasRef>(null);
 
   const [estado, setEstado] = React.useState<number>(0);
 
-  const theme = useTheme();
   const notifica = useNotifications();
   const usuario = useUsuarioLogeado().getUsrLogeado();
   const supervisor = usuario.tieneRol(RolID.Supervisor);
@@ -171,6 +176,10 @@ export default function IncidenciaList(props: IncidenciaListProps) {
 
   React.useEffect(() => {
     loadData();
+  }, []);
+
+  const toggleExpand = React.useCallback(() => {
+    setIsExpanded(prev => !prev);
   }, []);
 
   const columns = React.useMemo<GridColDef[]>(
@@ -343,7 +352,12 @@ export default function IncidenciaList(props: IncidenciaListProps) {
 
   return (
     <Stack spacing={2} sx={{ height: '100%', mt: 1.5 }}>
-      <Grid container spacing={2} sx={{ ml: 0.2, mb: 2, width: '100%' }}>
+      <Grid container spacing={2}
+        sx={{
+          ml: 0.2, mb: 2, width: '100%',
+          display: isMobile && isExpanded ? 'none' : 'flex',
+          flexShrink: 0
+        }}>
         <SelectorFechas
           ref={selectorFechasRef}
           labelUltimosRegistros={'Últimas incidencias'} />
@@ -381,6 +395,33 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           </Button>
         </Grid>
       </Grid>
+      {/* Botón para expandir/contraer en móviles */}
+      {isMobile && (
+        <Box
+          onClick={toggleExpand}
+          sx={{
+            height: 20,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            '&:active': {
+              bgcolor: 'action.hover'
+            },
+            transition: 'background-color 0.2s'
+          }}
+        >
+          {isExpanded ? (
+            <ExpandMoreIcon sx={{ color: 'text.secondary' }} />
+          ) : (
+            <ExpandLessIcon sx={{ color: 'text.secondary' }} />
+          )}
+        </Box>
+      )}
       <DataGrid
         rows={rowsState}
         columnGroupingModel={columnGroupingModel}
@@ -422,7 +463,6 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           } as any,
         }} onRowClick={handleRowClick}
       />
-
       {selectedIncidencia && (
         <IncidenciaDetalle
           incidencia={selectedIncidencia}

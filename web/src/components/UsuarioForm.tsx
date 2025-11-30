@@ -30,7 +30,8 @@ export interface UsuarioFormState {
 export enum Presentacion {
   FULL = 0,
   SOLO_PASSWORD = 1,
-  SIN_PASSWORD = 2,
+  SOLO_PASSWORD_SIN_VOLVER = 2,
+  SIN_PASSWORD = 3,
 }
 
 export type FormFieldValue = string | string[] | number |
@@ -414,7 +415,8 @@ export default function UsuarioForm(props: UsuarioFormProps) {
             )}
         </Grid>
         {(presentacion === Presentacion.FULL ||
-          presentacion === Presentacion.SOLO_PASSWORD) && (
+          presentacion === Presentacion.SOLO_PASSWORD ||
+          presentacion === Presentacion.SOLO_PASSWORD_SIN_VOLVER) && (
             <Grid container spacing={2} sx={{ mb: 2, width: '100%' }}>
               <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>
                 <TextField
@@ -444,14 +446,16 @@ export default function UsuarioForm(props: UsuarioFormProps) {
           )}
       </FormGroup>
       <Stack direction="row" spacing={2} justifyContent="space-between">
-        <Button
-          variant="contained"
-          startIcon={<ArrowBackIcon />}
-          onClick={handleBack}
-        >
-          VOLVER
-        </Button>
-        <Button
+        {(presentacion !== Presentacion.SOLO_PASSWORD_SIN_VOLVER) && (
+          <Button
+            variant="contained"
+            startIcon={<ArrowBackIcon />}
+            onClick={handleBack}
+          >
+            VOLVER
+          </Button>
+        )}
+        < Button
           type="submit"
           variant="contained"
           size="large"
@@ -460,6 +464,6 @@ export default function UsuarioForm(props: UsuarioFormProps) {
           {submitButtonLabel}
         </Button>
       </Stack>
-    </Box>
+    </Box >
   );
 }

@@ -130,8 +130,10 @@ export default function MarcajeAuto() {
   );
 
   return (
-    <PageContainer title={'Marcaje automático del empleado'}>
-      <Box sx={{ ...FULL_HEIGHT_WIDTH }}>
+    <PageContainer title={'Marcaje empleado'}>
+      <Box sx={{
+        ...FULL_HEIGHT_WIDTH, display: 'flex', flexDirection: 'column'
+      }}>
         {!usuarioSoloEmpleado && (
           <>
             <SelectorEmpleado
@@ -168,12 +170,14 @@ export default function MarcajeAuto() {
             </Button>
           </Grid>
         </Grid>
-        <ResumenMarcaje
-          ultimosMarcajes={true}
-          usuarioId={empleado.toString()}
-          fecha={fechaActual}
-          horaInicio={fechaActual}
-        />
+        <Box sx={{ flex: 1, minHeight: 300 }}>
+          <ResumenMarcaje
+            ultimosMarcajes={true}
+            usuarioId={empleado.toString()}
+            fecha={fechaActual}
+            horaInicio={fechaActual}
+          />
+        </Box>
       </Box>
     </PageContainer>
   );

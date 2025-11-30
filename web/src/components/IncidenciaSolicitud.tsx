@@ -186,7 +186,7 @@ export default function SolicitudIncidencia() {
           break;
 
         case TipoIncidencia.NuevoMarcaje:
-          msgNotifica = 'Solicitud "marcaje no realizado" creada satisfactoriamente';
+          msgNotifica = 'Solicitud "nuevo marcaje" creada satisfactoriamente';
           break;
 
         default:
@@ -375,7 +375,7 @@ export default function SolicitudIncidencia() {
                   }}
                   onClick={handleMarcajeNoRealizado}
                 >
-                  MARCAJE NO REALIZADO
+                  NUEVO MARCAJE
                 </Button>
               </Grid>
             </Grid>

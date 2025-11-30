@@ -37,32 +37,104 @@ interface MarcajeListProps {
 // Muestra en una tabla los marcajes de un usuario
 // Se proporciona una lista de marcajes de usuario
 // Pemite excluir columnas a través de propiedades de configuración
-export default function MarcajeList({ marcajes: marcajes }: MarcajeListProps) {
+export default function MarcajeList({ marcajes }: MarcajeListProps) {
   return (
     <TableContainer component={Paper}
-      sx={{ maxWidth: '100%', maxHeight: '50vh', overflow: 'auto' }}>
+      sx={{
+        maxWidth: '100%',
+        overflow: 'auto',
+        height: '100%',
+        boxShadow: 0,  // Quitar sombra para que se vea más limpio al pegar
+      }}>
       <Table
-        aria-label="customized table" stickyHeader
+        aria-label="customized table"
         sx={{ minWidth: 700 }}>
         <TableHead>
           <TableRow>
-            <StyledTableCell align="center" colSpan={7}>
-              MARCAJES
+            {/* 2. Aplicamos position: sticky a las celdas */}
+            <StyledTableCell
+              sx={{
+                position: 'sticky',
+                top: 0, // Se pega al TOP del contenedor de scroll (el Box en ConsultaMarcaje)
+                zIndex: 10,
+                // Asegurar que el fondo es opaco, ya que al ser sticky,
+                // las filas del body pasarían por debajo si no fuera opaco
+                backgroundColor: 'background.default',
+              }}
+            >
+              FECHA
             </StyledTableCell>
-          </TableRow>
-          <TableRow>
-            <StyledTableCell>FECHA</StyledTableCell>
-            <StyledTableCell align="right">ENTRADA</StyledTableCell>
-            <StyledTableCell align="right">SALIDA</StyledTableCell>
-            <StyledTableCell align="right">HORA A ENTRAR</StyledTableCell>
-            <StyledTableCell align="right">HORA A SALIR</StyledTableCell>
-            <StyledTableCell align="right">HORAS TRABAJADAS</StyledTableCell>
-            <StyledTableCell align="right">HORAS A TRABAJAR</StyledTableCell>
+            <StyledTableCell
+              align="right"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              ENTRADA
+            </StyledTableCell>
+            <StyledTableCell
+              align="right"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              SALIDA
+            </StyledTableCell>
+            <StyledTableCell
+              align="right"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              HORA A ENTRAR
+            </StyledTableCell>
+            <StyledTableCell
+              align="right"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              HORA A SALIR
+            </StyledTableCell>
+            <StyledTableCell
+              align="right"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              HORAS TRABAJADAS
+            </StyledTableCell>
+            <StyledTableCell
+              align="right"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              HORAS A TRABAJAR
+            </StyledTableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {marcajes.map((marcaje) => (
-            <StyledTableRow>
+          {marcajes.map((marcaje, index) => (
+            <StyledTableRow key={index}>
               <StyledTableCell component="th" scope="row">
                 {dateToStr(marcaje.fecha)}
               </StyledTableCell>

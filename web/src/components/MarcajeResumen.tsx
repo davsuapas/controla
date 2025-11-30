@@ -123,7 +123,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
   }, [props.usuarioId, props.fecha, props.horaInicio]);
 
   return (
-    <Box sx={{ flex: 1, overflow: 'hidden' }}>
+    <Box sx={{ flex: 1, overflow: 'hidden', height: '100%' }}>
       <Divider />
       <Stack spacing={2} sx={{ height: '100%', mt: 1.5 }}>
         <Box
@@ -153,7 +153,9 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             </Box>
           )}
         </Box>
-        <Box sx={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+        <Box sx={{
+          flex: 1, position: 'relative', minHeight: 0
+        }}>
           <Backdrop
             sx={{
               zIndex: (theme) => theme.zIndex.drawer + 1,

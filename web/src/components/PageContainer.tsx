@@ -60,25 +60,25 @@ export default function PageContainer(props: PageContainerProps) {
           >
             {breadcrumbs
               ? breadcrumbs.map((breadcrumb, index) => {
-                  return breadcrumb.path ? (
-                    <MuiLink
-                      key={index}
-                      component={Link}
-                      underline="hover"
-                      color="inherit"
-                      to={breadcrumb.path}
-                    >
-                      {breadcrumb.title}
-                    </MuiLink>
-                  ) : (
-                    <Typography
-                      key={index}
-                      sx={{ color: 'text.primary', fontWeight: 600 }}
-                    >
-                      {breadcrumb.title}
-                    </Typography>
-                  );
-                })
+                return breadcrumb.path ? (
+                  <MuiLink
+                    key={index}
+                    component={Link}
+                    underline="hover"
+                    color="inherit"
+                    to={breadcrumb.path}
+                  >
+                    {breadcrumb.title}
+                  </MuiLink>
+                ) : (
+                  <Typography
+                    key={index}
+                    sx={{ color: 'text.primary', fontWeight: 600 }}
+                  >
+                    {breadcrumb.title}
+                  </Typography>
+                );
+              })
               : null}
           </PageHeaderBreadcrumbs>
           <PageContentHeader>

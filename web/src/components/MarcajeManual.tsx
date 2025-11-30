@@ -159,7 +159,7 @@ export default function MarcajeManual() {
     [formData, usuarioLogeado, notifica, resetCamposHora]
   );
 
-  const pageTitle = 'Marcaje manual del empleado';
+  const pageTitle = 'Marcaje manual';
 
   return (
     <PageContainer title={pageTitle}>
@@ -168,7 +168,7 @@ export default function MarcajeManual() {
         onSubmit={handleSubmit}
         noValidate
         autoComplete="off"
-        sx={FULL_HEIGHT_WIDTH}
+        sx={{ ...FULL_HEIGHT_WIDTH, display: 'flex', flexDirection: 'column' }}
       >
         <LocalizationProviderES>
           <FormGroup>
@@ -234,14 +234,16 @@ export default function MarcajeManual() {
             </Grid>
           </FormGroup>
         </LocalizationProviderES>
-        <ResumenMarcaje
-          ultimosMarcajes={false}
-          usuarioId={formData.empleado?.id.toString()}
-          fecha={formData.fecha}
-          horaInicio={formData.entrada}
-          refreshTrigger={refreshTrigger}
-        />
+        <Box sx={{ flex: 1, minHeight: 300 }}>
+          <ResumenMarcaje
+            ultimosMarcajes={false}
+            usuarioId={formData.empleado?.id.toString()}
+            fecha={formData.fecha}
+            horaInicio={formData.entrada}
+            refreshTrigger={refreshTrigger}
+          />
+        </Box>
       </Box>
-    </PageContainer>
+    </PageContainer >
   );
 }

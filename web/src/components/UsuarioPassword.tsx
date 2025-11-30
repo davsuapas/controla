@@ -20,6 +20,7 @@ const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 export default function UsuarioPassword() {
   const { id } = useParams();
   const { getUsrLogeado } = useUsuarioLogeado()
+  const componentePadre = id !== undefined
 
   const usuarioId = Number(id) || getUsrLogeado().id;
 
@@ -115,7 +116,9 @@ export default function UsuarioPassword() {
         autoHideDuration: 5000,
       });
 
-      navegar('/usuarios');
+      if (componentePadre) {
+        navegar('/usuarios');
+      }
     } catch (error) {
       if (error instanceof NetErrorControlado) {
         return;
@@ -141,7 +144,9 @@ export default function UsuarioPassword() {
         onSubmit={handleFormSubmit}
         onReset={handleFormReset}
         submitButtonLabel="CAMBIAR PASSWORD"
-        presentacion={Presentacion.SOLO_PASSWORD}
+        presentacion={componentePadre ?
+          Presentacion.SOLO_PASSWORD :
+          Presentacion.SOLO_PASSWORD_SIN_VOLVER}
       />
     </PageContainer >
   );
