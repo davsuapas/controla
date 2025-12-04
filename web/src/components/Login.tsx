@@ -65,64 +65,65 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 export default function Login() {
   const { setUsrLogeado } = useUsuarioLogeado()
   const dialogo = useDialogs();
-  const navegar = useNavigate();
   const location = useLocation();
+  const navegar = useNavigate();
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = React.useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
 
-    const data = new FormData(event.currentTarget);
-    const dni = data.get('dni') as string;
+      const data = new FormData(event.currentTarget);
+      const dni = data.get('dni') as string;
 
-    try {
-      const usr = await api().usuarios.login(
-        dni,
-        data.get('password') as string);
+      try {
+        const usr = await api().usuarios.login(
+          dni,
+          data.get('password') as string);
 
-      // Obtener la ruta de destino desde el estado de navegación
-      // Extraer el primer segmento de la ruta
-      const paginaOrigen: string = location.state?.redirect;
+        // Obtener la ruta de destino desde el estado de navegación
+        // Extraer el primer segmento de la ruta
+        const paginaOrigen: string = location.state?.redirect;
 
-      // Verificar si viene de una ruta del Dashboard
-      if (paginaOrigen) {
-        if (!usr.acceso_a_ruta(paginaOrigen)) {
-          dialogo.alert(
-            `El usuario no tiene acceso a esta página: ${paginaOrigen}. ` +
-            'Consulte con el administrador.', { title: 'DNI: ' + dni });
-          return;
-        }
+        // Verificar si viene de una ruta del Dashboard
+        if (paginaOrigen) {
+          if (!usr.acceso_a_ruta(paginaOrigen)) {
+            dialogo.alert(
+              `El usuario no tiene acceso a esta página: ${paginaOrigen}. ` +
+              'Consulte con el administrador.', { title: 'DNI: ' + dni });
+            return;
+          }
 
-        // Redirigir a la página que originó la navegación al login
-        setUsrLogeado(usr);
-        navegar(paginaOrigen, { replace: true });
-
-        return;
-      }
-
-      for (const [rolId, rolInfo] of ROLES.entries()) {
-        if (usr.anyRoles([Number(rolId) as RolID])) {
+          // Redirigir a la página que originó la navegación al login
           setUsrLogeado(usr);
-          navegar(rolInfo.ruta_login, { replace: true });
+          navegar(paginaOrigen, { replace: true });
 
           return;
         }
+
+        for (const [rolId, rolInfo] of ROLES.entries()) {
+          if (usr.anyRoles([Number(rolId) as RolID])) {
+            setUsrLogeado(usr);
+            navegar(rolInfo.ruta_login, { replace: true });
+
+            return;
+          }
+        }
+
+        dialogo.alert(
+          'El usuario no tiene ningún rol asignado. ' +
+          'Consulte con el administrador.', { title: 'DNI: ' + dni });
+      } catch (error) {
+        let msg = 'Error inesperado. Contacte con el administrador';
+
+        if (error instanceof AxiosError) {
+          msg = error.response?.data || msg;
+        } else {
+          console.log(error);
+        }
+
+        dialogo.alert(msg, { title: 'DNI: ' + dni });
       }
-
-      dialogo.alert(
-        'El usuario no tiene ningún rol asignado. ' +
-        'Consulte con el administrador.', { title: 'DNI: ' + dni });
-    } catch (error) {
-      let msg = 'Error inesperado. Contacte con el administrador';
-
-      if (error instanceof AxiosError) {
-        msg = error.response?.data || msg;
-      } else {
-        console.log(error);
-      }
-
-      dialogo.alert(msg, { title: 'DNI: ' + dni });
-    }
-  }
+    }, [setUsrLogeado, dialogo, navegar, location]);
 
   return (
     <SignInContainer direction="column" justifyContent="space-between">

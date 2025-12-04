@@ -14,18 +14,20 @@ import SelectorEmpleado from './SelectorEmpleado';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import PageContainer from './PageContainer';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 // El marcaje automático se caracteríza por disponer de
 // dos botones; uno para la entrada y otro para la salida
 // El sistema se encarga de obtener las horas de forma automática
 // Esta pantalla solo puede ser usada por empleados y registradores
 export default function MarcajeAuto() {
+  const usuarioLog = useUsuarioLogeado().getUsrLogeado();
+  const notifica = useNotifications();
+  const isMounted = useIsMounted();
+
   const [fechaActual, setFechaActual] = React.useState<dayjs.Dayjs>(dayjs());
   const [entrada, setEntrada] = React.useState<boolean>(true);
   const [bloquear, setBloquear] = React.useState<boolean>(false);
-
-  const usuarioLog = useUsuarioLogeado().getUsrLogeado();
-  const notifica = useNotifications();
 
   const usuarioSoloEmpleado = !usuarioLog.tieneRol(RolID.Registrador);
 
@@ -40,9 +42,16 @@ export default function MarcajeAuto() {
       const salidaNula =
         await api().marcajes.marcajeSinFinalizar(empleado, fechaActual);
 
-      setEntrada(!salidaNula)
-      setBloquear(false);
+      if (isMounted.current) {
+        setEntrada(!salidaNula)
+        setBloquear(false);
+      };
+
     } catch (error) {
+      // El manejo de errores puede o no usar safeExecute.
+      // Las notificaciones (notifica.show) generalmente se pueden disparar
+      // sin necesidad de safeExecute, ya que no suelen actualizar el estado interno
+      // del componente que se está desmontando, sino un componente externo (el Notifier).
       if (!(error instanceof NetErrorControlado)) {
         logError('marcaje-auto.salida-nula', error);
         notifica.show(
@@ -53,13 +62,15 @@ export default function MarcajeAuto() {
         });
       }
 
-      setBloquear(true);
+      if (isMounted.current) {
+        setBloquear(true);
+      };
     }
-  }, []);
+  }, [empleado, notifica]);
 
   React.useEffect(() => {
     activarEntradaSalida();
-  }, [empleado]);
+  }, [empleado, activarEntradaSalida]);
 
   // Marcar la entrada
   const handleEntrada = React.useCallback(async () => {
@@ -75,8 +86,10 @@ export default function MarcajeAuto() {
         )
       );
 
-      setEntrada(false);
-      setFechaActual(fechaActual);
+      if (isMounted.current) {
+        setEntrada(false);
+        setFechaActual(fechaActual);
+      };
 
       notifica.show('Entrada registrada satisfactóriamente', {
         severity: 'success',
@@ -93,7 +106,7 @@ export default function MarcajeAuto() {
         });
       }
     }
-  }, []);
+  }, [notifica]);
 
   // Marcar la salida
   const handleSalida = React.useCallback(async () => {
@@ -102,8 +115,10 @@ export default function MarcajeAuto() {
 
       await api().marcajes.registrarSalida(empleado, fechaActual)
 
-      setEntrada(true);
-      setFechaActual(fechaActual);
+      if (isMounted.current) {
+        setEntrada(true);
+        setFechaActual(fechaActual);
+      };
 
       notifica.show('Salida registrada satisfactóriamente', {
         severity: 'success',
@@ -120,7 +135,7 @@ export default function MarcajeAuto() {
         });
       }
     }
-  }, []);
+  }, [notifica]);
 
   const handleEmpleadoChange = React.useCallback(
     (empleado: DescriptorUsuario) => {

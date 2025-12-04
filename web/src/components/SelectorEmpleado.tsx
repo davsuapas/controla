@@ -7,6 +7,7 @@ import { api } from '../api/fabrica';
 import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import { logError } from '../error';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 interface SelectorEmpleadoProps {
   onChange: (empleado: DescriptorUsuario) => void;
@@ -25,19 +26,22 @@ export default function SelectorEmpleado({
   onLoadingChange,
   usuarioPorDefecto: seleccionUsuario
 }: SelectorEmpleadoProps) {
+  const isMounted = useIsMounted();
+  const notifica = useNotifications();
+
   const [empleados, setEmpleados] = useState<DescriptorUsuario[]>([]);
   const [empleado, setEmpleado] =
     useState<DescriptorUsuario | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const notifica = useNotifications();
 
   const cargarEmpleados = useCallback(async () => {
     setIsLoading(true);
     if (onLoadingChange) onLoadingChange(true);
 
+    let empls: DescriptorUsuario[] = []
+
     try {
-      const empls = await api().usuarios.usuariosPorRol(RolID.Empleado);
-      setEmpleados(empls);
+      empls = await api().usuarios.usuariosPorRol(RolID.Empleado);
 
       if (empls.length > 0) {
         let empleadoASeleccionar: DescriptorUsuario | undefined;
@@ -52,8 +56,10 @@ export default function SelectorEmpleado({
           empleadoASeleccionar = empls[0];
         }
 
-        setEmpleado(empleadoASeleccionar);
-        onChange(empleadoASeleccionar);
+        if (isMounted.current) {
+          setEmpleado(empleadoASeleccionar);
+          onChange(empleadoASeleccionar);
+        };
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
@@ -66,12 +72,14 @@ export default function SelectorEmpleado({
           }
         );
       }
-      setEmpleados([]);
-    } finally {
+    }
+
+    if (isMounted.current) {
+      setEmpleados(empls);
       setIsLoading(false);
       if (onLoadingChange) onLoadingChange(false);
-    }
-  }, [onLoadingChange, onChange]);
+    };
+  }, [onLoadingChange, onChange, notifica]);
 
   useEffect(() => {
     cargarEmpleados();
@@ -86,7 +94,7 @@ export default function SelectorEmpleado({
         onChange(empleadoSeleccionado);
       }
     },
-    [empleados]
+    [empleados, onChange]
   );
 
   return (

@@ -22,10 +22,12 @@ import useNotifications from '../hooks/useNotifications/useNotifications';
 import PasswordIcon from '@mui/icons-material/Password';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { logError } from '../error';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 export default function UsuarioList() {
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const isMounted = useIsMounted();
 
   const [rowsState, setRowsState] = React.useState<{
     rows: Usuario[];
@@ -38,6 +40,7 @@ export default function UsuarioList() {
   // Carga los usuarios
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
+
     let listData: Usuario[] = [];
 
     try {
@@ -56,30 +59,32 @@ export default function UsuarioList() {
       }
     }
 
-    setRowsState({
-      rows: listData,
-    });
+    if (isMounted.current) {
+      setRowsState({
+        rows: listData,
+      });
+      setIsLoading(false);
+    };
 
-    setIsLoading(false);
-  }, []);
+  }, [notifica]);
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Refresca la lista
   const handleRefresh = React.useCallback(() => {
     if (!isLoading) {
       loadData();
     }
-  }, [isLoading]);
+  }, [isLoading, loadData]);
 
   // Edita un usuario
   const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
     ({ row }) => {
       navegar(`/usuarios/${row.id}`);
     },
-    [],
+    [navegar],
   );
 
   // Navega para el cambio de password
@@ -87,13 +92,13 @@ export default function UsuarioList() {
     (usuario: Usuario) => () => {
       navegar(`/usuarios/${usuario.id}/password`);
     },
-    [],
+    [navegar],
   );
 
   // Crea un nuevo usuario
   const handleCreateClick = React.useCallback(() => {
     navegar('/usuarios/nuevo');
-  }, []);
+  }, [navegar]);
 
   const columns = React.useMemo<GridColDef[]>(
     () => [

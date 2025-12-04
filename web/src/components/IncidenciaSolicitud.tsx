@@ -34,6 +34,7 @@ import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
 import SelectorEmpleado from './SelectorEmpleado';
 import { DescriptorUsuario, filtroUsuarioRegistra, RolID } from '../modelos/usuarios';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 const HORA_NO_VALIDA = 'Hora no valida';
 
@@ -53,6 +54,7 @@ export default function SolicitudIncidencia() {
   const theme = useTheme();
   const notifica = useNotifications();
   const usuarioLog = useUsuarioLogeado().getUsrLogeado()
+  const isMounted = useIsMounted();
 
   const [rows, setRows] = React.useState<Marcaje[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -100,9 +102,9 @@ export default function SolicitudIncidencia() {
     async (
       usuarioId: number,
       fecha: Dayjs) => {
-      let listData: Marcaje[] = [];
-
       setIsLoading(true);
+
+      let listData: Marcaje[] = [];
 
       try {
         listData = await api().marcajes.marcajesSinInc(
@@ -120,11 +122,14 @@ export default function SolicitudIncidencia() {
         }
       }
 
-      setRows(listData);
-      limpiarSolicitudCreada();
-      setIsLoading(false);
+      if (isMounted.current) {
+        setRows(listData);
+        limpiarSolicitudCreada();
+        setIsLoading(false);
+      };
     },
-    []
+    [usuarioLog.id, usuarioLog.roles, limpiarSolicitudCreada,
+      notifica, setRows, setIsLoading]
   );
 
   React.useEffect(() => {
@@ -136,7 +141,7 @@ export default function SolicitudIncidencia() {
     if (empleado && fecha) {
       loadData(empleado, fecha);
     }
-  }, [empleado, fecha]);
+  }, [empleado, fecha, loadData, usuarioSoloEmpleado, usuarioLog.id]);
 
   // Permite abrir un formalario para corregir marcajes
   // mediante solicitud
@@ -148,20 +153,6 @@ export default function SolicitudIncidencia() {
     },
     []
   );
-
-  // Cierra la modal mediante un borón aceptar y otro cancelar
-  const cerrarModalInfo = React.useCallback(
-    (info: InfoSolicitud | undefined) => {
-      setModalOpenInfo(false);
-
-      if (info) {
-        procesarSolicitud(tipoSolicitud!, info, marcajeSeleccionado);
-      }
-
-      setTipoSolicitud(undefined);
-      setMarcajeSeleccionado(undefined);
-    },
-    [tipoSolicitud, marcajeSeleccionado]);
 
   // Procesa las solicitud con las correciones
   const procesarSolicitud = React.useCallback(
@@ -218,7 +209,9 @@ export default function SolicitudIncidencia() {
         });
 
         if (marcaje) {
-          agregarSolicitudCreada(marcaje.id);
+          if (isMounted.current) {
+            agregarSolicitudCreada(marcaje.id);
+          };
         }
       } catch (error) {
         if (error instanceof NetErrorControlado) {
@@ -236,12 +229,26 @@ export default function SolicitudIncidencia() {
     []
   );
 
+  // Cierra la modal mediante un borón aceptar y otro cancelar
+  const cerrarModalInfo = React.useCallback(
+    (info: InfoSolicitud | undefined) => {
+      setModalOpenInfo(false);
+
+      if (info) {
+        procesarSolicitud(tipoSolicitud!, info, marcajeSeleccionado);
+      }
+
+      setTipoSolicitud(undefined);
+      setMarcajeSeleccionado(undefined);
+    },
+    [tipoSolicitud, marcajeSeleccionado, procesarSolicitud]);
+
   // Abre una solictud para corregir salidas erróneas
   const handleSolicitudClick = React.useCallback(
     (marcaje: Marcaje) => () => {
       abrirModalInfo(TipoIncidencia.CorrecionSalida, marcaje);
     },
-    []
+    [fecha, empleado, agregarSolicitudCreada, usuarioLog.id, notifica]
   );
 
   // Abre una solictud de eliminación
@@ -338,7 +345,8 @@ export default function SolicitudIncidencia() {
         },
       },
     ],
-    [solicitudesProcesadas]
+    [solicitudesProcesadas, theme, solicitudEliminacion,
+      handleSolicitudClick, handleEliminarClick]
   );
 
   return (
@@ -525,23 +533,23 @@ export function ModalInfoSolicitud({
         ...prev,
         [name]: value
       }));
-    }, []);
+    }, [validarFechaHora]);
 
-  const handleSubmit = () => {
+  const handleSubmit = React.useCallback(() => {
     const validaEntrada =
-      !mostrarEntrada || validarFechaHora(infoSolicitud.horaEntrada);
+      !mostrarEntrada || validarFechaHora(infoSolicitud.horaEntrada); // Usa mostrarEntrada, validarFechaHora, infoSolicitud
     const validaSalida =
-      !mostrarSalida || validarFechaHora(infoSolicitud.horaSalida);
+      !mostrarSalida || validarFechaHora(infoSolicitud.horaSalida); // Usa mostrarSalida, validarFechaHora, infoSolicitud
 
     if (validaEntrada && validaSalida) {
-      onClose(infoSolicitud);
+      onClose(infoSolicitud); // Usa onClose, infoSolicitud
     } else {
-      setFormErrors({
+      setFormErrors({ // Usa setFormErrors
         horaEntrada: validaEntrada ? undefined : HORA_NO_VALIDA,
         horaSalida: validaSalida ? undefined : HORA_NO_VALIDA
       })
 
-      notifica.show(
+      notifica.show( // Usa notifica
         'Imposible realizar la solicitud. Corriga los errores',
         {
           severity: 'warning',
@@ -549,11 +557,12 @@ export function ModalInfoSolicitud({
         },
       );
     }
-  };
+  }, [mostrarEntrada, mostrarSalida, validarFechaHora,
+    infoSolicitud, onClose, notifica]);
 
-  const handleCancel = () => {
+  const handleCancel = React.useCallback(() => {
     onClose(undefined);
-  };
+  }, [onClose]);
 
   return (
     <Dialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth>

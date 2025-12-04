@@ -18,7 +18,7 @@ import { UsuarioOutDTO } from '../modelos/dto';
 import { api } from '../api/fabrica';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
-
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 function UsuarioEditForm({
   initialValues,
@@ -144,7 +144,7 @@ function UsuarioEditForm({
         },
       );
     }
-  }, [formValues]);
+  }, [formValues, notifica, navegar, onSubmit]);
 
   return (
     <UsuarioForm
@@ -161,6 +161,7 @@ function UsuarioEditForm({
 export default function UsuarioEdit() {
   const { id } = useParams();
   const { getUsrLogeado } = useUsuarioLogeado()
+  const isMounted = useIsMounted();
 
   const [usuario, setUsuario] = React.useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -172,14 +173,20 @@ export default function UsuarioEdit() {
 
     try {
       const showData = await api().usuarios.usuario(id ?? '');
-      setUsuario(showData);
+
+      if (isMounted.current) {
+        setUsuario(showData);
+      };
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
         logError('usuario-editar.cargar', error);
         setError(Error('Error inesperado al crear el usuario'));
       }
     }
-    setIsLoading(false);
+
+    if (isMounted.current) {
+      setIsLoading(false);
+    };
   }, [id]);
 
   React.useEffect(() => {

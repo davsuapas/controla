@@ -20,7 +20,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Chip from '@mui/material/Chip';
 import { useTheme } from '@mui/material/styles';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
-
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 export interface UsuarioFormState {
   values: Partial<Usuario>;
@@ -218,11 +218,11 @@ export default function UsuarioForm(props: UsuarioFormProps) {
   } = props;
 
   const theme = useTheme();
+  const navigate = useNavigate();
+  const isMounted = useIsMounted();
 
   const formValues = formState.values;
   const formErrors = formState.errors;
-
-  const navigate = useNavigate();
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -235,7 +235,9 @@ export default function UsuarioForm(props: UsuarioFormProps) {
       try {
         await onSubmit(formValues);
       } finally {
-        setIsSubmitting(false);
+        if (isMounted.current) {
+          setIsSubmitting(false);
+        };
       }
     },
     [formValues, onSubmit],

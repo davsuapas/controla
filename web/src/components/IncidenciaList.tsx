@@ -20,6 +20,7 @@ import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { SelectorFechas, SelectorFechasRef } from './SelectorFechas';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 // Función para obtener el color del estado
 function getEstadoColor(estado: EstadoIncidencia):
@@ -83,6 +84,10 @@ interface IncidenciaListProps {
 // por unos determinados estados
 export default function IncidenciaList(props: IncidenciaListProps) {
   const theme = useTheme();
+  const notifica = useNotifications();
+  const usuario = useUsuarioLogeado().getUsrLogeado();
+  const isMounted = useIsMounted();
+
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
 
@@ -90,8 +95,6 @@ export default function IncidenciaList(props: IncidenciaListProps) {
 
   const [estado, setEstado] = React.useState<number>(0);
 
-  const notifica = useNotifications();
-  const usuario = useUsuarioLogeado().getUsrLogeado();
   const supervisor = usuario.tieneRol(RolID.Supervisor);
 
   // Usa las rows externas si se proporcionan, si no usa el estado interno
@@ -121,6 +124,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
     setIsLoading(true);
 
     let listData: Incidencia[] = [];
+
     try {
       // Si no se selecciona un estado para filtrar
       // se filtra por todos
@@ -169,14 +173,19 @@ export default function IncidenciaList(props: IncidenciaListProps) {
     const gridData: IncidenciaGrid[] = listData.map(incidencia => (
       IncidenciaGrid.fromIncidencia(incidencia)
     ));
-    setRowsState(gridData);
-
-    setIsLoading(false);
-  }, [selectorFechasRef]);
+    if (isMounted.current) {
+      setRowsState(gridData);
+      setIsLoading(false);
+    };
+  }, [
+    setIsLoading, setRowsState,
+    props.estadosFiltro, props.usuarioFiltro,
+    supervisor, notifica, estado
+  ]);
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const toggleExpand = React.useCallback(() => {
     setIsExpanded(prev => !prev);
@@ -305,50 +314,53 @@ export default function IncidenciaList(props: IncidenciaListProps) {
 
       return baseColumns;
     },
-    [props.actions],
+    [props.actions, props.columnaAccion, theme]
   );
 
-  const columnGroupingModel: GridColumnGroupingModel = [
-    {
-      groupId: 'solicitud',
-      headerName: 'SOLICITUD',
-      children: [
-        { field: 'fechaSolicitud' }, { field: 'tipo' }],
-    },
-    {
-      groupId: 'rectificacion',
-      headerName: 'RECTIFICACIÓN MARCAJE',
-      description: 'Dependen del tipo de solicitud',
-      children: [
-        { field: 'fecha' }, { field: 'rectificacion' }],
-    },
-    {
-      groupId: 'marcaje',
-      headerName: 'MARCAJE',
-      description: 'Referencia al marcaje realizado',
-      children: [
-        { field: 'marcaje' }],
-    },
-  ];
+  const columnGroupingModel: GridColumnGroupingModel =
+    React.useMemo(() => [
+      {
+        groupId: 'solicitud',
+        headerName: 'SOLICITUD',
+        children: [
+          { field: 'fechaSolicitud' }, { field: 'tipo' }],
+      },
+      {
+        groupId: 'rectificacion',
+        headerName: 'RECTIFICACIÓN MARCAJE',
+        description: 'Dependen del tipo de solicitud',
+        children: [
+          { field: 'fecha' }, { field: 'rectificacion' }],
+      },
+      {
+        groupId: 'marcaje',
+        headerName: 'MARCAJE',
+        description: 'Referencia al marcaje realizado',
+        children: [
+          { field: 'marcaje' }],
+      },
+    ], []);
 
   // Filtra la tabla de incidencias
-  const handleFiltrar = () => {
+  const handleFiltrar = React.useCallback(() => {
     loadData();
-  };
+  }, [loadData]);
 
   // Cuando se realiza click sobre la fila se muestra el detalle
-  const handleRowClick = (params: GridRowParams<IncidenciaGrid>, event: React.MouseEvent<HTMLElement>) => {
-    setSelectedIncidencia(params.row);
-    setPopoverAnchorEl(event.currentTarget);
-    setPopoverOpen(true);
-  };
+  const handleRowClick = React.useCallback(
+    (params: GridRowParams<IncidenciaGrid>,
+      event: React.MouseEvent<HTMLElement>) => {
+      setSelectedIncidencia(params.row);
+      setPopoverAnchorEl(event.currentTarget);
+      setPopoverOpen(true);
+    }, []);
 
   // Cuando se cieerra el pospover se inicializa el estado
-  const handlePopoverClose = () => {
+  const handlePopoverClose = React.useCallback(() => {
     setPopoverOpen(false);
     setPopoverAnchorEl(null);
     setSelectedIncidencia(null);
-  };
+  }, []);
 
   return (
     <Stack spacing={2} sx={{ height: '100%', mt: 1.5 }}>

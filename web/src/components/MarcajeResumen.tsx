@@ -14,6 +14,7 @@ import Chip from '@mui/material/Chip';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
 import Backdrop from '@mui/material/Backdrop';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 interface ResumenMarcajesProps {
   ultimosMarcajes: boolean,
@@ -29,10 +30,13 @@ interface ResumenMarcajesProps {
 // También, muestra el horario más cercano si se proporciona
 // una fecha y hora, si no se devuelve el horario según la fecha
 export default function ResumenMacaje(props: ResumenMarcajesProps) {
+
+  const isMounted = useIsMounted();
+  const notifica = useNotifications();
+
   const [marcaje, setMarcaje] = useState<Marcaje[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const notifica = useNotifications();
 
   // Carga los últimos marcajes (solo depende de usuarioId)
   const cargarMarcaje = React.useCallback(
@@ -42,15 +46,15 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
       fecha: dayjs.Dayjs | undefined) => {
       setIsLoading(true);
 
+      let marcajesData: Marcaje[] = [];
+
       try {
-        let MarcajesData: Marcaje[] = [];
         if (ultimosMarcajes || (!ultimosMarcajes && !fecha)) {
-          MarcajesData = await api().marcajes.ultimosMarcajes(usuarioId);
+          marcajesData = await api().marcajes.ultimosMarcajes(usuarioId);
         } else {
-          MarcajesData = await api().marcajes.marcajesPorFecha(
+          marcajesData = await api().marcajes.marcajesPorFecha(
             usuarioId, fecha!);
         }
-        setMarcaje(MarcajesData);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
           logError('resumen-marcaje.cargar.marcajes', error);
@@ -62,11 +66,13 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             },
           );
         }
-        setMarcaje([]);
       }
 
-      setIsLoading(false);
-    }, []);
+      if (isMounted.current) {
+        setMarcaje(marcajesData);
+        setIsLoading(false);
+      };
+    }, [notifica]);
 
   // Carga los horarios (depende de usuarioId, fecha y horaInicio)
   const cargarHorarios = React.useCallback(
@@ -88,7 +94,6 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             horario = await api().usuarios.horarioSinAsignar(usuarioId, fecha);
           }
         }
-        setHorarios(horario);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
           logError('resumen-marcaje.cargar.horarios', error);
@@ -100,9 +105,12 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             },
           );
         }
-        setHorarios([]);
       }
-    }, []);
+
+      if (isMounted.current) {
+        setHorarios(horario);
+      };
+    }, [notifica]);
 
   // Efecto para cargar marcajes (solo cuando cambia usuarioId)
   React.useEffect(() => {

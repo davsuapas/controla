@@ -15,18 +15,21 @@ import { DescriptorUsuario, filtroUsuarioRegistra, RolID } from '../modelos/usua
 import SelectorEmpleado from './SelectorEmpleado';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 // Muestra los marcajes según un filtro
 // Esta pantalla solo puede ser usada por empleados, registrador o supervisor
 export default function ConsultaMarcaje() {
+  const isMounted = useIsMounted();
+  const theme = useTheme();
+  const usuarioLog = useUsuarioLogeado().getUsrLogeado();
+  const notifica = useNotifications();
+
   const selectorFechasRef = React.useRef<SelectorFechasRef>(null);
 
   const [marcaje, setMarcaje] = useState<Marcaje[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [bloquear, setBloquear] = React.useState<boolean>(false);
-
-  const usuarioLog = useUsuarioLogeado().getUsrLogeado();
-  const notifica = useNotifications();
 
   const usuarioSoloEmpleado =
     !usuarioLog.tieneRol(RolID.Registrador) &&
@@ -34,7 +37,6 @@ export default function ConsultaMarcaje() {
 
   const [empleado, setEmpleado] = React.useState<number>(usuarioLog.id);
 
-  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
 
@@ -50,15 +52,16 @@ export default function ConsultaMarcaje() {
 
       const { fechaInicio, fechaFin } = selectorFechasRef.current.getFormData();
 
+      let marcajesData: Marcaje[] = []
+
       try {
-        let marcajesData: Marcaje[] =
+        marcajesData =
           await api().marcajes.marcajes(
             empleado,
             fechaInicio,
             fechaFin,
             filtroUsuarioRegistra(empleado, usuarioLog) ?? null
           );
-        setMarcaje(marcajesData);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
           logError('consulta-marcaje.cargar.marcajes', error);
@@ -70,15 +73,17 @@ export default function ConsultaMarcaje() {
             },
           );
         }
-        setMarcaje([]);
       }
 
-      setIsLoading(false);
-    }, [empleado]);
+      if (isMounted.current) {
+        setMarcaje(marcajesData);
+        setIsLoading(false);
+      };
+    }, [empleado, usuarioLog, notifica]);
 
   React.useEffect(() => {
     cargarMarcaje();
-  }, [empleado]);
+  }, [empleado, cargarMarcaje]);
 
   const handleEmpleadoChange = React.useCallback(
     (empleado: DescriptorUsuario) => {

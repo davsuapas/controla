@@ -173,8 +173,8 @@ export class UsuariosTestApi implements UsuariosApi {
     return usuariosFicticios.map(Usuario.fromRequest);
   }
 
-  async usuario(id: string): Promise<Usuario> {
-    return Usuario.fromRequest({
+  usuario(id: string): Promise<Usuario> {
+    return Promise.resolve(Usuario.fromRequest({
       id: id,
       dni: '12345678A',
       email: 'davidandsusanaddadaddasda@example.com',
@@ -184,7 +184,7 @@ export class UsuariosTestApi implements UsuariosApi {
       activo: '2024-01-15',
       inicio: '2024-01-10',
       roles: [1, 2, 3, 4, 5, 6, 7]
-    })
+    }));
   }
 
   async actualizar_usuario(_: UsuarioOutDTO): Promise<void> {

@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router";
 import { api } from "../api/fabrica";
 import { useEffect } from "react";
 import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
@@ -9,10 +8,11 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import PageContainer from "./PageContainer";
 import { logError } from "../error";
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 export default function Logout() {
-  const navigate = useNavigate();
   const { setUsrLogeado, getUsrLogeado } = useUsuarioLogeado()
+  const isMounted = useIsMounted();
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
@@ -26,19 +26,28 @@ export default function Logout() {
 
       await api().usuarios.logout(usr.id.toString());
       setUsrLogeado(null);
-      setIsLoading(false);
+
+      if (isMounted.current) {
+        setIsLoading(false);
+      };
 
       // Forzamos a eliminar caches. Liberamos memoria
       window.location.replace('/');
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
         logError('logout', error);
-        setError(Error('Error inesperado al cerrar la sesión'));
+
+        if (isMounted.current) {
+          setError(Error('Error inesperado al cerrar la sesión'));
+        };
       }
     }
 
-    setIsLoading(false);
-  }, []);
+    if (isMounted.current) {
+      setIsLoading(false);
+    };
+
+  }, [setUsrLogeado, getUsrLogeado]);
 
   useEffect(() => {
     realizarLogout();

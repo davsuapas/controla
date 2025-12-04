@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import { NetErrorControlado } from '../net/interceptor';
 import { logError } from '../error';
 import useNotifications from '../hooks/useNotifications/useNotifications';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 // Pemite revisar las incidencias que se solicitan
 // para rectificar los marcajes
@@ -26,6 +27,8 @@ export default function RevisionIncidencia() {
   const usuario = useUsuarioLogeado().getUsrLogeado();
   const dialogo = useDialogs();
   const notifica = useNotifications();
+  const isMounted = useIsMounted();
+
 
   const [rows, setRows] = React.useState<IncidenciaGrid[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -39,8 +42,7 @@ export default function RevisionIncidencia() {
     usuarioId: null as number | null
   });
 
-  // Es necesario para provocar el repintado
-  const actualizarProximoEstado =
+  const actualizarProximoEstado = React.useCallback(
     (id: number,
       nuevoEstado: EstadoIncidencia | undefined,
       motivo: string | null = null) => {
@@ -53,64 +55,74 @@ export default function RevisionIncidencia() {
           } : row
         )
       );
-    };
+    },
+    []
+  );
 
-  const incidenciaActions: IncidenciaAction[] = [
-    {
-      icon: <CheckIcon />,
-      label: 'Aprobar',
-      tooltip: 'Marcar para aprobar',
-      onClick: (row: IncidenciaGrid) => {
-        actualizarProximoEstado(row.id, EstadoIncidencia.Resolver);
+  const incidenciaActions: IncidenciaAction[] = React.useMemo(
+    () => [
+      {
+        icon: <CheckIcon />,
+        label: 'Aprobar',
+        tooltip: 'Marcar para aprobar',
+        onClick: (row: IncidenciaGrid) => {
+          actualizarProximoEstado(row.id, EstadoIncidencia.Resolver);
+        },
+        show: (row: IncidenciaGrid) => row.estado === EstadoIncidencia.Solicitud
       },
-      show: (row: IncidenciaGrid) => row.estado === EstadoIncidencia.Solicitud
-    },
-    {
-      icon: <CloseIcon />,
-      label: 'Rechazar',
-      tooltip: 'Marcar para rechazar motivando',
-      onClick: (row: IncidenciaGrid) => {
-        dialogo.prompt(
-          'Motivo del rechazo (máx. 200 caracteres)',
-          { title: 'Rechazar' })
-          .then(
-            motivo => {
-              actualizarProximoEstado(
-                row.id,
-                EstadoIncidencia.Rechazar,
-                motivo ? motivo.slice(0, 200) : null);
-            }
-          )
+      {
+        icon: <CloseIcon />,
+        label: 'Rechazar',
+        tooltip: 'Marcar para rechazar motivando',
+        onClick: (row: IncidenciaGrid) => {
+          dialogo.prompt( // Usa diálogo
+            'Motivo del rechazo (máx. 200 caracteres)',
+            { title: 'Rechazar' })
+            .then(
+              motivo => {
+                actualizarProximoEstado( // Usa actualizarProximoEstado
+                  row.id,
+                  EstadoIncidencia.Rechazar,
+                  motivo ? motivo.slice(0, 200) : null);
+              }
+            )
+        },
+        show: (row: IncidenciaGrid) => row.estado === EstadoIncidencia.Solicitud
       },
-      show: (row: IncidenciaGrid) => row.estado === EstadoIncidencia.Solicitud
-    },
-    {
-      icon: <ReplayIcon />,
-      label: 'Reintentar',
-      tooltip: 'Marcar para volver a procesar',
-      onClick: (row: IncidenciaGrid) => {
-        row.motivoRechazo = null;
-        actualizarProximoEstado(row.id, EstadoIncidencia.Resolver);
+      {
+        icon: <ReplayIcon />,
+        label: 'Reintentar',
+        tooltip: 'Marcar para volver a procesar',
+        onClick: (row: IncidenciaGrid) => {
+          row.motivoRechazo = null;
+          actualizarProximoEstado(row.id, EstadoIncidencia.Resolver); // Usa actualizarProximoEstado
+        },
+        show: (row: IncidenciaGrid) =>
+          row.estado === EstadoIncidencia.ErrorResolver
       },
-      show: (row: IncidenciaGrid) =>
-        row.estado === EstadoIncidencia.ErrorResolver
-    },
-    {
-      icon: <CancelIcon />,
-      label: 'Cancelar',
-      tooltip: 'Cancelar marca',
-      onClick: (row: IncidenciaGrid) => {
-        row.motivoRechazo = null;
-        actualizarProximoEstado(row.id, undefined);
+      {
+        icon: <CancelIcon />,
+        label: 'Cancelar',
+        tooltip: 'Cancelar marca',
+        onClick: (row: IncidenciaGrid) => {
+          row.motivoRechazo = null;
+          actualizarProximoEstado(row.id, undefined); // Usa actualizarProximoEstado
+        },
+        // Muestra si la acción (propiedad de la fila) no es undefined
+        // Esta propiedad viene del prop rows del componente, por lo que su valor
+        // se actualiza en el scope. Sin embargo, en useMemo/useCallback solo 
+        // necesitamos la FUNCIÓN para que esté actualizada.
+        show: (row: IncidenciaGrid) => row.accion != undefined
       },
-      show: (row: IncidenciaGrid) => row.accion != undefined
-    },
-  ];
+    ],
+    [actualizarProximoEstado, dialogo]
+  );
+
 
   // Genera una entidad con todas las incidencias a procesar,
   // la envía para procesar y refresca el grid con las entidades
   // actualizadas.
-  const handleProcesar = async () => {
+  const handleProcesar = React.useCallback(async () => {
     let gridData: IncidenciaGrid[] = []
     setIsLoading(true);
 
@@ -186,9 +198,16 @@ export default function RevisionIncidencia() {
       }
     }
 
-    setRows(gridData);
-    setIsLoading(false);
-  }
+    if (isMounted.current) {
+      setRows(gridData);
+      setIsLoading(false);
+    };
+  }, [rows, setIsLoading, filtrosActuales, usuario.id, notifica, setRows]);
+
+  const estadosFiltroMemo = React.useMemo(() => [
+    EstadoIncidencia.Solicitud,
+    EstadoIncidencia.ErrorResolver,
+  ], []);
 
   return (
     <PageContainer
@@ -208,10 +227,7 @@ export default function RevisionIncidencia() {
     >
       <Box sx={FULL_HEIGHT_WIDTH}>
         <IncidenciaList
-          estadosFiltro={[
-            EstadoIncidencia.Solicitud,
-            EstadoIncidencia.ErrorResolver,
-          ]}
+          estadosFiltro={estadosFiltroMemo}
           columnaAccion
           actions={incidenciaActions}
           rows={rows}

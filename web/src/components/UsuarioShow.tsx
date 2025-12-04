@@ -13,9 +13,11 @@ import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
 import { NetErrorControlado } from '../net/interceptor';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { logError } from '../error';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 export default function UsuarioShow() {
   const { getUsrLogeado } = useUsuarioLogeado();
+  const isMounted = useIsMounted();
 
   const [usuario, setUsuario] = React.useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -28,15 +30,22 @@ export default function UsuarioShow() {
     try {
       const showData = await api().usuarios.usuario(
         getUsrLogeado().id.toString());
-      setUsuario(showData);
+
+      if (isMounted.current) {
+        setUsuario(showData);
+      }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
         logError('usuario-visualizar.cargar', error);
-        setError(Error('Error inesperado al visualizar el usuario'));
+        if (isMounted.current) {
+          setError(Error('Error inesperado al visualizar el usuario'));
+        }
       }
     }
 
-    setIsLoading(false);
+    if (isMounted.current) {
+      setIsLoading(false);
+    }
   }, [getUsrLogeado]);
 
   React.useEffect(() => {

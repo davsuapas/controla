@@ -19,13 +19,13 @@ const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 
 export default function UsuarioPassword() {
   const { id } = useParams();
+  const navegar = useNavigate();
+  const notifica = useNotifications();
   const { getUsrLogeado } = useUsuarioLogeado()
+
   const componentePadre = id !== undefined
 
   const usuarioId = Number(id) || getUsrLogeado().id;
-
-  const navegar = useNavigate();
-  const notifica = useNotifications();
 
   const [formState, setFormState] = React.useState<UsuarioFormState>(() => ({
     values: INITIAL_FORM_VALUES,
@@ -134,7 +134,7 @@ export default function UsuarioPassword() {
         },
       );
     }
-  }, [formValues, usuarioId]);
+  }, [formValues, usuarioId, notifica, navegar]);
 
   return (
     <PageContainer title={`Cambio de password del usuario: ${usuarioId}`}>

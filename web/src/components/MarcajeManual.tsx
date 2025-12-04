@@ -20,6 +20,7 @@ import { MarcajeOutDTO } from '../modelos/dto';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError, validarFechaHora } from '../error';
 import SelectorEmpleado from './SelectorEmpleado';
+import { useIsMounted } from '../hooks/useComponentMounted';
 
 interface FormularioData {
   empleado?: DescriptorUsuario;
@@ -37,6 +38,10 @@ interface FormErrors {
 const HORA_NO_VALIDA = 'Hora no valida';
 
 export default function MarcajeManual() {
+  const isMounted = useIsMounted();
+  const usuarioLogeado = useUsuarioLogeado();
+  const notifica = useNotifications();
+
   const [formData, setFormData] = useState<FormularioData>({
     fecha: dayjs(),
     entrada: undefined,
@@ -46,8 +51,6 @@ export default function MarcajeManual() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const usuarioLogeado = useUsuarioLogeado();
-  const notifica = useNotifications();
 
   const handleEmpleadoChange = React.useCallback(
     (empleado: DescriptorUsuario) => {
@@ -129,8 +132,11 @@ export default function MarcajeManual() {
             autoHideDuration: 5000,
           });
 
-          resetCamposHora();
-          setRefreshTrigger(prev => prev + 1);
+          if (isMounted.current) {
+            resetCamposHora();
+            setRefreshTrigger(prev => prev + 1);
+          };
+
         } catch (error) {
           if (!(error instanceof NetErrorControlado)) {
             logError('marcaje-manual.registrar', error);
@@ -145,7 +151,9 @@ export default function MarcajeManual() {
           }
         }
 
-        setIsLoading(false);
+        if (isMounted.current) {
+          setIsLoading(false);
+        };
       } else {
         notifica.show(
           'Imposible realizar el registro. Corriga los errores',

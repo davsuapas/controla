@@ -40,13 +40,13 @@ export const SelectorFechas =
       fechaFin: dayjs()
     });
 
-    const handleFieldChange =
+    const handleFieldChange = React.useCallback(
       (field: keyof SelectorFechasFormData, value: boolean | Dayjs) => {
         setFormData(prev => ({
           ...prev,
           [field]: value
         }));
-      };
+      }, []);
 
     // Exponer método para obtener los valores desde el componente padre
     useImperativeHandle(ref, () => ({

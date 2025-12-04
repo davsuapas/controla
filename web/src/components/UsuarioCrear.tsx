@@ -23,7 +23,6 @@ const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
   activo: dayjs(),
 };
 
-
 export default function UsuarioCreate() {
   const navegar = useNavigate();
   const notifica = useNotifications();
@@ -150,7 +149,7 @@ export default function UsuarioCreate() {
         },
       );
     }
-  }, [formValues]);
+  }, [formValues, notifica, navegar, getUsrLogeado]);
 
   return (
     <PageContainer
