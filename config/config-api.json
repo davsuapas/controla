@@ -1,0 +1,29 @@
+{
+  "db": {
+    "ruta_socket": "/run/mysqld/mysqld.sock",
+    "usuario": "@USUARIO",
+    "nombre": "@DB_NOMBRE",
+    "max_conexiones": @DB_MAX_CONN,
+    "limites": {
+      "ultimos_marcajes": 10
+    }
+  },
+  "log": {
+    "level": "@LOG_LEVEL"
+  },
+  "servidor": {
+    "host": "localhost",
+    "puerto": @SRV_PUERTO,
+    "produccion": @SRV_PROD
+  },
+  "password": {
+    "longitud_minima": 8,
+    "mayusculas": true,
+    "minusculas": true,
+    "digitos": true,
+    "caracteres_especiales": true
+  },
+  "zona_horaria": "Europe/Madrid",
+  "secreto": "secreto",
+  "caducidad_sesion": 3600
+}

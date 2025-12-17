@@ -22,5 +22,10 @@ target
 
 
 # Added by cargo
-
 /target
+
+# Configuración de los test
+config/test
+# Configuración para las diferentes aplicaciones que se van a desplegar
+# Cada directorio es una aplicación destino 
+config/esquemas

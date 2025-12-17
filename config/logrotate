@@ -1,0 +1,12 @@
+/var/log/@APP/controla-api.log {
+    weekly
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    postrotate
+      systemctl restart controla-@APP.service
+    endscript
+    create 644 @USUARIO @USUARIO
+}

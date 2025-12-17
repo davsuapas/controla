@@ -37,14 +37,14 @@ pub struct Limites {
 
 #[derive(Deserialize)]
 /// Representa la configuración de la base de datos.
+/// Por ahora solo se puede conectar via socket
 pub struct DB {
-  /// url de la base de datos.
-  pub url: String,
-  /// usuario de la base de datos.
+  /// Es la ruta para la conexión por socket
+  pub ruta_socket: String,
+  /// Usuario de la base de datos
   pub usuario: String,
-  /// password de la base de datos.
-  /// Se obtiene de un fichero secreto.
-  pub password: String,
+  /// Nombre de la base de datos
+  pub nombre: String,
   /// Número máximo de conexiones a la base de datos.
   pub max_conexiones: u32,
   /// Límites de las consultas.
@@ -54,9 +54,9 @@ pub struct DB {
 impl std::fmt::Debug for DB {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("DB")
-      .field("url", &self.url)
+      .field("ruta_socket", &self.ruta_socket)
       .field("usuario", &self.usuario)
-      .field("password", &"[OCULTA]")
+      .field("nombre", &self.nombre)
       .field("max_conexiones", &self.max_conexiones)
       .field("limites", &self.limites)
       .finish()
@@ -141,7 +141,6 @@ impl Config {
     let mut config: Self = serde_json::from_reader(reader)
       .expect("No se pudo deserializar el archivo de configuración");
 
-    config.db.password = secreto.get(&config.db.password);
     config.secreto = secreto.get(&config.secreto);
 
     config

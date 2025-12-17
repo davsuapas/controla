@@ -18,11 +18,11 @@
 //! - Administración de usuarios y empleados
 //! - Informes horrarios y de incidencias.
 //! - Marcaje automático y manual por el controlador.
-//! - Consultas por partede de un inspector.
+//! - Consultas por parte de de un inspector.
 //! - Auditoría de acciones realizadas en el sistema.
 //!
 //! Se usará una base de datos mysql para almacenar los datos de la aplicación.
-//! Los cmapos pk auto-incrementales deben empezar en uno.
+//! Los campos pk auto-incrementales deben empezar en uno.
 //!
 //! # Ejecución:
 //! ```bash
@@ -43,7 +43,7 @@ mod traza;
 mod usuarios;
 
 use config::*;
-use sqlx::mysql::MySqlPoolOptions;
+use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -83,19 +83,20 @@ async fn main() {
   eprintln!("📊 Conectando a la base de datos...");
 
   // Crea el pool de conexiones a la base de datos.
-  let url_bd = format!(
-    "mysql://{}:{}@{}",
-    config.db.usuario, config.db.password, config.db.url,
-  );
+  // Por ahora solo se conecta por socket.
+  let conn = MySqlConnectOptions::new()
+    .socket(&config.db.ruta_socket)
+    .username(&config.db.usuario)
+    .database(&config.db.nombre);
 
   let pool = MySqlPoolOptions::new()
     .max_connections(config.db.max_conexiones)
-    .connect(url_bd.as_str())
+    .connect_with(conn)
     .await
     .unwrap_or_else(|err| {
       panic!(
         "No se pudo conectar a la base de datos: {}. Error: {}",
-        config.db.url, err
+        config.db.nombre, err
       )
     });
 

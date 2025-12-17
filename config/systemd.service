@@ -1,0 +1,19 @@
+[Unit]
+Description=Controla API para @APP
+Requires=network.target
+After=mariadb.service.d
+StartLimitBurst=5
+StartLimitIntervalSec=600s
+
+[Service]
+Type=simple
+User=@USUARIO
+WorkingDirectory=/opt/@APP/api
+ExecStart=/opt/@APP/api/controla-api -fichero_config=/etc/@APP/config.json -carpeta_secretos=/etc/@APP/secretos
+StandardOutput=append:/var/log/@APP/controla-api.log
+StandardError=inherit
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
