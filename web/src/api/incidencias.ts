@@ -41,12 +41,12 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
   }
 
   async crearIncidencia(inc: Incidencia): Promise<void> {
-    return this.axios.post('api/incidencias', instanceToPlain(inc));
+    return this.axios.post('incidencias', instanceToPlain(inc));
   }
 
   async cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia> {
     const response = await this.axios.put(
-      'api/incidencias/cambiar/a/solicitud', inc);
+      'incidencias/cambiar/a/solicitud', inc);
 
     return Incidencia.fromRequest(
       DominiosWithCacheUsuarioDTO.fromResponse(response.data))[0];
@@ -62,7 +62,7 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
     usuarioId: number | null
   ): Promise<{ inc_erroneas: number[], incs: Incidencia[] }> {
     const response = await this.axios.post(
-      'api/incidencias/procesar',
+      'incidencias/procesar',
       {
         usuario_gestor: usuario_gestor,
         param_filtro_inc: paramFiltro(
@@ -86,7 +86,7 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
     usuarioId: number | null
   ): Promise<Incidencia[]> {
     const response = await this.axios.post(
-      'api/incidencias/por/fechas', paramFiltro(
+      'incidencias/por/fechas', paramFiltro(
         fechaInicio, fechaFin, estados, supervisor, usuarioId));
 
     return Incidencia.fromRequest(

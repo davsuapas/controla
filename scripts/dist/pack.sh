@@ -15,13 +15,6 @@ echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] 
     echo ""
     echo "Paquetiza los ficheros y procesos a instalar de las aplicaciones configuradas en ./config"
     echo ""
-    echo "Argumentos:"
-    echo "  -h: Visualiza la ayuda."
-    echo "  -crear: Paquetiza todo para crear una nueva app (tenant)."
-    echo "  -actualizar=seccion: Paquetizar solo la sección especificada (opciones: servicio, config)."
-    echo "  -script-db=nombre: Carpeta de scripts sql (ubicados en ./config/db). Si se usa la opción -crear se utiliza directamente el script sql 'db/inicio'."
-    echo "  -app=nombre: Paquetizar solo la aplicación especificada."
-    echo ""
     echo "La configuración para paquetizar se encuentra en './config':"
     echo "  - db: Carpetas con los scripts sql."
     echo "  - apps: El esquema de configuración por aplicación."
@@ -44,6 +37,13 @@ echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] 
     echo "  - @SRV_PUERTO: Puerto del servidor api."
     echo "  - @SRV_PROD: Si es true, entorno de producción."
     echo "  - @DB_NOMBRE: Nombre de la base de datos."
+    echo ""
+    echo "Argumentos:"
+    echo "  -h: Visualiza la ayuda."
+    echo "  -crear: Paquetiza todo para crear una nueva app (tenant)."
+    echo "  -actualizar=seccion: Paquetizar solo la sección especificada (opciones: servicio, config o la combinación de ambos seperados por coma sin espacios)."
+    echo "  -script-db=nombre: Carpeta de scripts sql (ubicados en ./config/db). Si se usa la opción -crear se utiliza directamente el script sql 'db/inicio'."
+    echo "  -app=nombre: Paquetizar solo la aplicación especificada."
         
     exit 1
 }
@@ -75,48 +75,45 @@ leer_variables_configuracion() {
   fi
 }
 
-# Función para genera un esquema de las aplicaciones paquetizadas
-equema() {
-  echo "  ➡️ Generando el esquema..."
 
-  local PACK_X=$PACK_DIR/x/
-
+# Función para crear las aplicaciones.
+build() {
   find "$ESQUEMAS_DIR" -maxdepth 1 -type d -print | while read -r dir; do
     local APP_NAME=$(basename "$dir")
 
     if [ "$APP_NAME" != "$(basename "$ESQUEMAS_DIR")" ]; then
-      echo "    Persistiendo la aplicación: $APP_NAME..."
+      # Si hay filtro de app, saltar si no coincide
+      if [ -n "$APP_FILTRO" ] && [ "$APP_NAME" != "$APP_FILTRO" ]; then
+        continue
+      fi
 
-      mkdir -p "${PACK_X}/${APP_NAME}"
+      echo "  ➡️ Construyendo y desplegando la aplicación $APP_NAME..."
+
+      ./scripts/web/build.sh "$APP_NAME"
+      if [ $? -ne 0 ]; then
+        echo "❌ Error: build.sh falló" >&2
+        exit 1
+      fi
+
+      ./scripts/dist/deploy.sh
+      if [ $? -ne 0 ]; then
+        echo "❌ Error: deploy.sh falló" >&2
+        exit 1
+      fi
+
+      PACK_OPT_APP="$PACK_DIR/opt/$APP_NAME"
+
+      mkdir -p "$PACK_OPT_APP"
+
+      cp -r ./target/dist/* "$PACK_OPT_APP"/
+      if [ $? -ne 0 ]; then
+        echo "❌ Error: La copia de archivos de la aplicación falló: $PACK_OPT_APP" >&2
+        exit 1
+      fi
+
+      echo "✅ Copia de archivos de la aplicación realizada con éxito."
     fi
-  done
-
-  echo "✅ Se genero el esquema en: $PACK_X."
-}
-
-# Función para crear las aplicaciones.
-deploy() {
-  echo "  ➡️ Construyendo y desplegando la aplicación..."
-  ./scripts/dist/deploy.sh
-  if [ $? -ne 0 ]; then
-    echo "❌ Error: deploy.sh falló" >&2
-    exit 1
-  fi
-
-  PACK_OPT_DIR="$PACK_DIR/opt"
-
-  mkdir -p "$PACK_OPT_DIR"
-
-  cp -r ./target/dist/* "$PACK_OPT_DIR"/
-  if [ $? -ne 0 ]; then
-    echo "❌ Error: La copia de archivos de la aplicación falló: $PACK_OPT_DIR" >&2
-    exit 1
-  fi
-
-  echo "✅ Copia de archivos de la aplicación realizada con éxito."
-
-  # Si son los binarios hay que desplegar en todos los sitios
-  esquema  
+  done  
 }
 
 config() {
@@ -340,18 +337,27 @@ echo "🚀 Iniciando el proceso de empaquetado..."
 if $CREAR; then
   echo "✨ Iniciando el proceso para la creación..."
   SCRIPTS_DB=inicio
-  deploy
+  build
   config
   servicio
   log
   db
 else
-  case "$ACTUALIZAR_SECCION" in
-    "servicio") servicio ;;
-    "config")   config ;;
-    "")         ;; # No hace nada si está vacío
-    *)          echo "⚠️ Sección desconocida: $ACTUALIZAR_SECCION" ;;
-  esac
+  # Dividimos por comas
+  IFS=',' read -ra SECCIONES <<< "$ACTUALIZAR_SECCION"
+
+  for seccion in "${SECCIONES[@]}"; do
+    # 2. LIMPIEZA: Eliminamos espacios en blanco accidentales
+    seccion_limpia="${seccion// /}"
+    
+    case "$seccion_limpia" in
+      "build") build ;;
+      "config")   config ;;
+      "servicio") servicio ;;
+      "")         ;; 
+      *)          echo "⚠️ Sección desconocida: '$seccion_limpia'" ;;
+    esac
+  done
 fi
 
 (

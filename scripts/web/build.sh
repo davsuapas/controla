@@ -3,6 +3,19 @@
 # Termina si algún comando falla
 set -e
 
+# --- Validación de argumento ---
+if [ -z "$1" ]; then
+    echo "Uso: $0 <nombre_de_la_app>"
+    echo ""
+    echo "Construye la aplicación web."
+    echo ""
+    echo "Argumentos:"
+    echo "  <nombre_de_la_app>  Es el nombre de la aplicación )(tenant)."
+    exit 1
+fi
+
+APP=$1
+
 PROJECT_DIR="./web"
 DIST_DIR="dist"
 
@@ -18,7 +31,7 @@ fi
 
 # Ejecutar el comando de build de Vite
 echo "Ejecutando 'npm run build'..."
-npm run build
+VITE_CONTROLA_WEB_APP=$APP npm run build
 
 # Mover o confirmar la ubicación de la distribución
 if [ -d "$DIST_DIR" ]; then

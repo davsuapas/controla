@@ -1,8 +1,8 @@
 import * as React from 'react';
 import ListSubheader from '@mui/material/ListSubheader';
-import type {} from '@mui/material/themeCssVarsAugmentation';
+import type { } from '@mui/material/themeCssVarsAugmentation';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
-import { DRAWER_WIDTH } from '../constants';
+import { DRAWER_WIDTH } from '../config';
 import { getDrawerSxTransitionMixin } from '../mixins';
 
 export interface DashboardSidebarHeaderItemProps {

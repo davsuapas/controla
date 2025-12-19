@@ -30,6 +30,7 @@ import RevisionIncidencia from './components/IncidenciaRevision';
 import GestionIncidencia from './components/IncidenciaGestion';
 import MarcajeAuto from './components/MarcajeAuto';
 import MarcajeConsulta from './components/MarcajeConsulta';
+import { URL_BASE_ROUTER } from './config';
 
 crearAPI(true);
 
@@ -201,7 +202,7 @@ const rutas = [
   },
 ];
 
-const router = createBrowserRouter(rutas);
+const router = createBrowserRouter(rutas, { basename: URL_BASE_ROUTER });
 
 const themeComponents = {
   ...sidebarCustomizations,

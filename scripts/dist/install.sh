@@ -111,9 +111,9 @@ BAK_TEMP=$(mktemp -d -t install_bak_XXXXXX) || manejar_error "No se pudo crear e
 
 # Definir la carpeta raíz para la iteración de aplicaciones (en orden de prioridad)
 APP_ROOT=""
-if [ -d "$ZIP_DIR/x" ]; then
-    APP_ROOT="$ZIP_DIR/x"
-    echo "Usando 'zip/x' para la lista de aplicaciones."
+if [ -d "$ZIP_DIR/opt" ]; then
+    APP_ROOT="$ZIP_DIR/opt"
+    echo "Usando 'zip/opt' para la lista de aplicaciones."
 elif [ -d "$ZIP_DIR/etc" ]; then
     APP_ROOT="$ZIP_DIR/etc"
     echo "Usando 'zip/etc' para la lista de aplicaciones."
@@ -224,7 +224,7 @@ for APP_PATH in "$APP_ROOT"/*; do
         fi
 
         # Si existe zip/opt, instalar
-        ZIP_OPT_DIR="$ZIP_DIR/opt"
+        ZIP_OPT_DIR="$ZIP_DIR/opt/$APP"
         if [ -d "$ZIP_OPT_DIR" ]; then
             echo "➡️ Instalando binarios de aplicación para **$APP** desde: $ZIP_OPT_DIR"
             TARGET_OPT_DIR="/opt/$APP"
@@ -298,8 +298,8 @@ for APP_PATH in "$APP_ROOT"/*; do
             # Cambiar propietario y permisos
             echo "➡️ Estableciendo propietario a **$APP** y permisos 500 recursivamente en: $TARGET_ETC_DIR"
             chown -R "$APP":"$APP" "$TARGET_ETC_DIR" || manejar_error "Fallo al cambiar el propietario de $TARGET_ETC_DIR."
-            # Permisos 500 (lectura solo para el propietario) recursivamente
             chmod -R 500 "$TARGET_ETC_DIR" || manejar_error "Fallo al cambiar permisos de $TARGET_ETC_DIR."
+            find "$TARGET_SECRETS_DIR" -type f -exec chmod 400 {} + || manejar_error "Fallo al cambiar permisos de $TARGET_SECRETS_DIR."
             echo "✅ Permisos y propietario ajustados."
         else
             echo "⚠️ Carpeta 'zip/etc/$APP' no encontrada."

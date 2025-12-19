@@ -19,7 +19,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import WysiwygIcon from '@mui/icons-material/Wysiwyg';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
-import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../constants';
+import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../config';
 import DashboardSidebarPageItem from './DashboardSidebarPageItem';
 import DashboardSidebarHeaderItem from './DashboardSidebarHeaderItem';
 import DashboardSidebarDividerItem from './DashboardSidebarDividerItem';

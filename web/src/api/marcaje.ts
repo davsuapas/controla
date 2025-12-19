@@ -40,7 +40,7 @@ export class MarcajeAxiosApi implements MarcajeApi {
     fecha_fin: dayjs.Dayjs | null,
     usuario_reg: number | null): Promise<Marcaje[]> {
 
-    const response = await this.axios.post('api/marcajes/entre/fechas',
+    const response = await this.axios.post('marcajes/entre/fechas',
       {
         'usuario': usuarioId,
         'fecha_inicio': formatDateForServer(fecha_inicio),
@@ -57,9 +57,9 @@ export class MarcajeAxiosApi implements MarcajeApi {
     usuarioId: string,
     fecha: dayjs.Dayjs,
     usuarioReg: string | undefined): Promise<Marcaje[]> {
-    let uri = `api/usuarios/${usuarioId}/marcajes/sin/inc/${formatDateTimeForServer(fecha)}`
+    let uri = `usuarios/${usuarioId}/marcajes/sin/inc/${formatDateTimeForServer(fecha)}`
     if (usuarioReg) {
-      uri = `api/usuarios/${usuarioId}/marcajes/sin/inc/${formatDateTimeForServer(fecha)}/registrador/${usuarioReg}`
+      uri = `usuarios/${usuarioId}/marcajes/sin/inc/${formatDateTimeForServer(fecha)}/registrador/${usuarioReg}`
     }
 
     const response = await this.axios.get(uri);
@@ -71,7 +71,7 @@ export class MarcajeAxiosApi implements MarcajeApi {
   async marcajesPorFecha(
     usuarioId: string, fecha: dayjs.Dayjs): Promise<Marcaje[]> {
     const response = await this.axios.get(
-      `api/usuarios/${usuarioId}/marcajes/por/fecha/${formatDateTimeForServer(fecha)}`);
+      `usuarios/${usuarioId}/marcajes/por/fecha/${formatDateTimeForServer(fecha)}`);
 
     return Marcaje.fromRequest(
       DominiosWithCacheUsuarioDTO.fromResponse(response.data));
@@ -79,26 +79,26 @@ export class MarcajeAxiosApi implements MarcajeApi {
 
   async ultimosMarcajes(usuarioId: string): Promise<Marcaje[]> {
     const response = await this.axios.get(
-      `api/usuarios/${usuarioId}/ultimos_marcajes`);
+      `usuarios/${usuarioId}/ultimos_marcajes`);
 
     return Marcaje.fromRequest(
       DominiosWithCacheUsuarioDTO.fromResponse(response.data));
   }
 
   async registrar(reg: MarcajeOutDTO): Promise<void> {
-    return this.axios.post('api/marcajes', reg);
+    return this.axios.post('marcajes', reg);
   }
 
   async marcajeSinFinalizar(usuarioId: number, fecha: dayjs.Dayjs): Promise<boolean> {
     const response = await this.axios.get(
-      `api/usuarios/${usuarioId}/marcajes/fecha/${formatDateTimeForServer(fecha)}/sin/finalizar`);
+      `usuarios/${usuarioId}/marcajes/fecha/${formatDateTimeForServer(fecha)}/sin/finalizar`);
 
     return response.status == 200;
   }
 
   async registrarSalida(usuarioId: number, horaFin: dayjs.Dayjs): Promise<void> {
     return this.axios.put(
-      `api/usuarios/${usuarioId}/finalizar/marcaje/${formatDateTimeForServer(horaFin)}`);
+      `usuarios/${usuarioId}/finalizar/marcaje/${formatDateTimeForServer(horaFin)}`);
   }
 }
 

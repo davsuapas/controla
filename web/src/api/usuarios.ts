@@ -31,7 +31,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
   }
 
   async usuarios(): Promise<Usuario[]> {
-    const response = await this.axios.get('api/usuarios');
+    const response = await this.axios.get('usuarios');
     const usuariosData = response.data;
 
     return Array.isArray(usuariosData)
@@ -40,22 +40,22 @@ export class UsuariosAxiosApi implements UsuariosApi {
   }
 
   async usuario(id: string): Promise<Usuario> {
-    const response = await this.axios.get('api/usuarios/' + id);
+    const response = await this.axios.get('usuarios/' + id);
     return Usuario.fromRequest(response.data)
   }
 
   async actualizar_usuario(usuario: UsuarioOutDTO): Promise<void> {
-    return this.axios.put('api/usuarios', usuario);
+    return this.axios.put('usuarios', usuario);
   }
 
   async crearUsuario(usuario: UsuarioOutDTO): Promise<void> {
     usuario.id = 0; // Los nuevos usuarios asignan el id en el backend
-    return this.axios.post('api/usuarios', usuario);
+    return this.axios.post('usuarios', usuario);
   }
 
   async actualizar_password(usuarioId: number, passw: string): Promise<void> {
     return this.axios.put(
-      'api/usuarios/password',
+      'usuarios/password',
       {
         id: usuarioId,
         password: passw
@@ -80,7 +80,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
   }
 
   async logout(id: string): Promise<void> {
-    return this.axios.get(`api/usuarios/${id}/logout`);
+    return this.axios.get(`usuarios/${id}/logout`);
   }
 
   async horarioSinAsignar(
@@ -88,7 +88,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
     let response;
 
     response = await this.axios.get(
-      `api/usuarios/${usuarioId}/horario/sin/asignar/${formatDateTimeForServer(fechaHora)}`);
+      `usuarios/${usuarioId}/horario/sin/asignar/${formatDateTimeForServer(fechaHora)}`);
 
     return Array.isArray(response.data)
       ? response.data.map(Horario.fromRequest)
@@ -100,7 +100,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
     let response;
 
     response = await this.axios.get(
-      `api/usuarios/${usuarioId}/horario/cercano/${formatDateTimeForServer(fechaHora)}`);
+      `usuarios/${usuarioId}/horario/cercano/${formatDateTimeForServer(fechaHora)}`);
 
     return Array.isArray(response.data)
       ? response.data.map(Horario.fromRequest)
@@ -108,7 +108,7 @@ export class UsuariosAxiosApi implements UsuariosApi {
   }
 
   async usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]> {
-    const response = await this.axios.get(`api/roles/${id}/usuarios`);
+    const response = await this.axios.get(`roles/${id}/usuarios`);
     const usuariosData = response.data;
 
     return Array.isArray(usuariosData)

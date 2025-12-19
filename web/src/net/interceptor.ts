@@ -5,6 +5,7 @@ import { UseNotifications } from '../hooks/useNotifications/useNotifications';
 import { DialogHook } from '../hooks/useDialogs/useDialogs';
 import { UseUsuarioLogeado } from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
+import { URL_BASE_API } from '../config';
 
 // Variables globales para el interceptor
 let dialogo: DialogHook | null = null;
@@ -24,9 +25,7 @@ export const configurarInterceptor = (
 
 axios.defaults.timeout = 10000; //10 sg
 
-const protocol = window.location.protocol;
-const currentDomain = window.location.hostname;
-axios.defaults.baseURL = `${protocol}//${currentDomain}:8080`;
+axios.defaults.baseURL = URL_BASE_API;
 axios.defaults.withCredentials = true; // Incluye cookies HttpOnly
 
 // Error controlado
