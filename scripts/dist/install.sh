@@ -248,11 +248,20 @@ for APP_PATH in "$APP_ROOT"/*; do
             # Usar cp -a para preservar enlaces simbólicos y permisos (mejor que /*, pero requiere recrear la estructura)
             cp -a "$ZIP_OPT_DIR/." "$TARGET_OPT_DIR" || manejar_error "Fallo al copiar zip/opt/$APP/ a $TARGET_OPT_DIR."
             echo "✅ Archivos copiados."
+
+            TARGET_OPT_WEB="$TARGET_OPT_DIR/web"
+            TARGET_OPT_API="$TARGET_OPT_DIR/api"
             
             # Cambiar propietario y permisos
             echo "- Estableciendo propietario a **$APP** y permiso recursivamente en: $TARGET_OPT_DIR"
             chown -R "$APP":"$APP" "$TARGET_OPT_DIR" || manejar_error "Fallo al cambiar el propietario de $TARGET_OPT_DIR."
-            chmod -R 500 "$TARGET_OPT_DIR" || manejar_error "Fallo al cambiar permisos de $TARGET_OPT_DIR."
+            sudo chmod 755 "$TARGET_OPT_DIR" || manejar_error "Fallo al cambiar permisos de $TARGET_OPT_DIR."
+
+            chown -R www-data:www-data "$TARGET_OPT_WEB" || manejar_error "Fallo al cambiar el propietario de $TARGET_OPT_WEB."
+            sudo find "$TARGET_OPT_WEB" -type d -exec chmod 755 {} \;
+            sudo find "$TARGET_OPT_WEB" -type f -exec chmod 644 {} \;
+
+            sudo chmod -R 500 "$TARGET_OPT_API" || manejar_error "Fallo al cambiar permisos de $TARGET_OPT_API"
             echo "✅ Permisos y propietario ajustados."
         else
             echo "⚠️ Carpeta 'zip/opt/$APP' no encontrada."

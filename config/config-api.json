@@ -12,7 +12,7 @@
     "level": "@LOG_LEVEL"
   },
   "servidor": {
-    "host": "localhost",
+    "host": "127.0.0.1",
     "puerto": @SRV_PUERTO,
     "produccion": @SRV_PROD,
     "app": "@APP"
