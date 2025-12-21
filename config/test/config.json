@@ -9,12 +9,18 @@
     }
   },
   "log": {
-    "level": "info"
+    "level": "debug"
   },
   "servidor": {
     "host": "localhost",
     "puerto": 5000,
-    "produccion": false
+    "produccion": false,
+    "app": ""
+  },
+  "boot_admin": {
+    "crear": false,
+    "dni": "",
+    "password": "admin-passw"
   },
   "password": {
     "longitud_minima": 8,

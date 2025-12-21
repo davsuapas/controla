@@ -51,7 +51,7 @@ use std::{env, path::Path};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::fmt;
 
-use crate::app::{AppState, rutas};
+use crate::app::{AppState, lanzar_procesos_inicio, rutas};
 use crate::infra::PoolConexion;
 
 #[tokio::main]
@@ -107,6 +107,10 @@ async fn main() {
     PoolConexion::new(pool),
   ));
 
+  eprintln!("🌱 Lanzando los procesos de inicio...");
+
+  lanzar_procesos_inicio(&config, &app).await;
+
   eprintln!("📡 Iniciando el servidor web...");
 
   let direccion =
@@ -121,7 +125,7 @@ async fn main() {
     direccion.as_str()
   );
 
-  axum::serve(listener, rutas(config.servidor.app.as_deref(), app))
+  axum::serve(listener, rutas(&config.servidor.app, app))
     .await
     .unwrap();
 }

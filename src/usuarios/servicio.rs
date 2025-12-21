@@ -1,8 +1,9 @@
 use chrono::{NaiveDateTime, Utc};
+use smallvec::SmallVec;
 
 use crate::{
-  agregar_traza, config::ConfigTrabajo,
-   infra::{dni_valido, validar_password, DBError, Dni, Password, ServicioError},
+  agregar_traza, config::{BootAdmin, ConfigTrabajo},
+   infra::{DBError, Dni, Password, ServicioError, dni_valido, validar_password},
    traza::{TipoTraza, TrazaBuilder, TrazaServicio},
    usuarios::{DescriptorUsuario, Horario, Rol, Usuario, UsuarioRepo}
 };
@@ -29,9 +30,44 @@ impl UsuarioServicio {
 }
 
 impl UsuarioServicio {
+
+  /// Crear el usuario administrador inicial
+  pub async fn crear_admin(
+    &self,
+    boot_admin: &BootAdmin,
+  ) -> Result<(), ServicioError> {
+    tracing::info!(
+      admin = ?boot_admin,
+      "Se intenta crear el usuario administrador inicial");
+
+    let dni = Dni::new(boot_admin.dni.clone());
+    let now = Utc::now()
+          .with_timezone(&self.cnfg.zona_horaria)
+          .naive_local();
+
+    let usuario = Usuario {
+      id: 0,
+      email: "admin.inicial@controla.com".to_string(),
+      nombre: "Modifique los datos del usuario".to_string(),
+      primer_apellido: "Modifique los datos del usuario".to_string(),
+      segundo_apellido: "Modifique los datos del usuario".to_string(),
+      dni,
+      activo: Some(now),
+      inicio: None,
+      roles: SmallVec::from_slice(&[Rol::Admin]),
+      password: Some(Password::new(boot_admin.password.clone())),
+    };
+
+    self.crear_usuario(0, &usuario).await?;
+
+    Ok(())
+  }
+
   /// Crea un nuevo usuario.
   /// 
   /// El usuario es creado por un usuario autor
+  /// Si el usuario creador es cero, el usuario creador será
+  /// mismo que el usuario que se va a crear.
   /// Valida los datos del usuario antes de proceder con la creación.
   /// Genera una traza de la operación.
   pub async fn crear_usuario(

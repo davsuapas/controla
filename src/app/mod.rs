@@ -10,7 +10,7 @@ use std::{sync::Arc, time::Duration};
 pub use api::*;
 
 use crate::{
-  config::ConfigTrabajo,
+  config::{Config, ConfigTrabajo},
   inc::{IncidenciaRepo, IncidenciaServicio},
   infra::{PoolConexion, middleware},
   marcaje::{MarcajeRepo, MarcajeServicio},
@@ -67,5 +67,23 @@ impl AppState {
         ),
       ),
     }
+  }
+}
+
+/// Lanza los procesos de inicio de la aplicación
+///
+/// Inenta crear el usuario administrador inicial
+/// si se encuentra configurado para ello.
+pub async fn lanzar_procesos_inicio(config: &Config, app: &AppState) {
+  if config.boot_admin.crear {
+    drop(
+      app
+        .usuario_servicio
+        .crear_admin(&config.boot_admin)
+        .await
+        .inspect_err(
+          |err| tracing::error!(error = %err, "Creando usuario administrador"),
+        ),
+    );
   }
 }

@@ -1,7 +1,7 @@
 {
   "db": {
-    "ruta_socket": "/run/mysqld/mysqld.sock",
-    "usuario": "@USUARIO",
+    "ruta_socket": "@DB_SOCKET",
+    "usuario": "@DB_USUARIO",
     "nombre": "@DB_NOMBRE",
     "max_conexiones": @DB_MAX_CONN,
     "limites": {
@@ -14,7 +14,13 @@
   "servidor": {
     "host": "localhost",
     "puerto": @SRV_PUERTO,
-    "produccion": @SRV_PROD
+    "produccion": @SRV_PROD,
+    "app": "@APP"
+  },
+  "boot_admin": {
+    "crear": @BOOT_ADMIN_CREAR,
+    "dni": "@BOOT_ADMIN_DNI",
+    "password": "admin-passw"
   },
   "password": {
     "longitud_minima": 8,

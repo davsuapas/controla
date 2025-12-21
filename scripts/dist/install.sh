@@ -250,7 +250,7 @@ for APP_PATH in "$APP_ROOT"/*; do
             echo "✅ Archivos copiados."
             
             # Cambiar propietario y permisos
-            echo "- Estableciendo propietario a **$APP** y permisos 500 recursivamente en: $TARGET_OPT_DIR"
+            echo "- Estableciendo propietario a **$APP** y permiso recursivamente en: $TARGET_OPT_DIR"
             chown -R "$APP":"$APP" "$TARGET_OPT_DIR" || manejar_error "Fallo al cambiar el propietario de $TARGET_OPT_DIR."
             chmod -R 500 "$TARGET_OPT_DIR" || manejar_error "Fallo al cambiar permisos de $TARGET_OPT_DIR."
             echo "✅ Permisos y propietario ajustados."
@@ -296,7 +296,7 @@ for APP_PATH in "$APP_ROOT"/*; do
             fi
 
             # Cambiar propietario y permisos
-            echo "➡️ Estableciendo propietario a **$APP** y permisos 500 recursivamente en: $TARGET_ETC_DIR"
+            echo "➡️ Estableciendo propietario a **$APP** y permisos .  recursivamente en: $TARGET_ETC_DIR"
             chown -R "$APP":"$APP" "$TARGET_ETC_DIR" || manejar_error "Fallo al cambiar el propietario de $TARGET_ETC_DIR."
             chmod -R 500 "$TARGET_ETC_DIR" || manejar_error "Fallo al cambiar permisos de $TARGET_ETC_DIR."
             find "$TARGET_SECRETS_DIR" -type f -exec chmod 400 {} + || manejar_error "Fallo al cambiar permisos de $TARGET_SECRETS_DIR."

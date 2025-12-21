@@ -6,6 +6,29 @@ use std::path::{Path, PathBuf};
 
 use crate::infra::PasswordLimites;
 
+#[derive(Deserialize)]
+/// Representa la configuración inicial de la aplicación.
+///
+/// Se debe cambiar la password una vez iniciada la sesión
+pub struct BootAdmin {
+  /// Configurar a true si se desea la creación del usuario administrador
+  /// Tenga en cuenta que si es true estará intantando crea el usuario
+  /// cada vez que arranque el servicio
+  /// Configurar a false una vez creado el usuario administrador
+  pub crear: bool,
+  pub dni: String,
+  pub password: String,
+}
+
+impl std::fmt::Debug for BootAdmin {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("BootAdmin")
+      .field("dni", &"[OCULTO]")
+      .field("password", &"[OCULTO]")
+      .finish()
+  }
+}
+
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct PasswordConfig {
   pub longitud_minima: usize,
@@ -80,7 +103,7 @@ pub struct Servidor {
   /// Producción o desarrollo
   pub produccion: bool,
   /// Es el código que identifica cada aplicación en el tenat
-  pub app: Option<String>,
+  pub app: String,
 }
 
 /// Representa la configuración de la aplicación.
@@ -93,6 +116,7 @@ pub struct Config {
   pub log: Log,
   pub servidor: Servidor,
   pub password: PasswordConfig,
+  pub boot_admin: BootAdmin,
   pub zona_horaria: Tz,
   pub secreto: String,
   // Duración en segundos de la sesión cuando un usuario autentica
@@ -106,6 +130,7 @@ impl std::fmt::Debug for Config {
       .field("log", &self.log)
       .field("servidor", &self.servidor)
       .field("password", &self.password)
+      .field("boot_admin", &self.boot_admin)
       .field("zona_horaria", &self.zona_horaria)
       .field("secreto", &"[OCULTO]")
       .field("caducidad_sesion", &self.caducidad_sesion)
@@ -143,6 +168,9 @@ impl Config {
     let mut config: Self = serde_json::from_reader(reader)
       .expect("No se pudo deserializar el archivo de configuración");
 
+    if config.boot_admin.crear {
+      config.boot_admin.password = secreto.get(&config.boot_admin.password);
+    }
     config.secreto = secreto.get(&config.secreto);
 
     config

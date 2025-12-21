@@ -25,23 +25,24 @@ echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] 
     echo "La carpeta ./config/apps contiene la siguiente estructura:"
     echo "- Una carpeta por cada applicación (tenant):"
     echo "  - Carpeta secretos: Todos los ficheros de secretos."
-    echo "  - Fichero config.var: Una linéa por cada secreto:"
-    echo "    - Segunda línea: Nombre de la base de datos."
-    echo "    - Tercera línea: Número máximo de conexiones abiertas de la base de datos."
-    echo "    - Cuarta línea: Nivel de log."
-    echo "    - Quinta línea: Puerto del servidor api."
-    echo "    - Sexta línea: Si es entorno de producción será true."
-    echo ""
-    echo "En las plantillas se sustituyen los valores de configuración definidos en ./config/apps/{app}/config.var a través de las siguientes variables:"
-    echo "  - @DB_MAX_CONN: Número máximo de conexiones abiertas."
-    echo "  - @SRV_PUERTO: Puerto del servidor api."
-    echo "  - @SRV_PROD: Si es true, entorno de producción."
-    echo "  - @DB_NOMBRE: Nombre de la base de datos."
+    echo "  - Fichero config.var: Una línea por cada variable que se puede usar en las plantillas:"
+    echo "    - @DB_SOCKET: Ruta al socket de la base de datos."
+    echo "    - @DB_NOMBRE: Nombre de la base de datos."
+    echo "    - @DB_MAX_CONN: Número máximo de conexiones abiertas de la base de datos."
+    echo "    - @LOG_LEVEL: Nivel de log. (trace, debug, info, warn, error)"
+    echo "    - @SRV_PUERTO: Puerto del servidor api."
+    echo "    - @SRV_PROD: true, si es entorno de producción"
+    echo "    - @BOOT_ADMIN_CREAR: true, si se crea el usuario admin al iniciar el servidor api."
+    echo "    - @BOOT_ADMIN_DNI: DNI del usuario admin."
     echo ""
     echo "Argumentos:"
     echo "  -h: Visualiza la ayuda."
     echo "  -crear: Paquetiza todo para crear una nueva app (tenant)."
-    echo "  -actualizar=seccion: Paquetizar solo la sección especificada (opciones: servicio, config o la combinación de ambos seperados por coma sin espacios)."
+    echo "  -actualizar=seccion: Paquetizar solo la sección especificada o la combinación de varios seperados por coma sin espacios)."
+    echo "     Secciones:"
+    echo "        build: Construye y paquetiza los binarios."
+    echo "        config: Paquetiza la configuración y secretos."
+    echo "        servicio: Paquetiza la configuración del servicio systemd para el api."
     echo "  -script-db=nombre: Carpeta de scripts sql (ubicados en ./config/db). Si se usa la opción -crear se utiliza directamente el script sql 'db/inicio'."
     echo "  -app=nombre: Paquetizar solo la aplicación especificada."
         
@@ -64,11 +65,14 @@ leer_variables_configuracion() {
           exit
     fi
 
-    DB_NOMBRE="${CONFIG_VARS[0]}"
-    DB_MAX_CONN="${CONFIG_VARS[1]}"
-    LOG_LEVEL="${CONFIG_VARS[2]}"
-    SRV_PUERTO="${CONFIG_VARS[3]}"
-    SRV_PROD="${CONFIG_VARS[4]}"
+    DB_SOCKET="${CONFIG_VARS[0]}"
+    DB_NOMBRE="${CONFIG_VARS[1]}"
+    DB_MAX_CONN="${CONFIG_VARS[2]}"
+    LOG_LEVEL="${CONFIG_VARS[3]}"
+    SRV_PUERTO="${CONFIG_VARS[4]}"
+    SRV_PROD="${CONFIG_VARS[5]}"
+    BOOT_ADMIN_CREAR="${CONFIG_VARS[6]}"
+    BOOT_ADMIN_DNI="${CONFIG_VARS[7]}"
   else
     echo "❌ Error: No se encontró el archivo de configuración en $CONFIG_FILE." >&2
     exit 1
@@ -89,29 +93,52 @@ build() {
 
       echo "  ➡️ Construyendo y desplegando la aplicación $APP_NAME..."
 
+      # Se construye por cada app porque se incrusta la app
+      # dentro de los binarios. Esto no es necesario en el servicio api
+      # porque la app va en el fichero de configuración.
       ./scripts/web/build.sh "$APP_NAME"
       if [ $? -ne 0 ]; then
         echo "❌ Error: build.sh falló" >&2
         exit 1
       fi
 
-      ./scripts/dist/deploy.sh
-      if [ $? -ne 0 ]; then
-        echo "❌ Error: deploy.sh falló" >&2
-        exit 1
+      local RUST_SOURCE="./target/x86_64-unknown-linux-gnu/release/controla-api"
+      local WEB_SOURCE="./web/dist"
+
+      local PACK_OPT_APP="$PACK_DIR/opt/$APP_NAME"
+
+      local BIN_DEST="$PACK_OPT_APP/api"
+      local WEB_DEST="$PACK_OPT_APP/web"
+
+      echo "Iniciando el proceso de preparación del despliegue..."
+
+      # Crear directorios de destino si no existen
+      echo "Verificando y creando directorios de destino..."
+
+      mkdir -p "$BIN_DEST"
+      mkdir -p "$WEB_DEST"
+      echo "   - Directorios de despliegue listos."
+
+      # Copiar el ejecutable de Rust
+      echo "Copiando binario de Rust: $RUST_SOURCE a $BIN_DEST/"
+      if [ -f "$RUST_SOURCE" ]; then
+          cp "$RUST_SOURCE" "$BIN_DEST/"
+          echo "   - ✅ Binario copiado exitosamente."
+      else
+          echo "❌ Error: El binario de Rust no se encontró en $RUST_SOURCE. ¿Ejecutaste 'api/build.sh'?"
+          exit 1
       fi
 
-      PACK_OPT_APP="$PACK_DIR/opt/$APP_NAME"
-
-      mkdir -p "$PACK_OPT_APP"
-
-      cp -r ./target/dist/* "$PACK_OPT_APP"/
-      if [ $? -ne 0 ]; then
-        echo "❌ Error: La copia de archivos de la aplicación falló: $PACK_OPT_APP" >&2
-        exit 1
+      # Copiar los archivos de la aplicación web
+      echo "Copiando artefactos Web: $WEB_SOURCE a $WEB_DEST/"
+      if [ -d "$WEB_SOURCE" ]; then
+          cp -r "$WEB_SOURCE"/* "$WEB_DEST/"
+          echo "   - ✅ Archivos web copiados exitosamente."
+      else
+          echo "⚠️ Advertencia: El directorio web de distribución no se encontró en $WEB_SOURCE. ¿Ejecutaste 'web/build.sh'?"
       fi
 
-      echo "✅ Copia de archivos de la aplicación realizada con éxito."
+      echo "✅ Despliegue listo en el directorio: **$DEST**"
     fi
   done  
 }
@@ -134,7 +161,7 @@ config() {
 
       leer_variables_configuracion "$dir/config.var"    
       
-      ./scripts/dist/config.sh "$PACK_ETC_APP_CONFIG" $APP_NAME $DB_NOMBRE $DB_MAX_CONN $LOG_LEVEL $SRV_PUERTO $SRV_PROD
+      ./scripts/dist/config.sh "$PACK_ETC_APP_CONFIG" $APP_NAME $DB_SOCKET $APP_NAME $DB_NOMBRE $DB_MAX_CONN $LOG_LEVEL $SRV_PUERTO $SRV_PROD $BOOT_ADMIN_CREAR $BOOT_ADMIN_DNI
 
       # Copia los secretos
       cp -r "$dir/secretos" "$PACK_ETC_APP/secretos"

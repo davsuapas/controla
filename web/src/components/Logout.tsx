@@ -9,6 +9,7 @@ import Alert from "@mui/material/Alert";
 import PageContainer from "./PageContainer";
 import { logError } from "../error";
 import { useIsMounted } from '../hooks/useComponentMounted';
+import { URL_BASE_ROUTER } from "../config";
 
 export default function Logout() {
   const { setUsrLogeado, getUsrLogeado } = useUsuarioLogeado()
@@ -32,7 +33,7 @@ export default function Logout() {
       };
 
       // Forzamos a eliminar caches. Liberamos memoria
-      window.location.replace('/');
+      window.location.replace(URL_BASE_ROUTER);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
         logError('logout', error);

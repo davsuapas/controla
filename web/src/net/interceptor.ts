@@ -5,7 +5,7 @@ import { UseNotifications } from '../hooks/useNotifications/useNotifications';
 import { DialogHook } from '../hooks/useDialogs/useDialogs';
 import { UseUsuarioLogeado } from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
-import { URL_BASE_API } from '../config';
+import { URL_BASE_API, URL_BASE_ROUTER } from '../config';
 
 // Variables globales para el interceptor
 let dialogo: DialogHook | null = null;
@@ -82,7 +82,7 @@ axios.interceptors.response.use(
         }
 
         // Forzamos a eliminar caches. Liberamos memoria
-        window.location.replace('/');
+        window.location.replace(URL_BASE_ROUTER);
 
         break;
 

@@ -1,12 +1,12 @@
-// SECCIÓN CONSTANTES MODIFICABLES
+// SECCIÓN CONSTANTES GLOBALES MODIFICABLES
 export const DRAWER_WIDTH = 260; // px
 export const MINI_DRAWER_WIDTH = 90; // px
 
 // Configuración del puerto para depuración
-// Este puerto debe ser el mismo que el del servidor
+// Este puerto debe ser el mismo que el del servidor api
 const puertoDebug = '5000'
 
-// FIN SECCIÓN CONSTANTES MODIFICABLES
+// FIN SECCIÓN
 
 // Variables de entorno
 // Si se modifica este nombre cambiarlo en /scripts/web/build.sh
