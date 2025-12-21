@@ -79,6 +79,8 @@ pub struct Servidor {
   pub puerto: u32,
   /// Producción o desarrollo
   pub produccion: bool,
+  /// Es el código que identifica cada aplicación en el tenat
+  pub app: Option<String>,
 }
 
 /// Representa la configuración de la aplicación.

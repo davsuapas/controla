@@ -48,7 +48,9 @@ struct UsuarioFechaRegParams {
 }
 
 /// Define las rutas de la aplicación.
-pub fn rutas(app: Arc<AppState>) -> Router {
+///
+/// Recibe el código de la aplicación para el tenant.
+pub fn rutas(cod_app: Option<&str>, app: Arc<AppState>) -> Router {
   // Rutas públicas (sin autenticación)
   let rutas_auth = Router::new().route("/usuarios/login", post(login));
 
@@ -103,9 +105,14 @@ pub fn rutas(app: Arc<AppState>) -> Router {
       crate::infra::middleware::autenticacion,
     ));
 
+  let ruta_app = match cod_app {
+    Some(cod) => format!("/{}", cod),
+    None => String::new(),
+  };
+
   Router::new()
-    .nest("/auth", rutas_auth)
-    .nest("/api", rutas_privadas)
+    .nest(format!("{}/auth", ruta_app).as_str(), rutas_auth)
+    .nest(format!("{}/api", ruta_app).as_str(), rutas_privadas)
     .layer(Extension(app.manejador_sesion.clone()))
     .with_state(app)
 }

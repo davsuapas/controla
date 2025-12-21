@@ -121,7 +121,9 @@ async fn main() {
     direccion.as_str()
   );
 
-  axum::serve(listener, rutas(app)).await.unwrap();
+  axum::serve(listener, rutas(config.servidor.app.as_deref(), app))
+    .await
+    .unwrap();
 }
 
 fn obtener_nivel_log(config: &Config) -> LevelFilter {

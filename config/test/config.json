@@ -1,0 +1,29 @@
+{
+  "db": {
+    "ruta_socket": "/var/lib/mysql/mysql.sock",
+    "usuario": "davsuapas",
+    "nombre": "controla",
+    "max_conexiones": 2,
+    "limites": {
+      "ultimos_marcajes": 10
+    }
+  },
+  "log": {
+    "level": "info"
+  },
+  "servidor": {
+    "host": "localhost",
+    "puerto": 5000,
+    "produccion": false
+  },
+  "password": {
+    "longitud_minima": 8,
+    "mayusculas": true,
+    "minusculas": true,
+    "digitos": true,
+    "caracteres_especiales": true
+  },
+  "zona_horaria": "Europe/Madrid",
+  "secreto": "secreto",
+  "caducidad_sesion": 3600
+}

@@ -10,7 +10,7 @@ set -e
 # Verificar el número de argumentos
 if [ "$#" -ne 7 ]; then
     echo "❌ ERROR: Uso incorrecto."
-    echo "Uso: $0 <destino> <DB_USUARIO> <DB_NOMBRE> <DB_MAX_CONN> <LOG_LEVEL> <SERVIDOR_PROD>"
+    echo "Uso: $0 <destino> <DB_USUARIO> <DB_NOMBRE> <DB_MAX_CONN> <LOG_LEVEL> <SERVIDOR_PUERTO> <SERVIDOR_PROD>"
     exit 1
 fi
 

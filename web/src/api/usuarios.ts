@@ -64,12 +64,16 @@ export class UsuariosAxiosApi implements UsuariosApi {
   }
 
   async login(dni: string, passw: string): Promise<Usuario> {
+    // Modificamos la baseURL para quitar '/api' y apuntar a '/auth'
+    const baseURL = this.axios.defaults.baseURL?.replace(/\/api$/, '');
+
     const response = await this.axios.post(
       'auth/usuarios/login',
       {
         dni: dni,
         password: passw
-      }
+      },
+      { baseURL }
     );
 
     if (response.status == 401 || response.status == 500) {

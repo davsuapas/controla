@@ -32,7 +32,7 @@ import MarcajeAuto from './components/MarcajeAuto';
 import MarcajeConsulta from './components/MarcajeConsulta';
 import { URL_BASE_ROUTER } from './config';
 
-crearAPI(true);
+crearAPI(false);
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
