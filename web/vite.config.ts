@@ -7,6 +7,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: '/' + env.VITE_CONTROLA_WEB_APP || '',
+    base: '/' + (env.VITE_CONTROLA_WEB_APP || ''),
   }
 })

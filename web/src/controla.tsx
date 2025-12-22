@@ -32,7 +32,7 @@ import MarcajeAuto from './components/MarcajeAuto';
 import MarcajeConsulta from './components/MarcajeConsulta';
 import { URL_BASE_ROUTER } from './config';
 
-crearAPI(false);
+crearAPI();
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
@@ -55,7 +55,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!hayUsrLogeado()) {
     return (
       <Navigate
-        to="/"
+        to='/'
         state={{ redirect: location.pathname + location.search }}
         replace
       />
