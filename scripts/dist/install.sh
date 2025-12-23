@@ -13,11 +13,11 @@ set -e
 
 # --- Variables Globales ---
 # Directorio temporal para la extracción del ZIP
-ZIP_TEMP=""
+EXTRACT_TEMP=""
 # Directorio temporal para la copia de seguridad de la instalación
 BAK_TEMP=""
-# El nombre del archivo ZIP debe pasarse como argumento
-ZIP_FILE="$1"
+# El nombre del archivo del paquete debe pasarse como argumento
+PACKAGE_FILE="$1"
 # Argumento de ayuda
 HELP_FLAG=0
 SISTEMA="controla"
@@ -26,12 +26,12 @@ SISTEMA="controla"
 
 # Función para mostrar la ayuda de uso
 mostrar_ayuda() {
-    echo "Uso: $0 [-h] <fichero_zip>"
+    echo "Uso: $0 [-h] <fichero_tar_gz>"
     echo ""
-    echo "Descomprime e instala las aplicaciones contenidas en el fichero ZIP."
+    echo "Descomprime e instala las aplicaciones contenidas en el fichero .tar.gz."
     echo ""
     echo "Argumentos:"
-    echo "  <fichero_zip>  El path al fichero .zip que contiene la estructura de instalación."
+    echo "  <fichero_tar_gz>  El path al fichero .tar.gz que contiene la estructura de instalación."
     echo "  -h             Muestra esta ayuda y sale."
 }
 
@@ -46,9 +46,9 @@ manejar_error() {
 
 # Función para limpiar directorios temporales
 limpiar_temporales() {
-    if [ -n "$ZIP_TEMP" ] && [ -d "$ZIP_TEMP" ]; then
-        echo "➡️ Limpiando directorio temporal de extracción: $ZIP_TEMP"
-        rm -rf "$ZIP_TEMP" || echo "❌ No se pudo eliminar $ZIP_TEMP"
+    if [ -n "$EXTRACT_TEMP" ] && [ -d "$EXTRACT_TEMP" ]; then
+        echo "➡️ Limpiando directorio temporal de extracción: $EXTRACT_TEMP"
+        rm -rf "$EXTRACT_TEMP" || echo "❌ No se pudo eliminar $EXTRACT_TEMP"
     fi
     if [ -n "$BAK_TEMP" ] && [ -d "$BAK_TEMP" ]; then
         echo "➡️ Limpiando directorio temporal de copia de seguridad: $BAK_TEMP"
@@ -81,53 +81,53 @@ if [ "$HELP_FLAG" -eq 1 ]; then
     exit 0
 fi
 
-# El fichero ZIP es el argumento posicional restante
-ZIP_FILE="$1"
+# El fichero .tar.gz es el argumento posicional restante
+PACKAGE_FILE="$1"
 
-if [ -z "$ZIP_FILE" ]; then
+if [ -z "$PACKAGE_FILE" ]; then
     mostrar_ayuda
-    manejar_error "Debe especificar un fichero ZIP para instalar."
+    manejar_error "Debe especificar un fichero .tar.gz para instalar."
 fi
 
-if [ ! -f "$ZIP_FILE" ]; then
-    manejar_error "El fichero ZIP '$ZIP_FILE' no existe."
+if [ ! -f "$PACKAGE_FILE" ]; then
+    manejar_error "El fichero '$PACKAGE_FILE' no existe."
 fi
 
 # --- Comienzo del Script ---
 
-echo "🚀 Iniciando proceso de instalación desde: $ZIP_FILE"
+echo "🚀 Iniciando proceso de instalación desde: $PACKAGE_FILE"
 
 # Crear directorio temporal para la extracción
-ZIP_TEMP=$(mktemp -d -t zip_extract_XXXXXX) || manejar_error "No se pudo crear el directorio temporal para la extracción."
-echo "➡️ Descomprimiendo '$ZIP_FILE' en temporal: $ZIP_TEMP"
+EXTRACT_TEMP=$(mktemp -d -t extract_XXXXXX) || manejar_error "No se pudo crear el directorio temporal para la extracción."
+echo "➡️ Descomprimiendo '$PACKAGE_FILE' en temporal: $EXTRACT_TEMP"
 
-# Descomprimir el ZIP
-unzip -q "$ZIP_FILE" -d "$ZIP_TEMP" || manejar_error "Fallo al descomprimir el fichero ZIP."
-# Definir la ubicación de la extracción para la nomenclatura "zip/{carpetas}"
-ZIP_DIR="$ZIP_TEMP"
+# Descomprimir el .tar.gz
+tar -xzf "$PACKAGE_FILE" -C "$EXTRACT_TEMP" || manejar_error "Fallo al descomprimir el fichero .tar.gz."
+# Definir la ubicación de la extracción
+EXTRACT_DIR="$EXTRACT_TEMP"
 
 # Crear directorio temporal para las copias de seguridad de las carpetas de instalación
 BAK_TEMP=$(mktemp -d -t install_bak_XXXXXX) || manejar_error "No se pudo crear el directorio temporal para la copia de seguridad."
 
 # Definir la carpeta raíz para la iteración de aplicaciones (en orden de prioridad)
 APP_ROOT=""
-if [ -d "$ZIP_DIR/opt" ]; then
-    APP_ROOT="$ZIP_DIR/opt"
-    echo "Usando 'zip/opt' para la lista de aplicaciones."
-elif [ -d "$ZIP_DIR/etc" ]; then
-    APP_ROOT="$ZIP_DIR/etc"
-    echo "Usando 'zip/etc' para la lista de aplicaciones."
-elif [ -d "$ZIP_DIR/db" ]; then
-    APP_ROOT="$ZIP_DIR/db"
-    echo "Usando 'zip/db' para la lista de aplicaciones."
-elif [ -d "$ZIP_DIR/log" ]; then
-    APP_ROOT="$ZIP_DIR/log"
-    echo "Usando 'zip/log' para la lista de aplicaciones."
-elif [ -d "$ZIP_DIR/systemd" ]; then
-    APP_ROOT="$ZIP_DIR/systemd"
-    echo "Usando 'zip/systemd' para la lista de aplicaciones."
+if [ -d "$EXTRACT_DIR/opt" ]; then
+    APP_ROOT="$EXTRACT_DIR/opt"
+    echo "Usando 'pack/opt' para la lista de aplicaciones."
+elif [ -d "$EXTRACT_DIR/etc" ]; then
+    APP_ROOT="$EXTRACT_DIR/etc"
+    echo "Usando 'pack/etc' para la lista de aplicaciones."
+elif [ -d "$EXTRACT_DIR/db" ]; then
+    APP_ROOT="$EXTRACT_DIR/db"
+    echo "Usando 'pack/db' para la lista de aplicaciones."
+elif [ -d "$EXTRACT_DIR/log" ]; then
+    APP_ROOT="$EXTRACT_DIR/log"
+    echo "Usando 'pack/log' para la lista de aplicaciones."
+elif [ -d "$EXTRACT_DIR/systemd" ]; then
+    APP_ROOT="$EXTRACT_DIR/systemd"
+    echo "Usando 'pack/systemd' para la lista de aplicaciones."
 else
-    manejar_error "No existe 'zip/x', 'zip/etc' o 'zip/db'. No hay nada para instalar."
+    manejar_error "No existe 'pack/opt', 'pack/etc' o 'pack/db'. No hay nada para instalar."
 fi
 
 # --- Loop de Instalación por Aplicación ---
@@ -178,25 +178,22 @@ for APP_PATH in "$APP_ROOT"/*; do
             cp -a "$LOGROTATE_FILE" "$APP_BAK_DIR/" || manejar_error "Fallo al copiar $LOGROTATE_FILE para backup."
         fi
 
-        # Creación del ZIP de copia de seguridad
-        BACKUP_ZIP_FILE="$APP-$DATE_TIME.bak"
-        echo "➡️ Creando fichero de copia de seguridad: **$BACKUP_ZIP_FILE**"
+        # Creación del tar.gz de copia de seguridad
+        BACKUP_FILE="$APP-$DATE_TIME.bak.tar.gz"
+        echo "➡️ Creando fichero de copia de seguridad: **$BACKUP_FILE**"
         
         # Comprimir el directorio temporal de backup de esta aplicación
-        (
-            cd "$APP_BAK_DIR/.." || manejar_error "Fallo al cambiar al directorio para crear el ZIP de backup."
-            zip -qr "$BACKUP_ZIP_FILE" "$(basename "$APP_BAK_DIR")" || manejar_error "Fallo al crear el ZIP de copia de seguridad $BACKUP_ZIP_FILE."
-        )
+        tar -c -C "$BAK_TEMP" "$(basename "$APP_BAK_DIR")" | gzip -9 > "$BAK_TEMP/$BACKUP_FILE" || manejar_error "Fallo al crear el tar.gz de copia de seguridad $BACKUP_FILE."
 
-        # Mover el ZIP creado (que está en $BAK_TEMP) en el raíz de ejecución
-        mv "$BAK_TEMP/$BACKUP_ZIP_FILE" . || manejar_error "Fallo al mover el ZIP de copia de seguridad al directorio actual."
+        # Mover el tar.gz creado (que está en $BAK_TEMP) en el raíz de ejecución
+        mv "$BAK_TEMP/$BACKUP_FILE" . || manejar_error "Fallo al mover el tar.gz de copia de seguridad al directorio actual."
 
         # Borrar la carpeta temporal de la copia de seguridad de esta aplicación
         rm -rf "$APP_BAK_DIR" || manejar_error "Fallo al borrar el directorio temporal de backup: $APP_BAK_DIR."
-        echo "✅ Copia de seguridad creada como **$BACKUP_ZIP_FILE** y temporal borrado."
+        echo "✅ Copia de seguridad creada como **$BACKUP_FILE** y temporal borrado."
 
-        # Gestión del servicio systemd (Parar y Comprobación de la carpeta ZIP)
-        ZIP_SYSTEMD_DIR="$ZIP_DIR/systemd/$APP"
+        # Gestión del servicio systemd (Parar y Comprobación de la carpeta del paquete)
+        EXTRACT_SYSTEMD_DIR="$EXTRACT_DIR/systemd/$APP"
 
         # Si el servicio existe, pararlo
         if systemctl is-active --quiet "$SERVICE_NAME"; then
@@ -209,11 +206,11 @@ for APP_PATH in "$APP_ROOT"/*; do
             echo "⚠️ Servicio **$SERVICE_NAME** no existe o no está habilitado."
         fi
 
-        # Si existe zip/systemd, instalar
-        if [ -d "$ZIP_SYSTEMD_DIR" ]; then
-            echo "➡️ Instalando servicio systemd para **$APP** desde: $ZIP_SYSTEMD_DIR"
+        # Si existe pack/systemd, instalar
+        if [ -d "$EXTRACT_SYSTEMD_DIR" ]; then
+            echo "➡️ Instalando servicio systemd para **$APP** desde: $EXTRACT_SYSTEMD_DIR"
             # Copiar ficheros de servicio (asumimos que deben ir a /etc/systemd/system para overrides)
-            cp -f "$ZIP_SYSTEMD_DIR"/* /etc/systemd/system/ || manejar_error "Fallo al copiar ficheros systemd para **$APP**."
+            cp -f "$EXTRACT_SYSTEMD_DIR"/* /etc/systemd/system/ || manejar_error "Fallo al copiar ficheros systemd para **$APP**."
 
             # Recargar daemon
             echo "➡️ Recargando systemd daemon y habilitando servicio."
@@ -223,10 +220,10 @@ for APP_PATH in "$APP_ROOT"/*; do
             echo "✅ Servicios systemd instalados y habilitados."
         fi
 
-        # Si existe zip/opt, instalar
-        ZIP_OPT_DIR="$ZIP_DIR/opt/$APP"
-        if [ -d "$ZIP_OPT_DIR" ]; then
-            echo "➡️ Instalando binarios de aplicación para **$APP** desde: $ZIP_OPT_DIR"
+        # Si existe pack/opt, instalar
+        EXTRACT_OPT_DIR="$EXTRACT_DIR/opt/$APP"
+        if [ -d "$EXTRACT_OPT_DIR" ]; then
+            echo "➡️ Instalando binarios de aplicación para **$APP** desde: $EXTRACT_OPT_DIR"
             TARGET_OPT_DIR="/opt/$APP"
 
             # Verificar y crear /opt/{app}
@@ -243,10 +240,10 @@ for APP_PATH in "$APP_ROOT"/*; do
                 echo "- Carpeta **$TARGET_OPT_DIR** vacía."
             fi
             
-            # Copiar zip/opt/* a /opt/{app}
+            # Copiar pack/opt/* a /opt/{app}
             echo "- Copiando archivos de aplicación a: $TARGET_OPT_DIR"
             # Usar cp -a para preservar enlaces simbólicos y permisos (mejor que /*, pero requiere recrear la estructura)
-            cp -a "$ZIP_OPT_DIR/." "$TARGET_OPT_DIR" || manejar_error "Fallo al copiar zip/opt/$APP/ a $TARGET_OPT_DIR."
+            cp -a "$EXTRACT_OPT_DIR/." "$TARGET_OPT_DIR" || manejar_error "Fallo al copiar pack/opt/$APP/ a $TARGET_OPT_DIR."
             echo "✅ Archivos copiados."
 
             TARGET_OPT_WEB="$TARGET_OPT_DIR/web"
@@ -264,13 +261,13 @@ for APP_PATH in "$APP_ROOT"/*; do
             sudo chmod -R 500 "$TARGET_OPT_API" || manejar_error "Fallo al cambiar permisos de $TARGET_OPT_API"
             echo "✅ Permisos y propietario ajustados."
         else
-            echo "⚠️ Carpeta 'zip/opt/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/opt/$APP' no encontrada."
         fi
 
-        # Si existe zip/etc, instalar
-        ZIP_ETC_DIR="$ZIP_DIR/etc/$APP"
-        if [ -d "$ZIP_ETC_DIR" ]; then
-            echo "➡️ Instalando configuración para **$APP** desde: $ZIP_ETC_DIR"
+        # Si existe pack/etc, instalar
+        EXTRACT_ETC_DIR="$EXTRACT_DIR/etc/$APP"
+        if [ -d "$EXTRACT_ETC_DIR" ]; then
+            echo "➡️ Instalando configuración para **$APP** desde: $EXTRACT_ETC_DIR"
             TARGET_ETC_DIR="/etc/$APP"
 
             # Verificar y crear /etc/{app}
@@ -280,19 +277,19 @@ for APP_PATH in "$APP_ROOT"/*; do
             fi
             
             # Copiar config.json
-            ZIP_CONFIG="$ZIP_ETC_DIR/config.json"
-            if [ -f "$ZIP_CONFIG" ]; then
-                echo "- Copiando $ZIP_CONFIG a $TARGET_ETC_DIR/config.json"
-                cp -f "$ZIP_CONFIG" "$TARGET_ETC_DIR/config.json" || manejar_error "Fallo al copiar config.json."
+            EXTRACT_CONFIG="$EXTRACT_ETC_DIR/config.json"
+            if [ -f "$EXTRACT_CONFIG" ]; then
+                echo "- Copiando $EXTRACT_CONFIG a $TARGET_ETC_DIR/config.json"
+                cp -f "$EXTRACT_CONFIG" "$TARGET_ETC_DIR/config.json" || manejar_error "Fallo al copiar config.json."
                 echo "✅ config.json copiado."
             else
-                echo "⚠️ Fichero 'zip/etc/$APP/config.json' no encontrado."
+                echo "⚠️ Fichero 'pack/etc/$APP/config.json' no encontrado."
             fi
 
             # Copiar secretos
-            ZIP_SECRETS_DIR="$ZIP_ETC_DIR/secretos"
+            EXTRACT_SECRETS_DIR="$EXTRACT_ETC_DIR/secretos"
             TARGET_SECRETS_DIR="$TARGET_ETC_DIR/secretos"
-            if [ -d "$ZIP_SECRETS_DIR" ]; then
+            if [ -d "$EXTRACT_SECRETS_DIR" ]; then
                 echo "➡️ Copiando secretos de configuración."
                 # Verificar y crear /etc/{app}/secretos
                 if [ ! -d "$TARGET_SECRETS_DIR" ]; then
@@ -300,7 +297,7 @@ for APP_PATH in "$APP_ROOT"/*; do
                     echo "✅ Carpeta **$TARGET_SECRETS_DIR** creada."
                 fi
                 # Copiar recursivamente
-                cp -a "$ZIP_SECRETS_DIR/." "$TARGET_SECRETS_DIR" || manejar_error "Fallo al copiar zip/etc/$APP/secretos a $TARGET_SECRETS_DIR."
+                cp -a "$EXTRACT_SECRETS_DIR/." "$TARGET_SECRETS_DIR" || manejar_error "Fallo al copiar pack/etc/$APP/secretos a $TARGET_SECRETS_DIR."
                 echo "✅ Secretos copiados."
             fi
 
@@ -311,13 +308,13 @@ for APP_PATH in "$APP_ROOT"/*; do
             find "$TARGET_SECRETS_DIR" -type f -exec chmod 400 {} + || manejar_error "Fallo al cambiar permisos de $TARGET_SECRETS_DIR."
             echo "✅ Permisos y propietario ajustados."
         else
-            echo "⚠️ Carpeta 'zip/etc/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/etc/$APP' no encontrada."
         fi
 
-        # Si existe zip/log, instalar
-        ZIP_LOG_DIR="$ZIP_DIR/log/$APP"
-        if [ -d "$ZIP_LOG_DIR" ]; then
-            echo "➡️ Instalando logrotate de aplicación para **$APP** desde: $ZIP_LOG_DIR"
+        # Si existe pack/log, instalar
+        EXTRACT_LOG_DIR="$EXTRACT_DIR/log/$APP"
+        if [ -d "$EXTRACT_LOG_DIR" ]; then
+            echo "➡️ Instalando logrotate de aplicación para **$APP** desde: $EXTRACT_LOG_DIR"
             TARGET_LOG_DIR="/var/log/$APP"
 
             # Verificar y crear var/log/{app}
@@ -335,19 +332,19 @@ for APP_PATH in "$APP_ROOT"/*; do
             LOGRORATE_APP="/etc/logrotate.d/$SISTEMA-$APP"
 
             # Copiar recursivamente
-            cp -f "$ZIP_LOG_DIR/$SISTEMA-$APP.log" "$LOGRORATE_APP" || manejar_error "Fallo al copiar logrotate en $LOGRORATE_APP."            
+            cp -f "$EXTRACT_LOG_DIR/$SISTEMA-$APP.log" "$LOGRORATE_APP" || manejar_error "Fallo al copiar logrotate en $LOGRORATE_APP."            
             echo "✅ Configuración logrorate en '$LOGRORATE_APP' copiada."
         else
-            echo "⚠️ Carpeta 'zip/log/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/log/$APP' no encontrada."
         fi
 
-        # Si existe zip/db, instalar
-        ZIP_DB_DIR="$ZIP_DIR/db/$APP"
-        if [ -d "$ZIP_DB_DIR" ]; then
-            echo "➡️ Ejecutando scripts SQL para **$APP** desde: $ZIP_DB_DIR"
+        # Si existe pack/db, instalar
+        EXTRACT_DB_DIR="$EXTRACT_DIR/db/$APP"
+        if [ -d "$EXTRACT_DB_DIR" ]; then
+            echo "➡️ Ejecutando scripts SQL para **$APP** desde: $EXTRACT_DB_DIR"
             
             # Buscar ficheros .sql y ordenarlos por nombre (que incluye el número inicial)
-            SQL_FILES=$(find "$ZIP_DB_DIR" -maxdepth 1 -type f -name "*.sql" | sort)
+            SQL_FILES=$(find "$EXTRACT_DB_DIR" -maxdepth 1 -type f -name "*.sql" | sort)
             
             if [ -n "$SQL_FILES" ]; then
                 for SQL_FILE in $SQL_FILES; do
@@ -357,10 +354,10 @@ for APP_PATH in "$APP_ROOT"/*; do
                 done
                 echo "✅ Todos los scripts SQL ejecutados."
             else
-                echo "⚠️ No se encontraron ficheros .sql en 'zip/db/$APP'."
+                echo "⚠️ No se encontraron ficheros .sql en 'pack/db/$APP'."
             fi
         else
-            echo "⚠️ Carpeta 'zip/db/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/db/$APP' no encontrada."
         fi
 
       # Iniciar el servicio y mostrar estado

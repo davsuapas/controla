@@ -274,7 +274,7 @@ impl IncidenciaServicio {
                       }
                     }
 
-                    if error_message.is_some() {
+                    if let Some(err_msg) = error_message {
                       // Cambiamos el estado a error resolver
                       if let Err(err) = self
                         .repo
@@ -282,7 +282,7 @@ impl IncidenciaServicio {
                           &mut tr,
                           incp.id,
                           EstadoIncidencia::ErrorResolver,
-                          error_message.unwrap(),
+                          err_msg,
                           fecha_actual,
                         )
                         .await
@@ -594,9 +594,7 @@ impl IncidenciaServicio {
   /// Los errores gestionados son:
   /// - ServicioError::Usuario
   /// - ServicioError::Validacion
-  /// - ServicioError::DB(
-  ///      DBError::RegistroVacio(e) |
-  ///      DBError::ConstraintViolation(e))
+  /// - ServicioError::DB(DBError::RegistroVacio(e) | DBError::ConstraintViolation(e))
   ///
   /// Si el error no es gestionado, se devuelve un error genérico
   /// recibido como parámetro

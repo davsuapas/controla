@@ -26,7 +26,7 @@ pub use servicio::*;
 /// - `$traza`: Referencia a la traza a agregar.
 /// - `$mensaje`: Mensaje de error a registrar en caso de fallo.
 /// - `$( $key:ident = $value:expr ),*`: Pares clave-valor adicionales
-///    para el registro de errores.
+///   para el registro de errores.
 ///
 /// Si la adición de la traza falla, se registra un error con el mensaje y
 /// los pares clave-valor proporcionados, se revierte la transacción y se

@@ -354,12 +354,13 @@ impl MarcajeRepo {
         .map_err(|_| DBError::Parametros("Fecha fin"))?;
     }
 
-    if let Some(ur) = usuario_reg {
-      if ur != usuario && ur != 0 {
-        args
-          .add(ur)
-          .map_err(|_| DBError::Parametros("Usuario registrador"))?;
-      }
+    if let Some(ur) = usuario_reg
+      && ur != usuario
+      && ur != 0
+    {
+      args
+        .add(ur)
+        .map_err(|_| DBError::Parametros("Usuario registrador"))?;
     }
 
     self
@@ -419,12 +420,13 @@ impl MarcajeRepo {
       .add(fecha.formato_sql())
       .map_err(|_| DBError::Parametros("Fecha"))?;
 
-    if let Some(ur) = usuario_reg {
-      if ur != usuario && ur != 0 {
-        args
-          .add(ur)
-          .map_err(|_| DBError::Parametros("Usuario registrador"))?;
-      }
+    if let Some(ur) = usuario_reg
+      && ur != usuario
+      && ur != 0
+    {
+      args
+        .add(ur)
+        .map_err(|_| DBError::Parametros("Usuario registrador"))?;
     }
 
     self

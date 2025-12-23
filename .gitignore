@@ -27,3 +27,6 @@ target
 # Configuración para las diferentes aplicaciones que se van a desplegar
 # Cada directorio es una aplicación destino 
 /config/apps/
+
+# Configuración para pruebas de usuario
+/config/test/

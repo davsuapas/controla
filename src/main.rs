@@ -10,15 +10,18 @@
 //! El sistema expone una API REST que consume el cliente web. Se pretende
 //! dar cabida a los siguientes casos de uso:
 //! - Sistema de identificación de usuarios.
-//! - Marcaje de entrada y salida.
-//! - Saldo horario: diferencia entre horas marcadas y horas trabajadas.
-//! - Cumplimiento horario: horas trabajadas frente a horas previstas.
+//! - Administración de usuarios y empleados.
+//! - Gestión de horarios múltiples del empleado.
+//! - Gestión de los calendarios de los empleados.
+//! - Marcaje de entrada y salida por el empleado.
+//! - Marcaje manual por el registrador en nombre del empleado.
+//! - Consulta de los registros de marcajes.
+//! - Informes de saldo horario: Diferencia entre horas marcadas y horas trabajadas.
+//! - Informes del cumplimiento horario (resumen mensual): Horas trabajadas frente a horas previstas.
 //! - Solicitud de incidencias: Solicitud para gestionar errores de marcaje.
-//! - Gestión de las incidencias de marcajes.
-//! - Administración de usuarios y empleados
-//! - Informes horrarios y de incidencias.
-//! - Marcaje automático y manual por el controlador.
-//! - Consultas por parte de de un inspector.
+//! - Gestión de las incidencias de marcajes por el gestor.
+//! - Informes horarios e incidencias.
+//! - Consultas por parte de los inspectores.
 //! - Auditoría de acciones realizadas en el sistema.
 //!
 //! Se usará una base de datos mysql para almacenar los datos de la aplicación.
@@ -26,7 +29,7 @@
 //!
 //! # Ejecución:
 //! ```bash
-//! controla -fichero_config=config.json -carpeta_secretos=secretos
+//! cargo run -- -fichero_config= -carpeta_secretos=
 //! ```
 //! # Configuración:
 //! La carpeta de secretos debe contener un fichero por cada secreto

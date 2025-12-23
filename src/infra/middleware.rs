@@ -50,7 +50,7 @@ impl ManejadorSesion {
   }
 
   /// Crea un nuevo token de sesión firmado
-  pub fn crear_sesion(&self) -> Result<Cookie, ErrorSesion> {
+  pub fn crear_sesion(&self) -> Result<Cookie<'_>, ErrorSesion> {
     let caduca_en =
       self.obtener_timestamp_actual() + self.duracion_sesion.as_secs();
 
@@ -76,7 +76,7 @@ impl ManejadorSesion {
   }
 
   /// Elimina la cookie de sesión del cliente
-  pub fn eliminar_sesion(&self) -> Cookie {
+  pub fn eliminar_sesion(&self) -> Cookie<'_> {
     Cookie::build((NOMBRE_COOKIE_SESION, ""))
       .path("/")
       .http_only(true)

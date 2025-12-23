@@ -389,15 +389,15 @@ fi
 
 (
     cd $PACK_DIR
-    rm -f ../controla-pack.zip
-    # -r: recursivo, -9: máxima compresión, -q: modo silencioso
-    zip -r -9 -q ../controla-pack.zip .
+    rm -f ../controla-pack.tar.gz
+    # Empaquetar con tar y comprimir con gzip (máxima compresión -9)
+    tar -c . | gzip -9 > ../controla-pack.tar.gz
 )
 
 if [ $? -eq 0 ]; then
-    echo "✅ Paquete 'controla-pack.zip' generado con éxito en el directorio actual (.)."
+    echo "✅ Paquete 'controla-pack.tar.gz' generado con éxito en el directorio actual (.)."
 else
-    echo "❌ Error al generar el paquete ZIP." >&2
+    echo "❌ Error al generar el paquete tar.gz." >&2
 fi
 
 echo "🎉 Script completado."
