@@ -39,7 +39,7 @@ Casos de uso:
 ### Test
 
 - Creamos la base de datos, usuario y tablas en la base de datos:
-  - Mediante la herramienta de cliente de la base de datos copiamos los .sql ubicados en *./config/db/inicio* en una carepta temporal (*no modifique los originales*) y los ejecutamos en el orden correcto:
+  - Mediante la herramienta de cliente de la base de datos copiamos los .sql ubicados en *./config/db/inicio* en una carepta temporal (**no modifique los originales**) y los ejecutamos en el orden correcto:
     - @DB_NOMBRE: Nombre de la base de datos. Ejemplo: controla.
     - @DB_USUARIO: Usuario de la base de datos que usará el servicio. Este usuario debe ser un usuario válido del sistema (recuerde se utiliza autenticación vía socket).
 
