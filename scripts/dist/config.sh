@@ -8,9 +8,9 @@ set -e
 # y copia a un destino definido como parámetro.
 
 # Verificar el número de argumentos
-if [ "$#" -ne 11 ]; then
+if [ "$#" -ne 12 ]; then
     echo "❌ ERROR: Uso incorrecto."
-    echo "Uso: $0 <destino> <APP> <DB_SOCKET> <DB_USUARIO> <DB_NOMBRE> <DB_MAX_CONN> <LOG_LEVEL> <SERVIDOR_PUERTO> <SERVIDOR_PROD> <BOOT_ADMIN_CREAR> <BOOT_ADMIN_DNI>"
+    echo "Uso: $0 <plantilla> <destino> <APP> <DB_SOCKET> <DB_USUARIO> <DB_NOMBRE> <DB_MAX_CONN> <LOG_LEVEL> <SERVIDOR_PUERTO> <SERVIDOR_PROD> <BOOT_ADMIN_CREAR> <BOOT_ADMIN_DNI>"
 
     exit 1
 fi
@@ -18,18 +18,18 @@ fi
 echo "Generando el fichero de configuración..."
 
 # Asignar los argumentos a variables
-ORIGEN="./config/config-api.json"
-DESTINO="$1"
-APP="$2"
-DB_SOCKET="$3"
-DB_USUARIO="$4"
-DB_NOMBRE="$5"
-DB_MAX_CONN="$6"
-LOG_LEVEL="$7"
-SRV_PUERTO="$8"
-SRV_PROD="$9"
-BOOT_ADMIN_CREAR="${10}"
-BOOT_ADMIN_DNI="${11}"
+ORIGEN="$1"
+DESTINO="$2"
+APP="$3"
+DB_SOCKET="$4"
+DB_USUARIO="$5"
+DB_NOMBRE="$6"
+DB_MAX_CONN="$7"
+LOG_LEVEL="$8"
+SRV_PUERTO="$9"
+SRV_PROD="${10}"
+BOOT_ADMIN_CREAR="${11}"
+BOOT_ADMIN_DNI="${12}"
 
 # Verificar si el archivo de origen existe
 if [ ! -f "$ORIGEN" ]; then

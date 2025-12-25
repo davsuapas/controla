@@ -11,20 +11,24 @@ SCRIPT_NAME=$(basename "$0")
 
 # Función para mostrar el uso del script y salir con error.
 mostrar_uso_y_salir() {
-echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] [-app=nombre]"
+echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] [custom-config=carpeta] [-app=nombre]"
     echo ""
-    echo "Paquetiza los ficheros y procesos a instalar de las aplicaciones configuradas en ./config"
+    echo "Paquetiza los ficheros y procesos a instalar de las aplicaciones (tenant) configuradas en ./config"
     echo ""
-    echo "La configuración para paquetizar se encuentra en './config':"
-    echo "  - db: Carpetas con los scripts sql."
-    echo "  - apps: El esquema de configuración por aplicación."
-    echo "  - config-api.json: Fichero plantilla de la configuración para el servicio api."
-    echo "  - systemd.service: Fichero plantilla para construir el servicio api systemd."
-    echo "  - logrotate: Fichero con la configuración para rotar log con logrotate. Si no existe no se aplica."
+    echo "La configuración para paquetizar se encuentra en './config', aunque se puede elegir otra carpeta de configuración con el parámetro -custom-config:"
+    echo "  - Carpeta db: Carpetas con los scripts sql. Cada script se ejecuta en el orden marcado por el número inicial."
+    echo "  - Carpeta apps: El esquema de configuración por aplicación (tenant). Debe crear esta carpeta para crear su propio esquema de configuración por aplicación. Esta carpeta es ignorada por git."
+    echo "  - Fichero config-api.json: Fichero plantilla de la configuración para el servicio api."
+    echo "  - Fichero systemd.service: Fichero plantilla para construir el servicio api systemd."
+    echo "  - Fichero logrotate: Fichero con la configuración para rotar log con logrotate. Si no existe no se aplica."
     echo ""
-    echo "La carpeta ./config/apps contiene la siguiente estructura:"
-    echo "- Una carpeta por cada applicación (tenant):"
-    echo "  - Carpeta secretos: Todos los ficheros de secretos."
+    echo "Si desea cambiar cualquier plantilla puede crear su propia carpeta de configuración con el parámetro -custom-config. Tenga en cuenta, que si elige esta opción, todos los ficheros de configuración debe estar ubicados en esta carpeta, inclusos los esquemas de las aplicaciones."
+    echo ""
+    echo "La carpeta ./config/apps debe contener la siguiente estructura:"
+    echo "- Una carpeta por cada aplicación (tenant):"
+    echo "  - Carpeta llamada 'secretos': Todos los ficheros de secretos:"
+    echo "    - admin-passw: Fichero con la clave del administrador inicial de controla."  
+    echo "    - secreto: Fichero con la clave para encriptar todo lo necesario dentro de la base de datos."  
     echo "  - Fichero config.var: Una línea por cada variable que se puede usar en las plantillas:"
     echo "    - @DB_SOCKET: Ruta al socket de la base de datos."
     echo "    - @DB_NOMBRE: Nombre de la base de datos."
@@ -32,19 +36,20 @@ echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] 
     echo "    - @LOG_LEVEL: Nivel de log. (trace, debug, info, warn, error)"
     echo "    - @SRV_PUERTO: Puerto del servidor api."
     echo "    - @SRV_PROD: true, si es entorno de producción"
-    echo "    - @BOOT_ADMIN_CREAR: true, si se crea el usuario admin al iniciar el servidor api."
+    echo "    - @BOOT_ADMIN_CREAR: true, si se crea el usuario admin al iniciar el servidor api con la clave definida en el secreto 'admin-passw'."
     echo "    - @BOOT_ADMIN_DNI: DNI del usuario admin."
     echo ""
     echo "Argumentos:"
     echo "  -h: Visualiza la ayuda."
     echo "  -crear: Paquetiza todo para crear una nueva app (tenant)."
-    echo "  -actualizar=seccion: Paquetizar solo la sección especificada o la combinación de varios seperados por coma sin espacios)."
+    echo "  -actualizar=seccion: Paquetizar solo la sección especificada o la combinación de varias seperadas por coma sin espacios."
     echo "     Secciones:"
     echo "        build: Construye y paquetiza los binarios."
     echo "        config: Paquetiza la configuración y secretos."
     echo "        servicio: Paquetiza la configuración del servicio systemd para el api."
     echo "  -script-db=nombre: Carpeta de scripts sql (ubicados en ./config/db). Si se usa la opción -crear se utiliza directamente el script sql 'db/inicio'."
-    echo "  -app=nombre: Paquetizar solo la aplicación especificada."
+    echo "  -custom-config: Carpeta con los fichero personalizables de configuración."
+    echo "  -app=nombre: Paquetizar solo la aplicación (tenant) especificada."
         
     exit 1
 }
@@ -161,7 +166,7 @@ config() {
 
       leer_variables_configuracion "$dir/config.var"    
       
-      ./scripts/dist/config.sh "$PACK_ETC_APP_CONFIG" $APP_NAME $DB_SOCKET $APP_NAME $DB_NOMBRE $DB_MAX_CONN $LOG_LEVEL $SRV_PUERTO $SRV_PROD $BOOT_ADMIN_CREAR $BOOT_ADMIN_DNI
+      ./scripts/dist/config.sh "$CONFIG_FOLDER/config-api.json" "$PACK_ETC_APP_CONFIG" $APP_NAME $DB_SOCKET $APP_NAME $DB_NOMBRE $DB_MAX_CONN $LOG_LEVEL $SRV_PUERTO $SRV_PROD $BOOT_ADMIN_CREAR $BOOT_ADMIN_DNI
 
       # Copia los secretos
       cp -r "$dir/secretos" "$PACK_ETC_APP/secretos"
@@ -185,7 +190,7 @@ servicio() {
         continue
       fi
       
-      local PLANTILLA_SYSTEMD="./config/systemd.service"
+      local PLANTILLA_SYSTEMD="$CONFIG_FOLDER/systemd.service"
       
       echo "  ➡️ Generando el fichero servicio systemd para la aplicación: $APP_NAME..."
 
@@ -222,7 +227,7 @@ log() {
         continue
       fi
       
-      local PLANTILLA_LOGROTATE="./config/logrotate"
+      local PLANTILLA_LOGROTATE="$CONFIG_FOLDER/logrotate"
       
       echo "  ➡️ Generando el fichero logrotate para la aplicación: $APP_NAME..."
 
@@ -263,7 +268,7 @@ db() {
         continue
       fi
       
-      local SCRIPTS_DB_DIR="./config/db/$SCRIPTS_DB"
+      local SCRIPTS_DB_DIR="$CONFIG_FOLDER/db/$SCRIPTS_DB"
       
       echo "  ➡️ Persistiendo los scripts SQL para la aplicación: $APP_NAME..."
       if [ ! -d "$SCRIPTS_DB_DIR" ]; then
@@ -298,6 +303,7 @@ CREAR=false
 ACTUALIZAR_SECCION=""
 SCRIPTS_DB=""
 APP_FILTRO=""
+CONFIG_FOLDER="./config"
 
 # Validación y lectura de Parámetros.
 
@@ -340,6 +346,13 @@ for arg in "$@"; do
                 mostrar_uso_y_salir
             fi
             ;;            
+        -custom-config=*)
+            CONFIG_FOLDER="${arg#*=}"
+            if [ -z "$CONFIG_FOLDER" ]; then
+                echo "Error: El parámetro -custom-config requiere una carpeta válida" >&2
+                mostrar_uso_y_salir
+            fi
+            ;;
         # Cualquier otro argumento no reconocido
         *)
             echo "Error: Argumento no reconocido: $arg" >&2
@@ -354,6 +367,9 @@ if [ -d "$PACK_DIR" ]; then
 fi
 
 mkdir -p "$PACK_DIR"
+
+# Actualizar ESQUEMAS_DIR con la carpeta de configuración personalizada
+ESQUEMAS_DIR="$CONFIG_FOLDER/apps"
 
 # Leer la carpeta de Esquemas.
 echo "---"
@@ -395,7 +411,7 @@ fi
 )
 
 if [ $? -eq 0 ]; then
-    echo "✅ Paquete 'controla-pack.tar.gz' generado con éxito en el directorio actual (.)."
+    echo "✅ Paquete 'controla-pack.tar.gz' generado con éxito en el directorio ./target."
 else
     echo "❌ Error al generar el paquete tar.gz." >&2
 fi

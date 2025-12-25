@@ -28,11 +28,11 @@ SISTEMA="controla"
 mostrar_ayuda() {
     echo "Uso: $0 [-h] <fichero_tar_gz>"
     echo ""
-    echo "Descomprime e instala las aplicaciones contenidas en el fichero .tar.gz."
+    echo "Descomprime e instala las aplicaciones (tenant) contenidas en el fichero .tar.gz."
     echo ""
     echo "Argumentos:"
     echo "  <fichero_tar_gz>  El path al fichero .tar.gz que contiene la estructura de instalación."
-    echo "  -h             Muestra esta ayuda y sale."
+    echo "  -h                Muestra esta ayuda y sale."
 }
 
 # Función de salida con mensaje de error

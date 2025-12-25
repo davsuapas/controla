@@ -39,39 +39,74 @@ Casos de uso:
 ### Test
 
 - Creamos la base de datos, usuario y tablas en la base de datos:
-  - Mediante la herramienta de cliente de la base de datos copiamos los .sql ubicados en *./config/db/inicio* en una carepta temporal (**no modifique los originales**) y los ejecutamos en el orden correcto:
+  - Copiamos los ficheros .sql ubicados en *./config/db/inicio* en una carpeta temporal (**no modifique los originales**), modificamos los marcadores que empiezan por @ por el valor adecuado, y ejecutamos los ficheros .sql (con la herramienta cliente de mariadb/mysql) en el orden marcado por el número inicial del fichero. Variables marcador:
     - @DB_NOMBRE: Nombre de la base de datos. Ejemplo: controla.
     - @DB_USUARIO: Usuario de la base de datos que usará el servicio. Este usuario debe ser un usuario válido del sistema (recuerde se utiliza autenticación vía socket).
 
-- Creamos la configuración necesaria para ejecutar el serviciosbackend (API). Para que sea más cómodo en sucesivas ejecuciones, cree la carpeta *./config/test*. No sé preocupe porque esta carpeta es ignorada por git.
+- Creamos la configuración necesaria para ejecutar el servicio backend (API). Para que sea más cómodo en sucesivas ejecuciones, cree la carpeta *./config/test*. No sé preocupe porque esta carpeta es ignorada por git.
   - Crear un fichero llamado *admin-passw* dentro de esta carpeta test. En este fichero añadimos la clave que tendrá nuestro usuario administrador en controla.
   - Crear un fichero llamado *secreto* dentro de esta carpeta test. En este fichero añadimos una clave que sirve para encriptar todo lo necesario dentro de la base de datos.
   - Crear un script llamado *config-test.sh* dentro de esta carpeta test. Este script nos va a generar un fichero de configuración válido para la ejecución del servicio API. El contenido de este fichero script es el siguiente:
 
-  ```
+  ```bash
   #!/bin/bash
 
   # Este script genera un fichero configuración para ejecutar
   # controla-api en local
 
-  ./scripts/dist/config.sh ./config/test/config.json '' <DB_RUTA_SOCKET> <DB_USUARIO> <DB_NOMBRE> <DB_MAX_CONN> debug <SERVIDOR_PUERTO> false <BOOT_ADMIN_CREAR> <BOOT_ADMIN_DNI> 
+  ./scripts/dist/config.sh ./config/config-api.json ./config/test/config.json '' <DB_RUTA_SOCKET> <DB_USUARIO> <DB_NOMBRE> <DB_MAX_CONN> debug <SERVIDOR_PUERTO> false <BOOT_ADMIN_CREAR> <BOOT_ADMIN_DNI> 
   ```
 
   Sustituimos <...> por el valor adecuado. La primera vez necesitamos que se cree el usuario administrador dentro de la base de datos. Para ello, en *<BOOT_ADMIN_CREAR>* escribimos true y en *<BOOT_ADMIN_DNI>* escribimos un DNI válido. Una vez que hemos ejecutado el servicio podremos volver a generar otro fichero de configuración con los valores false y '', tanto para *<BOOT_ADMIN_CREAR>* como para *<BOOT_ADMIN_DNI>*. Esto hará que el servicio no vuelva a intentar crear el usuario administrador de nuevo.
 
   - Generamos el fichero de configuración ejecutando:
-    ```
+    ```bash
     ./config/test/config-test.sh
     ```
 - Para ejecutar la aplicación controla lanzamos tanto el servicio API como el interface web:
   - Ejecutamos el servicio API:
-    ```
+    ```bash
     cargo run -- -fichero_config=./config/test/config.json -carpeta_secretos=./config/test
     ```
   - Ejecutamos el interface de usuario web:
-    ```
+    ```bash
     cd web
     npm run dev
     ```
 
 - A continuación ya podrá utilizar la aplicación a través de su navegador preferido.
+
+## PRODUCCIÓN 
+
+Se ha desarrollado una suite de scripts de automatización para el aprovisionamiento seguro de los servicios bajo entornos GNU/Linux. La arquitectura implementa un modelo de instalación local autocontenida, eliminando dependencias de infraestructura externa durante el despliegue. Se exige la co-ubicación de las instancias de bases de datos y los servicios de aplicación en el mismo host. La comunicación de los servicios de la base de datos se realiza vía unix sockets. El alcance de los scripts se limita estrictamente a la configuración del entorno local. Queda excluida la configuración de la exposición perimetral y el direccionamiento de red externo. La gestión de firewalling, proxies inversos y reglas de acceso externo debe ejecutarse de forma independiente. El diseño asegura un entorno de ejecución aislado y controlado dentro de la propia máquina de destino.
+
+El proceso de instalación permite configurar e instalar varios tentant (aplicaciones) en la misma máquina.
+
+Los pasos del proceso son sencillos:
+  - Configurar cada aplicación (tenant).
+  - Paquetizar la instalación.
+  - Copiar el fichero paquetizado a la máquina.
+  - Copiar el fichero ./scripts/dist/install.sh a la máquina (solo la primera vez).
+  - Instalar el paquete en la máquina.
+
+### Pre-requisitos
+
+- Instalar MariaDB/MySQL.
+
+### Paquetización
+
+Obtenga la información para paquetizar la instalación y a continuación paquetize: 
+
+```bash
+./scripts/dist/pack.sh -h
+```
+
+La ayuda le mostrará como configurar los diferentes tenant.
+
+### Instalación
+
+Obtenga la información para instalar y a continuación instale:
+
+```bash
+./install.sh -h
+```
