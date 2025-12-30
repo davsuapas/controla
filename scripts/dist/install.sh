@@ -5,8 +5,6 @@
 ERR_EXIT=1
 # Prefijo para la copia de seguridad
 BACKUP_PREFIX="controla"
-# Cliente de base de datos a usar
-DB_CLIENT="mariadb"
 # Usamos 'set -e' para salir inmediatamente si un comando falla
 # excepto donde se maneja el error explícitamente (como en las comprobaciones 'if [ -d ... ]')
 set -e
@@ -28,17 +26,18 @@ SISTEMA="controla"
 # Función para mostrar la ayuda de uso
 mostrar_ayuda() {
     echo "=========================================================================="
-    echo "Uso: $0 [-h] <fichero_tar_gz>"
+    echo "Uso: $0 [-h] [-cliente-db=herramienta] <fichero_tar_gz>"
     echo "=========================================================================="
     echo "Descomprime e instala aplicaciones (tenants) desde un paquete .tar.gz."
     echo ""
     echo "Argumentos:"
     echo "  <fichero_tar_gz>  Ruta al archivo comprimido con la estructura de instalación."
+    echo "  -cliente-db       Aplicación cliente de la base de datos. (Por defecto: mariadb)."
     echo "  -h                Muestra esta ayuda detallada y sale."
     echo ""
     echo "RESUMEN DE INSTALACIÓN Y SEGURIDAD:"
     echo "--------------------------------------------------------------------------"
-    echo "El script procesa cada aplicación detectada y aplica las siguientes reglas:"
+    echo "El script procesa cada aplicación (tenant) detectada y aplica las siguientes reglas:"
     echo ""
     echo "1. 📂 DIRECTORIOS Y DESTINOS:"
     echo "   • Binarios/Web:  /opt/<app>/           (Contenido previo es eliminado)"
@@ -84,31 +83,42 @@ limpiar_temporales() {
 
 # Comprobar si se está ejecutando como root (sudo)
 if [ "$(id -u)" != "0" ]; then
-   echo "❌ ERROR: Este script debe ejecutarse con permisos de superusuario (root), por ejemplo, usando 'sudo'." 
+   echo "❌ ERROR: Este script debe ejecutarse con permisos de super usuario (root), por ejemplo, usando 'sudo'." 
    exit 1
 fi
 
 # --- Procesamiento de Argumentos ---
-while getopts "h" opt; do
-    case ${opt} in
-        h)
+DB_CLIENT="mariadb"
+PACKAGE_FILE=""
+
+for arg in "$@"; do
+    case "$arg" in
+        -cliente-db=*)
+            DB_CLIENT="${arg#*=}"
+            if [ -z "$DB_CLIENT" ]; then
+              DB_CLIENT="mariadb"
+            fi
+            ;;            
+        -h|--help)
             HELP_FLAG=1
             ;;
-        \?)
-            # Argumento inválido
-            manejar_error "Opción inválida: -$OPTARG"
+        -*)
+            manejar_error "Opción inválida: $arg"
+            ;;
+        *)
+            if [ -z "$PACKAGE_FILE" ]; then
+                PACKAGE_FILE="$arg"
+            else
+                manejar_error "Argumento inesperado o múltiple fichero definido: $arg"
+            fi
             ;;
     esac
 done
-shift $((OPTIND -1))
 
 if [ "$HELP_FLAG" -eq 1 ]; then
     mostrar_ayuda
     exit 0
 fi
-
-# El fichero .tar.gz es el argumento posicional restante
-PACKAGE_FILE="$1"
 
 if [ -z "$PACKAGE_FILE" ]; then
     mostrar_ayuda

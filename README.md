@@ -92,6 +92,7 @@ Los pasos del proceso son sencillos:
 ### Pre-requisitos
 
 - Instalar MariaDB/MySQL.
+- Instalar logrotate.
 
 ### Paquetización
 
