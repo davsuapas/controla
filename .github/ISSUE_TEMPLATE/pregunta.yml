@@ -1,0 +1,27 @@
+name: "Consulta o pregunta"
+description: "Si tienes dudas sobre el funcionamiento o configuración."
+title: "[PREGUNTA]: "
+labels: ["pregunta"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 💬 Consultas y Dudas
+        Antes de abrir una nueva pregunta, por favor asegúrate de haber consultado a tu centro.
+
+  - type: textarea
+    id: duda
+    attributes:
+      label: "Explica tu consulta"
+      description: "Danos todos los detalles posibles para que podamos ayudarte mejor."
+      placeholder: "¿Cómo puedo realizar un marcaje...?"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: visibilidad
+    attributes:
+      label: "Privacidad"
+      options:
+        - label: "Entiendo que esta pregunta será pública para otros usuarios."
+          required: true

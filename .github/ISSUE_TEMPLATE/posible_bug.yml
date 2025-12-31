@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-issue-forms.json
+
+name: Reporte de Error (Bug)
+description: Informa de un fallo técnico en la plataforma.
+title: "[BUG]: "
+labels: ["posible bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🐞 Reporte de Incidencia
+        Gracias por informar del error. Por favor, completa los campos para ayudarnos a resolverlo lo antes posible.
+
+  - type: input
+    id: fecha_hora
+    attributes:
+      label: "1. Fecha y hora del suceso"
+      description: "¿Cuándo ocurrió el error aproximadamente?"
+      placeholder: "Ej: 31/12/2025 a las 10:30h"
+    validations:
+      required: true
+
+  - type: textarea
+    id: que_ocurre
+    attributes:
+      label: "2. ¿Qué ocurre?"
+      description: "Describe detalladamente qué pasos seguiste y qué fallo has detectado."
+      placeholder: "Al hacer clic en el botón de guardar, la pantalla se queda en blanco..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area_afectada
+    attributes:
+      label: "3. Área del sistema afectada"
+      description: "¿En qué sección del programa estabas trabajando?"
+      options:
+        - Mi área
+        - Usuario
+        - Marcajes
+        - Incidencias
+        - Informes
+    validations:
+      required: true
+
+  - type: textarea
+    id: mensajes_sistema
+    attributes:
+      label: "4. Mensajes del sistema"
+      description: "Copia y pega aquí cualquier texto de error o mensaje que te haya dado el sistema."
+      placeholder: "Error 500: Internal Server Error o mensajes emergentes..."
+      render: text
+
+  - type: dropdown
+    id: navegador
+    attributes:
+      label: "5. Navegador utilizado"
+      description: "Indica el navegador donde has detectado el problema."
+      options:
+        - Google Chrome
+        - Mozilla Firefox
+        - Microsoft Edge
+        - Safari
+        - Otro
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmacion
+    attributes:
+      label: Confirmación
+      options:
+        - label: He verificado que los datos son correctos y el error es reproducible.
+          required: true
