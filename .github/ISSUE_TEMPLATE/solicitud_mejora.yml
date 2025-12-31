@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-issue-forms.json
+
+name: Nueva solicitud de mejora
+description: Envía una propuesta de mejora para el proyecto. Posiblemente se convierta en nueva feature. Antes tiene que ser evaluada.
+title: "[SOLICITUD MEJORA]: "
+labels: ["solicitud mejora"]
+body:
+  - type: "textarea"
+    attributes:
+      label: "¿En qué consiste tu mejora?"
+      description: "Describe detalladamente qué te gustaría cambiar o añadir. Si es necesario adjunta dibujos, esquemas o todo lo que se te ocurra"
+      placeholder: " Escribe aquí tu idea..."
+    validations:
+      required: true
