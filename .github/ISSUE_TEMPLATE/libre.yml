@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-issue-forms.json
+
+name: "Formato Libre (SOLO ADMINISTRADORES)"
+description: "Crea una issue con formato abierto (SOLO ADMINISTRADORES)."
+body:
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción de la tarea
+      description: Escribe aquí con total libertad usando Markdown.
+      placeholder: |
+        Puedes usar:
+        - Listas
+        - **Negritas**
+        - [Enlaces](https://google.com)
+    validations:
+      required: true
