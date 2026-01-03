@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 use sqlx::{Row, mysql::MySqlRow};
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, NaiveDateTime};
 
 use crate::{
   infra::{
@@ -578,13 +578,13 @@ impl UsuarioRepo {
     &self,
     usuario: u32,
     hora: NaiveDateTime,
-  ) -> Result<NaiveDate, DBError> {
+  ) -> Result<NaiveDateTime, DBError> {
     const QUERY: &str = "SELECT MAX(fecha_creacion) 
     FROM usuario_horarios 
     WHERE usuario = ? 
-    AND fecha_creacion < ?";
+    AND fecha_creacion <= ?";
 
-    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDate>>(QUERY)
+    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDateTime>>(QUERY)
       .bind(usuario)
       .bind(hora)
       .fetch_one(self.pool.conexion())
