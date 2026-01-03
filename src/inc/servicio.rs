@@ -67,7 +67,7 @@ impl IncidenciaServicio {
     Ok(id)
   }
 
-  /// Actualiza una incidencia cambiando la incidencia a solictud
+  /// Actualiza una incidencia cambiando la incidencia a solicitud
   ///
   /// Dependiendo del estado origen se cambian unos u otros campos
   /// y genera una traza como evidencia.
@@ -170,7 +170,7 @@ impl IncidenciaServicio {
 
   /// Recorre un lista de incidencias y la procesa según su estado y tipo
   ///
-  /// Los estados poueden ser resolver o rechazar.
+  /// Los estados pueden ser resolver o rechazar.
   ///
   /// Si el estado es rechazar, se cambia el estado a rechazada
   /// y se especifica un motivo de rechazo.

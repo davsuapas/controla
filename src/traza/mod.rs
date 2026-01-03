@@ -21,7 +21,7 @@ pub use servicio::*;
 /// Macro para agregar una traza y manejar errores de forma consistente.
 ///
 /// Parámetros:
-/// - `$self`: Referencia al servicio que contiene `srv_traza.
+/// - `$self`: Referencia al servicio que contiene srv_traza.
 /// - `tr`: Referencia mutable a la transacción actual.
 /// - `$traza`: Referencia a la traza a agregar.
 /// - `$mensaje`: Mensaje de error a registrar en caso de fallo.

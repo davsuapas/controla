@@ -455,7 +455,7 @@ async fn cambiar_incidencia_solicitud(
 /// Api para procesar las incidencias.
 ///
 /// Devuelve las incidencias según el filtro como parámetro
-/// y un array de incidencias con errores faltales.
+/// y un array de incidencias con errores fatales.
 async fn procesar_incidencias(
   State(state): State<Arc<AppState>>,
   Json(entrada): Json<IncidenciaInProcesoDTO>,

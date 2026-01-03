@@ -10,7 +10,7 @@ pub enum EstadoIncidencia {
   Solicitud = 1,
   /// Cuando se registra el nuevo marcaje puede
   /// haber errores de validación. En este caso se queda como
-  /// conflicto para la posterior correción del usuario
+  /// conflicto para la posterior corrección del usuario
   Conflicto = 2,
   /// Son posibles errores del sistema
   ErrorResolver = 3,
@@ -36,7 +36,7 @@ impl From<u8> for EstadoIncidencia {
   }
 }
 
-/// Si se modiifca esta enumeración, hay que modificar también
+/// Si se modifica esta enumeración, hay que modificar también
 /// la enumeración equivalente en web/src/modelos/incidencias.ts
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

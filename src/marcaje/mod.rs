@@ -13,7 +13,7 @@
 //! Los marcajes nunca pueden ser eliminados o modificados
 //! físicamente, pero si virtualmente. Para ello,
 //! existen los campos modificar_por y eliminado.
-//! Solo los marcajes cuyo modificar_por y eliminado esten
+//! Solo los marcajes cuyo modificar_por y eliminado estén
 //! a nulo se pueden tener en cuenta para evaluar registros
 //! de cara a el empleado.
 //!
@@ -24,9 +24,9 @@
 //! El módulo permite la consulta de los registros marcados con
 //! las siguientes restricciones:
 //!
-//! Si la fechas de bisuqeda son Nones se filtra solos por usuario.
+//! Si la fechas de búsqueda son Nones se filtra solos por usuario.
 //! Si el usuario_reg es igual a 0, significa que es supervisor
-//! y puede ver todos los marcajes de caulquier usuario.
+//! y puede ver todos los marcajes de cualquier usuario.
 //! Si el usuario es diferente el usuario_reg, significa
 //! que es usuario registrador y por tanto puede ver solo
 //! los marcajes que registro el.

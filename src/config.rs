@@ -12,7 +12,7 @@ use crate::infra::PasswordLimites;
 /// Se debe cambiar la password una vez iniciada la sesión
 pub struct BootAdmin {
   /// Configurar a true si se desea la creación del usuario administrador
-  /// Tenga en cuenta que si es true estará intantando crea el usuario
+  /// Tenga en cuenta que si es true estará intentando crea el usuario
   /// cada vez que arranque el servicio
   /// Configurar a false una vez creado el usuario administrador
   pub crear: bool,

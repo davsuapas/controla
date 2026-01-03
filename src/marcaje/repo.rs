@@ -384,7 +384,7 @@ impl MarcajeRepo {
     let filter = match usuario_reg {
       Some(usr) if usr == usuario => {
         // Si el usuario registrador es igual al usuario,
-        // el registrador actua como empleado y solo se
+        // el registrador actúa como empleado y solo se
         // filtra por sus solicitudes y no por las que registró
         "r.usuario = ? AND r.fecha = ? 
           AND NOT EXISTS (SELECT id FROM incidencias AS i 
@@ -397,8 +397,8 @@ impl MarcajeRepo {
       }
       Some(_) => {
         // Cuando el usuario es igual a cero significa que
-        // un supervidor puede ver todos los marcajes que
-        // se registrarón por alguien que no era el usuario
+        // un supervisor puede ver todos los marcajes que
+        // se registraron por alguien que no era el usuario
         // del marcaje
         "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador IS NOT NULL 
           AND NOT EXISTS (SELECT id FROM incidencias AS i 

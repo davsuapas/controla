@@ -1,8 +1,8 @@
-//! Gestiona la api de acceso a la aplicación
+//! Gestiona la api de acceso a la aplicación.
 
-/// Módulo que define las rutas de acceso
+/// Módulo que define las rutas de acceso.
 mod api;
-/// Entidades de intercambio con la aplicación
+/// Entidades de intercambio con la aplicación.
 mod dto;
 
 use std::{sync::Arc, time::Duration};
@@ -72,7 +72,7 @@ impl AppState {
 
 /// Lanza los procesos de inicio de la aplicación
 ///
-/// Inenta crear el usuario administrador inicial
+/// Intenta crear el usuario administrador inicial
 /// si se encuentra configurado para ello.
 pub async fn lanzar_procesos_inicio(config: &Config, app: &AppState) {
   if config.boot_admin.crear {

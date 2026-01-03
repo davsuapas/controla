@@ -35,7 +35,7 @@ impl MarcajeServicio {
   #[inline]
   /// Añade un nuevo marcaje horario para el usuario.
   ///
-  /// Para más detalles vea: [`agregar_with_trans`].
+  /// Para más detalles vea: [`Self::agregar_with_trans`].
   pub async fn agregar(&self, reg: &Marcaje) -> Result<u32, ServicioError> {
     self.agregar_with_trans(None, reg, 0).await
   }
