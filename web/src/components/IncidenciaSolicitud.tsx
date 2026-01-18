@@ -226,7 +226,7 @@ export default function SolicitudIncidencia() {
         });
       }
     },
-    []
+    [fecha]
   );
 
   // Cierra la modal mediante un borón aceptar y otro cancelar
