@@ -10,6 +10,12 @@
 //! entrada y salida se marca según la fecha y hora en ese
 //! momento temporal.
 //!
+//! Siempre se elige el horario más cercano a el empleado
+//! según la fecha de marcaje. Se busca la fecha de creación
+//! del horario menor a la fecha de marcaje. Por tanto, si
+//! se configura un horario hoy, no tendrá vigencia hasta
+//! mañana.
+//!
 //! Los marcajes nunca pueden ser eliminados o modificados
 //! físicamente, pero si virtualmente. Para ello,
 //! existen los campos modificar_por y eliminado.

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use chrono::{NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use smallvec::SmallVec;
 
 use crate::infra::{Dni, Password};
@@ -169,4 +169,14 @@ impl Horario {
     let diferencia = self.hora_fin - self.hora_inicio;
     diferencia.num_milliseconds() as f64 / 3_600_000.0
   }
+}
+
+#[derive(Debug)]
+pub struct ConfigHorario {
+  pub id: u32,
+  pub usuario: u32,
+  pub horario: Horario,
+  pub fecha_creacion: NaiveDate,
+  pub caducidad_fecha_ini: Option<NaiveDate>,
+  pub caducidad_fecha_fin: Option<NaiveDate>,
 }

@@ -5,7 +5,7 @@ use axum::{
   extract::{Json, Path, State},
   http::StatusCode,
   response::IntoResponse,
-  routing::{get, post, put},
+  routing::{delete, get, post, put},
 };
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
@@ -14,11 +14,11 @@ use crate::{
   app::{
     AppState,
     dto::{
-      DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioOutDTO,
-      IncidenciaDTO, IncidenciaInProcesoDTO, IncidenciaOutProcesoDTO,
-      IncidenciaSolictudDTO, IncidenciasFiltroParams, MarcajeInDTO,
-      MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO, UsuarioDTO,
-      vec_dominio_to_dtos,
+      ConfigHorarioDTO, DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO,
+      HorarioDTO, IncidenciaDTO, IncidenciaInProcesoDTO,
+      IncidenciaOutProcesoDTO, IncidenciaSolictudDTO, IncidenciasFiltroParams,
+      MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO,
+      UsuarioDTO, vec_dominio_to_dtos,
     },
   },
   inc::{EstadoIncidencia, IncidenciaProceso},
@@ -91,6 +91,15 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
       "/usuarios/{id}/marcajes/fecha/{fecha}/sin/finalizar",
       get(marcaje_sin_finalizar),
     )
+    .route("/usuarios/{id}/horarios", get(config_horarios))
+    .route(
+      "/usuarios/{id}/horarios/duplicar/{fecha}",
+      post(duplicar_config_horario),
+    )
+    .route("/horarios/{id}", get(horario))
+    .route("/horarios", post(crear_horario))
+    .route("/horarios", put(modificar_config_horario))
+    .route("/horarios/{id}", delete(eliminar_config_horario))
     .route("/roles/{id}/usuarios", get(usuarios_por_rol))
     .route("/marcajes", post(registrar))
     .route("/marcajes/entre/fechas", post(marcajes_entre_fechas))
@@ -367,10 +376,10 @@ async fn horario_usuario_sin_asignar(
 ) -> impl IntoResponse {
   state
     .usuario_servicio
-    .horarios_usuario_sin_asignar(params.id, params.fecha)
+    .horarios_usuario_sin_asignar(params.id, params.fecha.date())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioOutDTO>(horarios)))
+    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
 }
 
 /// Api para obtener el horario de un usuario más próximo
@@ -383,7 +392,85 @@ async fn horario_cercano(
     .horario_usuario_cercano(params.id, params.fecha)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioOutDTO>(horarios)))
+    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
+}
+
+/// Api para obtener la configuración de horarios de un usuario.
+async fn config_horarios(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .config_horario(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|configs| Json(vec_dominio_to_dtos::<_, ConfigHorarioDTO>(configs)))
+}
+
+/// Api para duplicar la configuración de horarios de un usuario.
+async fn duplicar_config_horario(
+  State(state): State<Arc<AppState>>,
+  Path((id, fecha)): Path<(u32, NaiveDate)>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .duplicar_config_horario(id, fecha)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|configs| Json(vec_dominio_to_dtos::<_, ConfigHorarioDTO>(configs)))
+}
+
+/// Api para obtener el horario dado el id.
+async fn horario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .config_horario_por_id(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|h| Json(ConfigHorarioDTO::from(h)))
+}
+
+/// Api para crear una nueva configuración de horario.
+async fn crear_horario(
+  State(state): State<Arc<AppState>>,
+  Json(config): Json<ConfigHorarioDTO>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .agregar_config_horario(&config.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para modificar una configuración de horario.
+async fn modificar_config_horario(
+  State(state): State<Arc<AppState>>,
+  Json(config): Json<ConfigHorarioDTO>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .modificar_config_horario(&config.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
+}
+
+/// Api para eliminar una configuración de horario.
+async fn eliminar_config_horario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .usuario_servicio
+    .eliminar_config_horario(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
 }
 
 /// Api para obtener los usuarios que tienen un rol específico.

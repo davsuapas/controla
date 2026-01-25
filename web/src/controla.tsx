@@ -31,8 +31,11 @@ import GestionIncidencia from './components/IncidenciaGestion';
 import MarcajeAuto from './components/MarcajeAuto';
 import MarcajeConsulta from './components/MarcajeConsulta';
 import { URL_BASE_ROUTER } from './config';
+import HorarioConfigurador from './components/HorarioConfigurador';
+import HorarioCrear from './components/HorarioCrear';
+import HorarioEdit from './components/HorarioEdit';
 
-crearAPI();
+crearAPI(false);
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
@@ -124,6 +127,27 @@ const rutas = [
               {
                 path: ':id/password',
                 Component: UsuarioPassword,
+                errorElement: <ErrorPage />,
+              },
+            ]
+          },
+          {
+            path: 'horarios',
+            errorElement: <ErrorPage />,
+            children: [
+              {
+                index: true,
+                Component: HorarioConfigurador,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'nuevo',
+                Component: HorarioCrear,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: ':id',
+                Component: HorarioEdit,
                 errorElement: <ErrorPage />,
               },
             ]

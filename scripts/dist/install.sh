@@ -56,6 +56,7 @@ mostrar_ayuda() {
     echo "3. 🛡️ SEGURIDAD Y BACKUP:"
     echo "   • Antes de instalar, se crea un backup .tar.gz en el directorio actual"
     echo "     con el estado previo de /opt, /etc, servicios y logrotate."
+    echo "   • Antes de ejecutar los scripts de db, se crea un backup de la base de datos."
     echo "   • Se ejecutan scripts SQL de forma ordenada (01_..., 02_...) en MariaDB."
     echo "--------------------------------------------------------------------------"
 }
@@ -297,7 +298,7 @@ for APP_PATH in "$APP_ROOT"/*; do
             sudo chmod -R 500 "$TARGET_OPT_API" || manejar_error "Fallo al cambiar permisos de $TARGET_OPT_API"
             echo "✅ Permisos y propietario ajustados."
         else
-            echo "⚠️ Carpeta 'pack/opt/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/opt/$APP' no encontrada. No se procede a su instalación."
         fi
 
         # Si existe pack/etc, instalar
@@ -319,7 +320,7 @@ for APP_PATH in "$APP_ROOT"/*; do
                 cp -f "$EXTRACT_CONFIG" "$TARGET_ETC_DIR/config.json" || manejar_error "Fallo al copiar config.json."
                 echo "✅ config.json copiado."
             else
-                echo "⚠️ Fichero 'pack/etc/$APP/config.json' no encontrado."
+                echo "⚠️ Fichero 'pack/etc/$APP/config.json' no encontrado. No se procede a su instalación."
             fi
 
             # Copiar secretos
@@ -344,7 +345,7 @@ for APP_PATH in "$APP_ROOT"/*; do
             find "$TARGET_SECRETS_DIR" -type f -exec chmod 400 {} + || manejar_error "Fallo al cambiar permisos de $TARGET_SECRETS_DIR."
             echo "✅ Permisos y propietario ajustados."
         else
-            echo "⚠️ Carpeta 'pack/etc/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/etc/$APP' no encontrada. No se procede a su instalación."
         fi
 
         # Si existe pack/log, instalar
@@ -371,7 +372,7 @@ for APP_PATH in "$APP_ROOT"/*; do
             cp -f "$EXTRACT_LOG_DIR/$SISTEMA-$APP.log" "$LOGRORATE_APP" || manejar_error "Fallo al copiar logrotate en $LOGRORATE_APP."            
             echo "✅ Configuración logrorate en '$LOGRORATE_APP' copiada."
         else
-            echo "⚠️ Carpeta 'pack/log/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/log/$APP' no encontrada. No se procede a su instalación."
         fi
 
         # Si existe pack/db, instalar
@@ -379,6 +380,31 @@ for APP_PATH in "$APP_ROOT"/*; do
         if [ -d "$EXTRACT_DB_DIR" ]; then
             echo "➡️ Ejecutando scripts SQL para **$APP** desde: $EXTRACT_DB_DIR"
             
+            # Leer el nombre de la base de datos desde metadata
+            METADATA_FILE="$EXTRACT_DB_DIR/metadata"
+            if [ -f "$METADATA_FILE" ]; then
+                DB_NOMBRE=$(head -n 1 "$METADATA_FILE")
+                echo "   - Base de datos detectada: $DB_NOMBRE"
+                
+                # Crear copia de seguridad de la base de datos
+                DB_BACKUP_FILE="$APP-$DATE_TIME-db.bak.sql.gz"
+                echo "➡️ Creando copia de seguridad de la base de datos: **$DB_BACKUP_FILE**"
+                
+              # Verificar si la base de datos existe antes de hacer el dump
+              if "$DB_CLIENT" -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='$DB_NOMBRE'" 2>/dev/null | grep -q "$DB_NOMBRE"; then
+                  # Realizar el dump de la base de datos y comprimirlo
+                  if "$DB_CLIENT"-dump "$DB_NOMBRE" | gzip -9 > "$DB_BACKUP_FILE" 2>/dev/null; then
+                      echo "✅ Copia de seguridad de la base de datos creada: **$DB_BACKUP_FILE**"
+                  else
+                      manejar_error "ERROR: No se pudo crear la copia de seguridad de la base de datos."
+                  fi
+              else
+                  echo "ℹ️  Base de datos '$DB_NOMBRE' no existe. Saltando backup de BD."
+              fi
+            else
+                manejar_error "No se encontró el fichero metadata. No se puede determinar el nombre de la base de datos."
+            fi
+
             # Buscar ficheros .sql y ordenarlos por nombre (que incluye el número inicial)
             SQL_FILES=$(find "$EXTRACT_DB_DIR" -maxdepth 1 -type f -name "*.sql" | sort)
             
@@ -393,7 +419,7 @@ for APP_PATH in "$APP_ROOT"/*; do
                 echo "⚠️ No se encontraron ficheros .sql en 'pack/db/$APP'."
             fi
         else
-            echo "⚠️ Carpeta 'pack/db/$APP' no encontrada."
+            echo "⚠️ Carpeta 'pack/db/$APP' no encontrada. No se procede a su instalación."
         fi
 
       # Iniciar el servicio y mostrar estado

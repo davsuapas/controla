@@ -1,7 +1,5 @@
 USE @DB_NOMBRE;
 
-START TRANSACTION;
-
 CREATE TABLE IF NOT EXISTS usuarios (
   nombre varchar(50) NOT NULL,
   id int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -43,19 +41,24 @@ CREATE TABLE IF NOT EXISTS horarios (
   dia char(1) NOT NULL,
   hora_inicio time NOT NULL,
   hora_fin time NOT NULL,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  INDEX idx_horarios_lookup (dia, hora_inicio, hora_fin)
 ) AUTO_INCREMENT=1 COMMENT='Son lo horarios de cada usuario trabajador';
 
-CREATE TABLE IF NOT EXISTS usuario_horarios (
-  usuario int(10) unsigned NOT NULL,
-  horario int(10) unsigned NOT NULL,
-  fecha_creacion date NOT NULL,
-  PRIMARY KEY (usuario,horario),
-  KEY usuario_horarios_horarios_FK (horario),
-  KEY idx_usuario_fecha (usuario,fecha_creacion DESC),
-  CONSTRAINT usuario_horarios_horarios_FK FOREIGN KEY (horario) REFERENCES horarios (id) ON UPDATE CASCADE,
-  CONSTRAINT usuario_horarios_usuarios_FK FOREIGN KEY (usuario) REFERENCES usuarios (id) ON UPDATE CASCADE
-) COMMENT='Se define los horarios que tiene un usuario para una fecha';
+
+CREATE TABLE `usuario_horarios` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `usuario` int(10) unsigned NOT NULL,
+  `horario` int(10) unsigned NOT NULL,
+  `fecha_creacion` date NOT NULL,
+  `caducidad_fecha_ini` date NOT NULL DEFAULT '1900-01-01',
+  `caducidad_fecha_fin` date DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `usuario_horarios_horarios_FK` (`horario`),
+  UNIQUE KEY `idx_usuario_fecha` (`usuario`,`fecha_creacion` DESC, `horario`, `caducidad_fecha_ini`),
+  CONSTRAINT `usuario_horarios_horarios_FK` FOREIGN KEY (`horario`) REFERENCES `horarios` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `usuario_horarios_usuarios_FK` FOREIGN KEY (`usuario`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE
+) AUTO_INCREMENT=1 COMMENT='Se define los horarios que tiene un usuario para una fecha';
 
 CREATE TABLE IF NOT EXISTS marcajes (
   id int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -63,16 +66,15 @@ CREATE TABLE IF NOT EXISTS marcajes (
   fecha date NOT NULL,
   hora_inicio time NOT NULL,
   hora_fin time DEFAULT NULL,
-  horario int(10) unsigned NOT NULL,
+  usuario_horario int(10) unsigned NOT NULL,
   usuario_registrador int(10) unsigned DEFAULT NULL,
   modificado_por int(10) unsigned DEFAULT NULL,
   eliminado tinyint(1) DEFAULT NULL,
   PRIMARY KEY (id),
-  KEY registros_horarios_FK (horario),
+  KEY registros_horarios_FK (usuario_horario),
   KEY registros_usuarios_FK_1 (usuario_registrador),
-  KEY marcajes_usuario_IDX (usuario,fecha) USING BTREE,
   KEY marcajes_usuario_fecha_desc (usuario,fecha DESC) USING BTREE,
-  CONSTRAINT registros_horarios_FK FOREIGN KEY (horario) REFERENCES horarios (id) ON UPDATE CASCADE,
+  CONSTRAINT marcajes_usuario_horarios_FK FOREIGN KEY (usuario_horario) REFERENCES usuario_horarios (id) ON UPDATE CASCADE,
   CONSTRAINT registros_usuarios_FK FOREIGN KEY (usuario) REFERENCES usuarios (id) ON UPDATE CASCADE,
   CONSTRAINT registros_usuarios_FK_1 FOREIGN KEY (usuario_registrador) REFERENCES usuarios (id) ON UPDATE CASCADE
 ) AUTO_INCREMENT=1 COMMENT='Son los registros de cada empleado (usuario)';
@@ -105,4 +107,12 @@ CREATE TABLE IF NOT EXISTS incidencias (
   CONSTRAINT Incidencias_usuarios_FK_1 FOREIGN KEY (usuario_gestor) REFERENCES usuarios (id) ON UPDATE CASCADE
 ) AUTO_INCREMENT=1 COMMENT='Incidencias de los marcajes horarios';
 
-COMMIT;
+CREATE TABLE `schema_info` (
+  `id` int(11) NOT NULL CHECK (`id` = 1),
+  `version_actual` varchar(20) NOT NULL,
+  `actualizado_el` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) COMMENT='Versión de la base de datos';
+
+INSERT INTO schema_info (id, version_actual, actualizado_el)
+VALUES(1, '1.1.0', current_timestamp());

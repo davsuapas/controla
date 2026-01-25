@@ -1,6 +1,7 @@
+import { Expose, plainToInstance } from 'class-transformer';
 import dayjs, { Dayjs } from 'dayjs';
 import { matchPath } from 'react-router';
-import { dateToStr } from './formatos';
+import { dateToStr, formatShortTime } from './formatos';
 
 
 export enum RolID {
@@ -66,7 +67,8 @@ export const ROLES: Map<RolID, {
     ruta_login: '/usuarios',
     rutas_acceso: [
       '/miarea/*',
-      '/usuarios/*'
+      '/usuarios/*',
+      '/horarios/*'
     ]
   }],
   [RolID.Director, {
@@ -259,22 +261,72 @@ export const diaSemanafromLetra: { [key: string]: DiaSemana } = {
   'D': DiaSemana.Domingo
 };
 
-export class Horario {
-  constructor(
-    public dia: DiaSemana,
-    public horaInicio: string,
-    public horaFin: string,
-    public horasATrabajar: number
-  ) { }
+export const diaSemanaToPalabra: { [key in DiaSemana]: string } = {
+  [DiaSemana.Lunes]: 'Lunes',
+  [DiaSemana.Martes]: 'Martes',
+  [DiaSemana.Miércoles]: 'Miércoles',
+  [DiaSemana.Jueves]: 'Jueves',
+  [DiaSemana.Viernes]: 'Viernes',
+  [DiaSemana.Sábado]: 'Sábado',
+  [DiaSemana.Domingo]: 'Domingo'
+};
 
-  // Crea una instancia desde la solicitudo del servidor
+export class ConfigHorario {
+  id: number;
+  usuario: number;
+  horario: Horario;
+  @Expose({ name: 'fecha_creacion' })
+  fechaCreacion: Dayjs | string
+  @Expose({ name: 'caducidad_fecha_ini' })
+  caducidadFechaIni: Dayjs | string | null
+  @Expose({ name: 'caducidad_fecha_fin' })
+  caducidadFechaFin: Dayjs | string | null
+
+  constructor(data: Partial<ConfigHorario>) {
+    Object.assign(this, data);
+  }
+
+  static fromRequest(obj: any): ConfigHorario {
+    return new ConfigHorario({
+      id: obj.id,
+      usuario: obj.usuario,
+      horario: Horario.fromRequest(obj.horario),
+      fechaCreacion: dayjs(obj.fecha_creacion),
+      caducidadFechaIni: obj.caducidad_fecha_ini ?
+        dayjs(obj.caducidad_fecha_ini) : null,
+      caducidadFechaFin: obj.caducidad_fecha_fin ?
+        dayjs(obj.caducidad_fecha_fin) : null
+    });
+  }
+
+  static fromRequestArray(objs: any[]): ConfigHorario[] {
+    return objs.map(obj => ConfigHorario.fromRequest(obj));
+  }
+}
+
+export class Horario {
+  id: number;
+  dia: DiaSemana;
+  @Expose({ name: 'hora_inicio' })
+  public horaInicio: string;
+  @Expose({ name: 'hora_fin' })
+  public horaFin: string;
+  @Expose({ name: 'horas_a_trabajar' })
+  public horasATrabajar: number;
+
+  constructor(data: Partial<Horario>) {
+    Object.assign(this, data);
+  }
+
+  // Crea una instancia desde la solicitud del servidor
   static fromRequest(obj: any): Horario {
-    return new Horario(
-      diaSemanafromLetra[obj.dia],
-      obj.hora_inicio,
-      obj.hora_fin,
-      obj.horas_a_trabajar
-    );
+    return plainToInstance(Horario, {
+      id: obj.id,
+      dia: diaSemanafromLetra[obj.dia],
+      hora_inicio: formatShortTime(obj.hora_inicio),
+      hora_fin: formatShortTime(obj.hora_fin),
+      horas_a_trabajar: obj.horas_a_trabajar
+    });
   }
 
   horasATrabajarToStr(): string {

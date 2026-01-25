@@ -31,16 +31,16 @@ impl MarcajeRepo {
     &self,
     tr: Option<&mut Transaccion<'_>>,
     reg: &Marcaje,
-    horario: u32,
+    usuario_horario: u32,
   ) -> Result<u32, DBError> {
     const QUERY: &str = "INSERT INTO marcajes
-      (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
+      (usuario, fecha, usuario_horario, hora_inicio, hora_fin, usuario_registrador)
       VALUES (?, ?, ?, ?, ?, ?)";
 
     let query = sqlx::query(QUERY)
       .bind(reg.usuario)
       .bind(reg.fecha)
-      .bind(horario)
+      .bind(usuario_horario)
       .bind(reg.hora_inicio)
       .bind(reg.hora_fin)
       .bind(reg.usuario_reg);
@@ -462,18 +462,20 @@ impl MarcajeRepo {
     order: Option<&str>,
   ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const SELECT: &str = "SELECT r.id, r.fecha,
-        r.hora_inicio, r.hora_fin, r.horario,
+        r.hora_inicio, r.hora_fin,
         u.id AS u_id, u.nombre AS u_nombre,
         u.primer_apellido AS u_primer_apellido,
         u.segundo_apellido AS u_segundo_apellido,
         ur.id AS ur_id, ur.nombre AS ur_nombre,
         ur.primer_apellido AS ur_primer_apellido,
         ur.segundo_apellido AS ur_segundo_apellido,
-        h.dia, h.hora_inicio AS h_hora_inicio, h.hora_fin AS h_hora_fin
+        h.id AS h_id, h.dia, h.hora_inicio AS h_hora_inicio, 
+        h.hora_fin AS h_hora_fin
         FROM marcajes r
-        JOIN horarios h ON r.horario = h.id
-        JOIN usuarios u ON r.usuario = u.id
-        LEFT JOIN usuarios ur ON r.usuario_registrador = ur.id";
+        JOIN usuario_horarios uh ON uh.id = r.usuario_horario
+        JOIN horarios h ON h.id = uh.horario
+        JOIN usuarios u ON u.id = r.usuario
+        LEFT JOIN usuarios ur ON ur.id = r.usuario_registrador";
 
     let mut query = String::with_capacity(
       SELECT.len()
@@ -537,7 +539,7 @@ impl MarcajeRepo {
         usuario: row.get("u_id"),
         usuario_reg: row.try_get::<u32, _>("ur_id").ok(),
         horario: Some(Horario {
-          id: row.get("horario"),
+          id: row.get("h_id"),
           dia: row.get::<String, _>("dia").as_str().into(),
           hora_inicio: row.get("h_hora_inicio"),
           hora_fin: row.get("h_hora_fin"),

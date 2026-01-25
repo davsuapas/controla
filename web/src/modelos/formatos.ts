@@ -4,21 +4,21 @@ export function formatDateTimeForServer(
   date: dayjs.Dayjs | null | undefined): string | null {
   if (!date) return null;
 
-  return dayjs(date).format('YYYY-MM-DDTHH:mm:ss');
+  return date.format('YYYY-MM-DDTHH:mm:ss');
 }
 
 export function formatDateForServer(
   date: dayjs.Dayjs | null | undefined): string | null {
   if (!date) return null;
 
-  return dayjs(date).format('YYYY-MM-DD');
+  return date.format('YYYY-MM-DD');
 }
 
 export function formatTimeForServer(
   date: dayjs.Dayjs | null | undefined): string | null {
   if (!date) return null;
 
-  return dayjs(date).format('HH:mm');
+  return date.format('HH:mm');
 }
 
 export function formatTimeFromServer(
@@ -36,17 +36,30 @@ export function dateToStr(date: dayjs.Dayjs | null) {
   return null;
 }
 
+export function dateTimeToStr(date: dayjs.Dayjs | null) {
+  if (date && date.isValid()) {
+    return date.format('DD/MM/YYYY HH:mm');
+  }
+
+  return null;
+}
+
 export function timeToStr(hora: String | null) {
   return hora ? hora : '--:--';
 }
 
 export function createDayjsFromTime(
-  baseDate: dayjs.Dayjs,
-  time: string) {
+  time: string,
+  baseDate: dayjs.Dayjs = dayjs()) {
   const timeSplit = time.split(':');
 
   return baseDate.hour(parseInt(timeSplit[0]))
     .minute(parseInt(timeSplit[1]))
     .second(0)
     .millisecond(0);
+}
+
+export function formatShortTime(time: string): string {
+  const timeSplit = time.split(':');
+  return `${timeSplit[0]}:${timeSplit[1]}`;
 }

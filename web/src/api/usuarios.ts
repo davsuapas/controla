@@ -1,20 +1,27 @@
 import { AxiosInstance } from 'axios';
-import { DescriptorUsuario, Horario, RolID, Usuario } from '../modelos/usuarios';
+import { ConfigHorario, DescriptorUsuario, DiaSemana, Horario, RolID, Usuario } from '../modelos/usuarios';
 import { UsuarioOutDTO } from '../modelos/dto';
-import { Dayjs } from 'dayjs';
-import { formatDateTimeForServer } from '../modelos/formatos';
+import dayjs, { Dayjs } from 'dayjs';
+import { formatDateForServer, formatDateTimeForServer } from '../modelos/formatos';
+import { instanceToPlain } from 'class-transformer';
 
 export interface UsuariosApi {
-  usuarios(): Promise<Usuario[]>;
-  usuario(id: string): Promise<Usuario>;
-  actualizar_usuario(usuario: UsuarioOutDTO): Promise<void>;
-  crearUsuario(usuario: UsuarioOutDTO): Promise<void>;
-  actualizar_password(usuarioId: number, passw: string): Promise<void>;
   login(dni: string, passw: string): Promise<Usuario>;
   logout(id: string): Promise<void>;
+  usuarios(): Promise<Usuario[]>;
+  usuario(id: string): Promise<Usuario>;
+  crearUsuario(usuario: UsuarioOutDTO): Promise<void>;
+  actualizar_usuario(usuario: UsuarioOutDTO): Promise<void>;
+  actualizar_password(usuarioId: number, passw: string): Promise<void>;
   horarioSinAsignar(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
   horarioCercano(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
-  usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]>
+  usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]>;
+  duplicarHorario(usuarioId: number, fechaCreacion: Dayjs): Promise<ConfigHorario[]>;
+  horarios(usuarioId: number): Promise<ConfigHorario[]>;
+  horario(id: number): Promise<ConfigHorario>;
+  crearHorario(horario: ConfigHorario): Promise<void>;
+  actualizarHorario(horario: ConfigHorario): Promise<void>;
+  eliminarHorario(id: number): Promise<void>;
 }
 
 export class ContextoApi {
@@ -118,6 +125,40 @@ export class UsuariosAxiosApi implements UsuariosApi {
     return Array.isArray(usuariosData)
       ? usuariosData.map(DescriptorUsuario.fromRequest)
       : [];
+  }
+
+  async duplicarHorario(usuarioId: number, fechaCreacion: Dayjs): Promise<ConfigHorario[]> {
+    const response = await this.axios.post(
+      `usuarios/${usuarioId}/horarios/duplicar/${formatDateForServer(fechaCreacion)}`
+    );
+
+    return Array.isArray(response.data)
+      ? ConfigHorario.fromRequestArray(response.data) : [];
+  }
+
+  async horarios(usuarioId: number): Promise<ConfigHorario[]> {
+    const response = await this.axios.get(`usuarios/${usuarioId}/horarios`);
+
+    return Array.isArray(response.data)
+      ? ConfigHorario.fromRequestArray(response.data)
+      : [];
+  }
+
+  async horario(id: number): Promise<ConfigHorario> {
+    const response = await this.axios.get(`horarios/${id}`);
+    return ConfigHorario.fromRequest(response.data);
+  }
+
+  async crearHorario(horario: ConfigHorario): Promise<void> {
+    return this.axios.post('horarios', instanceToPlain(horario));
+  }
+
+  async actualizarHorario(horario: ConfigHorario): Promise<void> {
+    return this.axios.put('horarios', instanceToPlain(horario));
+  }
+
+  async eliminarHorario(id: number): Promise<void> {
+    return this.axios.delete(`horarios/${id}`);
   }
 }
 
@@ -275,5 +316,100 @@ export class UsuariosTestApi implements UsuariosApi {
     ]
 
     return usuariosFicticios.map(DescriptorUsuario.fromRequest);
+  }
+
+  async duplicarHorario(usuarioId: number, fechaCreacion: Dayjs): Promise<ConfigHorario[]> {
+    const lista: ConfigHorario[] = [];
+    for (let i = 1; i <= 5; i++) {
+      lista.push(new ConfigHorario({
+        id: i,
+        usuario: usuarioId,
+        horario: new Horario({
+          dia: DiaSemana.Lunes,
+          horaInicio: '08:00',
+          horaFin: '15:00',
+          horasATrabajar: 7
+        }),
+        fechaCreacion: fechaCreacion,
+        caducidadFechaIni: null,
+        caducidadFechaFin: null
+      }));
+    }
+
+    lista.push(new ConfigHorario({
+      id: 6,
+      usuario: usuarioId,
+      horario: new Horario({
+        dia: DiaSemana.Martes,
+        horaInicio: '09:00',
+        horaFin: '16:00',
+        horasATrabajar: 7
+      }),
+      fechaCreacion: fechaCreacion,
+      caducidadFechaIni: dayjs().add(7, 'days'),
+      caducidadFechaFin: dayjs().add(7, 'days')
+    }));
+    return lista;
+  }
+
+  async horarios(usuarioId: number): Promise<ConfigHorario[]> {
+    const fecha = dayjs();
+    return [
+      new ConfigHorario({
+        id: 101,
+        usuario: usuarioId,
+        horario: new Horario({
+          dia: DiaSemana.Lunes,
+          horaInicio: '08:00',
+          horaFin: '15:00',
+          horasATrabajar: 7
+        }),
+        fechaCreacion: fecha,
+        caducidadFechaIni: dayjs().add(7, 'days'),
+        caducidadFechaFin: fecha.add(1, 'year')
+      }),
+      new ConfigHorario({
+        id: 102,
+        usuario: usuarioId,
+        horario: new Horario({
+          dia: DiaSemana.Martes,
+          horaInicio: '08:00',
+          horaFin: '15:00',
+          horasATrabajar: 7
+        }),
+        fechaCreacion: fecha,
+        caducidadFechaIni: dayjs().add(7, 'days'),
+        caducidadFechaFin: fecha.add(6, 'month')
+      })
+    ];
+  }
+
+  async horario(id: number): Promise<ConfigHorario> {
+    const fecha = dayjs();
+    return new ConfigHorario({
+      id: id,
+      usuario: 1,
+      horario: new Horario({
+        dia: DiaSemana.Jueves,
+        horaInicio: '08:00',
+        horaFin: '15:00',
+        horasATrabajar: 7
+      }),
+      fechaCreacion: fecha,
+      caducidadFechaIni: dayjs().add(7, 'days'),
+      caducidadFechaFin: fecha.add(1, 'year')
+    });
+  }
+
+  async actualizarHorario(_: ConfigHorario): Promise<void> {
+    return;
+  }
+
+  async crearHorario(_: ConfigHorario): Promise<void> {
+    return;
+  }
+
+  async eliminarHorario(_: number): Promise<void> {
+    return;
   }
 }

@@ -10,7 +10,7 @@ use crate::{
   },
   infra::{Dni, DominioWithCacheUsuario, Password, ShortDateTimeFormat},
   marcaje::{DescriptorMarcaje, Marcaje},
-  usuarios::{DescriptorUsuario, Horario, Rol, Usuario},
+  usuarios::{ConfigHorario, DescriptorUsuario, Dia, Horario, Rol, Usuario},
 };
 
 #[derive(Deserialize)]
@@ -118,21 +118,70 @@ pub struct PasswordUsuarioDTO {
 }
 
 /// Define la entidad de intercambio de salida para el horario
-#[derive(Serialize)]
-pub(in crate::app) struct HorarioOutDTO {
-  pub dia: &'static str,
-  pub hora_inicio: String,
-  pub hora_fin: String,
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct HorarioDTO {
+  pub id: u32,
+  pub dia: String,
+  pub hora_inicio: NaiveTime,
+  pub hora_fin: NaiveTime,
   pub horas_a_trabajar: f64,
 }
 
-impl From<Horario> for HorarioOutDTO {
+impl From<Horario> for HorarioDTO {
   fn from(horario: Horario) -> Self {
-    HorarioOutDTO {
-      dia: horario.dia.letra(),
-      hora_inicio: horario.hora_inicio.formato_corto(),
-      hora_fin: horario.hora_fin.formato_corto(),
+    HorarioDTO {
+      id: horario.id,
+      dia: horario.dia.letra().to_string(),
+      hora_inicio: horario.hora_inicio,
+      hora_fin: horario.hora_fin,
       horas_a_trabajar: horario.horas_a_trabajar(),
+    }
+  }
+}
+
+impl From<HorarioDTO> for Horario {
+  fn from(dto: HorarioDTO) -> Self {
+    Horario {
+      id: dto.id,
+      dia: Dia::from(dto.dia.as_str()),
+      hora_inicio: dto.hora_inicio,
+      hora_fin: dto.hora_fin,
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct ConfigHorarioDTO {
+  pub id: u32,
+  pub usuario: u32,
+  pub horario: HorarioDTO,
+  pub fecha_creacion: NaiveDate,
+  pub caducidad_fecha_ini: Option<NaiveDate>,
+  pub caducidad_fecha_fin: Option<NaiveDate>,
+}
+
+impl From<ConfigHorario> for ConfigHorarioDTO {
+  fn from(config: ConfigHorario) -> Self {
+    ConfigHorarioDTO {
+      id: config.id,
+      usuario: config.usuario,
+      horario: config.horario.into(),
+      fecha_creacion: config.fecha_creacion,
+      caducidad_fecha_ini: config.caducidad_fecha_ini,
+      caducidad_fecha_fin: config.caducidad_fecha_fin,
+    }
+  }
+}
+
+impl From<ConfigHorarioDTO> for ConfigHorario {
+  fn from(dto: ConfigHorarioDTO) -> Self {
+    ConfigHorario {
+      id: dto.id,
+      usuario: dto.usuario,
+      horario: dto.horario.into(),
+      fecha_creacion: dto.fecha_creacion,
+      caducidad_fecha_ini: dto.caducidad_fecha_ini,
+      caducidad_fecha_fin: dto.caducidad_fecha_fin,
     }
   }
 }
@@ -195,7 +244,7 @@ pub(in crate::app) struct MarcajeOutDTO {
   pub id: u32,
   pub usuario: u32,
   pub usuario_reg: Option<u32>,
-  pub horario: HorarioOutDTO,
+  pub horario: HorarioDTO,
   pub fecha: NaiveDate,
   pub hora_inicio: String,
   pub hora_fin: Option<String>,

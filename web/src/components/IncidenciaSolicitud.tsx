@@ -463,7 +463,7 @@ export function crearModalInfoSolicitudProps(
       mostrarSalida: true,
       info: {
         horaEntrada: undefined,
-        horaSalida: horaFin ? createDayjsFromTime(fecha, horaFin) : undefined
+        horaSalida: horaFin ? createDayjsFromTime(horaFin, fecha) : undefined
       }
     };
   }
@@ -474,8 +474,8 @@ export function crearModalInfoSolicitudProps(
       mostrarEntrada: true,
       mostrarSalida: true,
       info: {
-        horaEntrada: horaInicio ? createDayjsFromTime(fecha, horaInicio) : undefined,
-        horaSalida: horaFin ? createDayjsFromTime(fecha, horaFin) : undefined
+        horaEntrada: horaInicio ? createDayjsFromTime(horaInicio, fecha) : undefined,
+        horaSalida: horaFin ? createDayjsFromTime(horaFin, fecha) : undefined
       }
     };
   }

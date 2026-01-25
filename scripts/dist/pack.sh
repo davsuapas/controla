@@ -44,9 +44,10 @@ echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] 
     echo "  -crear: Paquetiza todo para crear una nueva app (tenant)."
     echo "  -actualizar=seccion: Paquetizar solo la sección especificada o la combinación de varias seperadas por coma sin espacios."
     echo "     Secciones:"
-    echo "        build: Construye y paquetiza los binarios."
+    echo "        bin: Construye y paquetiza los binarios."
     echo "        config: Paquetiza la configuración y secretos."
     echo "        servicio: Paquetiza la configuración del servicio systemd para el api."
+    echo "        db: Paquetiza los scripts sql de la base de datos."
     echo "  -script-db=nombre: Carpeta de scripts sql (ubicados en ./config/db). Si se usa la opción -crear se utiliza directamente el script sql 'db/inicio'."
     echo "  -custom-config: Carpeta con los fichero personalizables de configuración."
     echo "  -app=nombre: Paquetizar solo la aplicación (tenant) especificada."
@@ -290,6 +291,9 @@ db() {
           -e "s|@USUARIO|$APP_NAME|g" \
           -e "s|@DB_NOMBRE|$DB_NOMBRE|g" \
           "$script_file" > "$PACK_DB_APP/$NOMBRE_FICHERO"
+
+        # Guardar el nombre de la base de datos en metadata
+        echo "$DB_NOMBRE" > "$PACK_DB_APP/metadata"
       done
       
       echo "✅ Scripts SQL procesados en: $PACK_DB_APP"
@@ -394,9 +398,10 @@ else
     seccion_limpia="${seccion// /}"
     
     case "$seccion_limpia" in
-      "build") build ;;
+      "bin") build ;;
       "config")   config ;;
       "servicio") servicio ;;
+      "db") db ;;
       "")         ;; 
       *)          echo "⚠️ Sección desconocida: '$seccion_limpia'" ;;
     esac

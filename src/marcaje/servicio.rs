@@ -75,7 +75,7 @@ impl MarcajeServicio {
 
     self.validar_agregacion(reg, excluir_marcaje_id).await?;
 
-    let horario_cercano = self
+    let (usuario_horario, horario_cercano) = self
       .usuario_servico
       .horario_cercano(
         reg.usuario,
@@ -93,11 +93,12 @@ impl MarcajeServicio {
     let horas_a_trabajar = horario_cercano.horas_a_trabajar();
 
     tracing::debug!(
+      usuario_horario = usuario_horario,
       horario = ?horario_cercano,
       horas_a_trabajar = format!("{:.2}", horas_a_trabajar),
       "Horario más cercano a el marcajes horario del usuario");
 
-    let id = match self.repo.agregar(tr, reg, horario_cercano.id).await {
+    let id = match self.repo.agregar(tr, reg, usuario_horario).await {
       Ok(reg_id) => reg_id,
       Err(err) => {
         tracing::error!(

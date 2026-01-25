@@ -8,6 +8,8 @@ use thiserror::Error;
 
 use crate::infra::DBError;
 
+pub const NONE_DATE: NaiveDate = NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+
 #[derive(Debug, Error)]
 pub enum ServicioError {
   #[error("Error de acceso a la base de datos: {0}")]
@@ -58,11 +60,22 @@ pub trait TimeConvert {
   fn to_short_time(&self) -> NaiveTime;
 }
 
+pub trait DateOptional {
+  // Si es None devuelve 1/1/1900
+  fn convert_to_date(&self) -> NaiveDate;
+}
+
 pub trait ShortDateTimeFormat {
   /// Devuelve la fecha y hora en formato corto".
   fn formato_corto(&self) -> String;
   /// Devuelve la fecha y hora en formato compatible con SQL
   fn formato_sql(&self) -> String;
+}
+
+impl DateOptional for Option<NaiveDate> {
+  fn convert_to_date(&self) -> NaiveDate {
+    self.unwrap_or(NONE_DATE)
+  }
 }
 
 impl ShortDateTimeFormat for NaiveDate {
