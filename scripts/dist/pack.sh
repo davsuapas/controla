@@ -47,6 +47,7 @@ echo "Uso: $SCRIPT_NAME [-h] [-crear] [-actualizar=seccion] [-script-db=nombre] 
     echo "        bin: Construye y paquetiza los binarios."
     echo "        config: Paquetiza la configuración y secretos."
     echo "        servicio: Paquetiza la configuración del servicio systemd para el api."
+    echo "        log: Paquetiza la configuración de logrotate."
     echo "        db: Paquetiza los scripts sql de la base de datos."
     echo "  -script-db=nombre: Carpeta de scripts sql (ubicados en ./config/db). Si se usa la opción -crear se utiliza directamente el script sql 'db/inicio'."
     echo "  -custom-config: Carpeta con los fichero personalizables de configuración."
@@ -401,6 +402,7 @@ else
       "bin") build ;;
       "config")   config ;;
       "servicio") servicio ;;
+      "log") log ;;
       "db") db ;;
       "")         ;; 
       *)          echo "⚠️ Sección desconocida: '$seccion_limpia'" ;;

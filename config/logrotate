@@ -1,12 +1,10 @@
 /var/log/@APP/controla-api.log {
-    weekly
+    size 30M
     rotate 5
     compress
     delaycompress
     missingok
     notifempty
-    postrotate
-      systemctl restart controla-@APP.service
-    endscript
+    copytruncate
     create 644 @USUARIO @USUARIO
 }
