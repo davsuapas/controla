@@ -14,11 +14,12 @@ use crate::{
   app::{
     AppState,
     dto::{
-      ConfigHorarioDTO, DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO,
-      HorarioDTO, IncidenciaDTO, IncidenciaInProcesoDTO,
-      IncidenciaOutProcesoDTO, IncidenciaSolictudDTO, IncidenciasFiltroParams,
-      MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO,
-      UsuarioDTO, vec_dominio_to_dtos,
+      CalendarioDTO, CalendarioFechaDTO, ConfigHorarioDTO,
+      DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioDTO,
+      IncidenciaDTO, IncidenciaInProcesoDTO, IncidenciaOutProcesoDTO,
+      IncidenciaSolictudDTO, IncidenciasFiltroParams, MarcajeInDTO,
+      MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO, UsuarioBodyDTO,
+      UsuarioOutDTO, vec_dominio_to_dtos,
     },
   },
   inc::{EstadoIncidencia, IncidenciaProceso},
@@ -45,6 +46,17 @@ struct UsuarioFechaRegParams {
   id: u32,
   fecha: NaiveDateTime,
   usuario_reg: u32,
+}
+
+#[derive(Deserialize)]
+pub struct UsuarioParams {
+  todos_los_calendarios: bool,
+}
+
+#[derive(Deserialize)]
+pub struct CalendarioFechaFiltroParams {
+  pub fecha_inicio: Option<NaiveDate>,
+  pub fecha_fin: Option<NaiveDate>,
 }
 
 /// Define las rutas de la aplicación.
@@ -112,7 +124,22 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
     .route("/incidencias/por/fechas", post(incidencias_por_fechas))
     .layer(axum::middleware::from_fn(
       crate::infra::middleware::autenticacion,
-    ));
+    ))
+    // Calendarios
+    .route("/calendarios", get(calendarios))
+    .route("/calendarios/{id}", get(calendario))
+    .route("/calendarios", post(crear_calendario))
+    .route("/calendarios", put(actualizar_calendario))
+    .route("/calendarios/{id}", delete(eliminar_calendario))
+    // Fechas de calendario
+    .route("/calendarios/{id}/fechas", get(fechas_calendario))
+    .route("/calendarios/fechas/{id}", get(fecha_calendario))
+    .route("/calendarios/fechas", post(crear_fecha_calendario))
+    .route("/calendarios/fechas", put(actualizar_fecha_calendario))
+    .route(
+      "/calendarios/fechas/{id}",
+      delete(eliminar_fecha_calendario),
+    );
 
   let ruta_app = if cod_app.is_empty() {
     String::new()
@@ -183,7 +210,7 @@ async fn login(
         // Devolver respuesta con cookie y datos del usuario
         Ok((
           [(axum::http::header::SET_COOKIE, token_cookie.to_string())],
-          Json(UsuarioDTO::from(usr)),
+          Json(UsuarioOutDTO::from(usr)),
         ))
       } else {
         Err((
@@ -202,7 +229,7 @@ async fn login(
 /// Api para crear un nuevo usuario
 async fn crear_usuario(
   State(state): State<Arc<AppState>>,
-  Json(usuario): Json<UsuarioDTO>,
+  Json(usuario): Json<UsuarioBodyDTO>,
 ) -> impl IntoResponse {
   state
     .usuario_servicio
@@ -215,7 +242,7 @@ async fn crear_usuario(
 /// Api para actualizar un usuario existente
 async fn actualizar_usuario(
   State(state): State<Arc<AppState>>,
-  Json(usuario): Json<UsuarioDTO>,
+  Json(usuario): Json<UsuarioBodyDTO>,
 ) -> impl IntoResponse {
   state
     .usuario_servicio
@@ -258,19 +285,20 @@ async fn usuarios(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     .usuarios()
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|usrs| Json(vec_dominio_to_dtos::<_, UsuarioDTO>(usrs)))
+    .map(|usrs| Json(vec_dominio_to_dtos::<_, UsuarioOutDTO>(usrs)))
 }
 
 async fn usuario(
   State(state): State<Arc<AppState>>,
   Path(id): Path<u32>,
+  axum::extract::Query(params): axum::extract::Query<UsuarioParams>,
 ) -> impl IntoResponse {
   state
     .usuario_servicio
-    .usuario(id)
+    .usuario_con_calendarios(id, params.todos_los_calendarios)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|u| Json(UsuarioDTO::from(u)))
+    .map(|u| Json(UsuarioOutDTO::from(u)))
 }
 
 /// Api para obtener los marcajes entre fechas para un usuario
@@ -375,7 +403,7 @@ async fn horario_usuario_sin_asignar(
   Path(params): Path<UsuarioFechaParams>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .horarios_usuario_sin_asignar(params.id, params.fecha.date())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -388,7 +416,7 @@ async fn horario_cercano(
   Path(params): Path<UsuarioFechaParams>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .horario_usuario_cercano(params.id, params.fecha)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -401,7 +429,7 @@ async fn config_horarios(
   Path(id): Path<u32>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .config_horario(id)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -414,7 +442,7 @@ async fn duplicar_config_horario(
   Path((id, fecha)): Path<(u32, NaiveDate)>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .duplicar_config_horario(id, fecha)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -427,7 +455,7 @@ async fn horario(
   Path(id): Path<u32>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .config_horario_por_id(id)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -440,7 +468,7 @@ async fn crear_horario(
   Json(config): Json<ConfigHorarioDTO>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .agregar_config_horario(&config.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -453,7 +481,7 @@ async fn modificar_config_horario(
   Json(config): Json<ConfigHorarioDTO>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .modificar_config_horario(&config.into())
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -466,7 +494,7 @@ async fn eliminar_config_horario(
   Path(id): Path<u32>,
 ) -> impl IntoResponse {
   state
-    .usuario_servicio
+    .horario_servicio
     .eliminar_config_horario(id)
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
@@ -537,6 +565,138 @@ async fn cambiar_incidencia_solicitud(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|regs| Json(DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs)))
+}
+
+/// Api para obtener todos los calendarios laborales.
+async fn calendarios(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .calendarios()
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|cals| Json(vec_dominio_to_dtos::<_, CalendarioDTO>(cals)))
+}
+
+/// Api para obtener un calendario laboral por su id.
+async fn calendario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .calendario(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|c| Json(CalendarioDTO::from(c)))
+}
+
+/// Api para crear un nuevo calendario laboral.
+async fn crear_calendario(
+  State(state): State<Arc<AppState>>,
+  Json(dto): Json<CalendarioDTO>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .crear_calendario(&dto.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para actualizar un calendario laboral existente.
+async fn actualizar_calendario(
+  State(state): State<Arc<AppState>>,
+  Json(dto): Json<CalendarioDTO>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .actualizar_calendario(&dto.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
+}
+
+/// Api para eliminar un calendario laboral.
+async fn eliminar_calendario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .eliminar_calendario(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
+}
+
+/// Api para obtener las fechas señaladas de un calendario.
+///
+/// Permite filtrar por fecha de inicio y fin.
+async fn fechas_calendario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+  axum::extract::Query(params): axum::extract::Query<
+    CalendarioFechaFiltroParams,
+  >,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .calendario_fechas(id, params.fecha_inicio, params.fecha_fin)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|fechas| Json(vec_dominio_to_dtos::<_, CalendarioFechaDTO>(fechas)))
+}
+
+/// Api para obtener una fecha señalada por su id.
+async fn fecha_calendario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .calendario_fecha(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|f| Json(CalendarioFechaDTO::from(f)))
+}
+
+/// Api para crear una nueva fecha señalada en un calendario.
+async fn crear_fecha_calendario(
+  State(state): State<Arc<AppState>>,
+  Json(dto): Json<CalendarioFechaDTO>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .crear_calendario_fecha(&dto.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|id| (StatusCode::CREATED, Json(id)))
+}
+
+/// Api para actualizar una fecha señalada existente.
+async fn actualizar_fecha_calendario(
+  State(state): State<Arc<AppState>>,
+  Json(dto): Json<CalendarioFechaDTO>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .actualizar_calendario_fecha(&dto.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
+}
+
+/// Api para eliminar una fecha señalada.
+async fn eliminar_fecha_calendario(
+  State(state): State<Arc<AppState>>,
+  Path(id): Path<u32>,
+) -> impl IntoResponse {
+  state
+    .horario_servicio
+    .eliminar_calendario_fecha(id)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
 }
 
 /// Api para procesar las incidencias.

@@ -189,6 +189,7 @@ export default function HorarioConfigurador() {
         field: 'dia',
         headerName: 'DÍA',
         flex: 1,
+        minWidth: 120,
         valueGetter: (_, row: ConfigHorario) =>
           diaSemanaToPalabra[row.horario.dia as DiaSemana],
       },
@@ -196,18 +197,21 @@ export default function HorarioConfigurador() {
         field: 'entrada',
         headerName: 'ENTRADA',
         flex: 1,
+        minWidth: 100,
         valueGetter: (_, row: ConfigHorario) => row.horario.horaInicio,
       },
       {
         field: 'salida',
         headerName: 'SALIDA',
         flex: 1,
+        minWidth: 100,
         valueGetter: (_, row: ConfigHorario) => row.horario.horaFin
       },
       {
         field: 'caducidadFechaIni',
         headerName: 'FECHA INICIO',
         flex: 1,
+        minWidth: 150,
         valueGetter: (_, row: ConfigHorario) =>
           dateToStr(row.caducidadFechaIni as Dayjs) || 'Sin configurar',
         renderCell: (params) => (
@@ -222,6 +226,7 @@ export default function HorarioConfigurador() {
         field: 'caducidadFechaFin',
         headerName: 'FECHA FIN',
         flex: 1,
+        minWidth: 150,
         valueGetter: (_, row: ConfigHorario) =>
           dateToStr(row.caducidadFechaFin as Dayjs) || 'Sin configurar',
         renderCell: (params) => (
@@ -237,6 +242,7 @@ export default function HorarioConfigurador() {
         type: 'actions',
         flex: 1,
         align: 'right',
+        minWidth: 150,
         getActions: ({ id }) => [
           <Tooltip title="Modificar" key="modificar-tooltip">
             <GridActionsCellItem

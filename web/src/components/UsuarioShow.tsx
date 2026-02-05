@@ -29,7 +29,7 @@ export default function UsuarioShow() {
 
     try {
       const showData = await api().usuarios.usuario(
-        getUsrLogeado().id.toString());
+        getUsrLogeado().id.toString(), false);
 
       if (isMounted.current) {
         setUsuario(showData);
@@ -185,6 +185,31 @@ export default function UsuarioShow() {
                 }}
               >
                 {usuario.email}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Paper sx={{ px: 2, py: 1 }}>
+              <Typography variant="h6" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                Calendarios
+              </Typography>
+              <Typography
+                variant="h2"
+                sx={{
+                  mb: 1,
+                  fontSize: { xs: '1.25rem', sm: '2rem' },
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word'
+                }}
+              >
+                {usuario.calendarios?.filter(c => c.asignado).map((cal) => (
+                  <Chip
+                    key={cal.calendario}
+                    label={cal.nombre}
+                    size="medium"
+                    variant="outlined"
+                  />
+                ))}
               </Typography>
             </Paper>
           </Grid>

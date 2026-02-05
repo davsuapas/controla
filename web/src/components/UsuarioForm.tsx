@@ -15,7 +15,7 @@ import TextField from '@mui/material/TextField';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router';
 import dayjs from 'dayjs';
-import { nombresRoles, nombresTodosRoles, Rol, Usuario } from '../modelos/usuarios';
+import { nombresCalendariosAsignados, nombresRoles, nombresTodosLosCalendarios, nombresTodosRoles, Rol, Usuario } from '../modelos/usuarios';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Chip from '@mui/material/Chip';
 import { useTheme } from '@mui/material/styles';
@@ -24,7 +24,7 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 
 export interface UsuarioFormState {
   values: Partial<Usuario>;
-  errors: Partial<Record<keyof UsuarioFormState['values'], string>>;
+  errors: Partial<Record<keyof Usuario, string>>;
 }
 
 export enum Presentacion {
@@ -193,7 +193,8 @@ function validarEmail(email: string): boolean {
 // Evento para la transformación de un campo
 export function setPropGeneralesUsuario(
   name: keyof UsuarioFormState['values'],
-  newValue: FormFieldValue): any {
+  newValue: FormFieldValue,
+  currentState?: Partial<UsuarioFormState['values']>): any {
 
   if (name === 'activo') {
     return newValue ? dayjs() : null;
@@ -201,6 +202,17 @@ export function setPropGeneralesUsuario(
 
   if (name === 'roles') {
     return Array.isArray(newValue) ? newValue.map(Rol.desdeNombre) : [];
+  }
+
+  if (name === 'calendarios') {
+    if (Array.isArray(newValue) && currentState?.calendarios) {
+      const selectedNames = newValue as string[];
+      return currentState.calendarios.map(cal => ({
+        ...cal,
+        asignado: selectedNames.includes(cal.nombre)
+      }));
+    }
+    return currentState?.calendarios ?? [];
   }
 
   return newValue;
@@ -295,6 +307,16 @@ export default function UsuarioForm(props: UsuarioFormProps) {
     };
   }
 
+  function estilosParaCalendarios(nombre: string) {
+    const nombres = nombresCalendariosAsignados(formValues?.calendarios ?? []);
+
+    return {
+      fontWeight: nombres && nombres.includes(nombre)
+        ? theme.typography.fontWeightMedium
+        : theme.typography.fontWeightRegular,
+    };
+  }
+
   return (
     <Box
       component="form"
@@ -375,9 +397,13 @@ export default function UsuarioForm(props: UsuarioFormProps) {
                       onChange={handleSelectFieldChange as SelectProps['onChange']}
                       input={<OutlinedInput label="Roles" />}
                       renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        <Box sx={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 0.5,
+                        }}>
                           {selected.map((value) => (
-                            <Chip label={value} />
+                            <Chip key={value} label={value} />
                           ))}
                         </Box>
                       )}
@@ -393,6 +419,34 @@ export default function UsuarioForm(props: UsuarioFormProps) {
                       ))}
                     </Select>
                     <FormHelperText>{formErrors.roles ?? ' '}</FormHelperText>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>
+                  <FormControl error={!!formErrors.calendarios} fullWidth>
+                    <InputLabel>Calendarios</InputLabel>
+                    <Select
+                      name="calendarios"
+                      multiple
+                      value={nombresCalendariosAsignados(formValues.calendarios ?? [])}
+                      onChange={handleSelectFieldChange as SelectProps['onChange']}
+                      input={<OutlinedInput label="Calendarios" />}
+                      renderValue={(selected) =>
+                        selected.length > 0
+                          ? "Despliegue para ver todos..."
+                          : ""
+                      }
+                    >
+                      {nombresTodosLosCalendarios(formValues.calendarios ?? []).map((cal) => (
+                        <MenuItem
+                          key={cal}
+                          value={cal}
+                          style={estilosParaCalendarios(cal)}
+                        >
+                          {cal}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>{formErrors.calendarios ?? ' '}</FormHelperText>
                   </FormControl>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>

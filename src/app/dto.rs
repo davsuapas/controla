@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
+use crate::horario::{
+  Calendario, CalendarioFecha, ConfigHorario, Dia, Horario, TipoCalendarioFecha,
+};
 use crate::{
   inc::{
     EstadoIncidencia, Incidencia, IncidenciaProceso, IncidenciaSolictud,
@@ -10,7 +13,7 @@ use crate::{
   },
   infra::{Dni, DominioWithCacheUsuario, Password, ShortDateTimeFormat},
   marcaje::{DescriptorMarcaje, Marcaje},
-  usuarios::{ConfigHorario, DescriptorUsuario, Dia, Horario, Rol, Usuario},
+  usuarios::{DescriptorUsuario, Rol, Usuario},
 };
 
 #[derive(Deserialize)]
@@ -22,9 +25,26 @@ pub struct IncidenciasFiltroParams {
   pub usuario: Option<u32>,
 }
 
+#[derive(Serialize)]
+pub(in crate::app) struct UsuarioCalendarioDTO {
+  pub calendario: u32,
+  pub nombre: String,
+  pub asignado: bool,
+}
+
+impl From<&crate::usuarios::UsuarioCalendario> for UsuarioCalendarioDTO {
+  fn from(value: &crate::usuarios::UsuarioCalendario) -> Self {
+    Self {
+      calendario: value.calendario,
+      nombre: value.nombre.clone(),
+      asignado: value.asignado,
+    }
+  }
+}
+
 /// Define la entidad de intercambio para el usuario
-#[derive(Serialize, Deserialize)]
-pub(in crate::app) struct UsuarioDTO {
+#[derive(Deserialize)]
+pub(in crate::app) struct UsuarioBodyDTO {
   pub id: u32,
   pub autor: u32, // Es el usuario que lo manipula y sirve para trazas
   pub dni: String,
@@ -36,28 +56,47 @@ pub(in crate::app) struct UsuarioDTO {
   pub activo: Option<NaiveDateTime>,
   pub inicio: Option<NaiveDateTime>,
   pub roles: Vec<u8>,
+  #[serde(default)]
+  pub calendarios: Vec<u32>,
 }
 
-impl From<Usuario> for UsuarioDTO {
+#[derive(Serialize)]
+pub(in crate::app) struct UsuarioOutDTO {
+  pub id: u32,
+  pub dni: String,
+  pub email: String,
+  pub nombre: String,
+  pub primer_apellido: String,
+  pub segundo_apellido: String,
+  pub activo: Option<NaiveDateTime>,
+  pub inicio: Option<NaiveDateTime>,
+  pub roles: Vec<u8>,
+  pub calendarios: Vec<UsuarioCalendarioDTO>,
+}
+
+impl From<Usuario> for UsuarioOutDTO {
   fn from(usr: Usuario) -> Self {
-    UsuarioDTO {
+    UsuarioOutDTO {
       id: usr.id,
-      autor: 0, // El autor solo tiene efecto en las trazas
       dni: usr.dni.into(),
       email: usr.email,
       nombre: usr.nombre,
       primer_apellido: usr.primer_apellido,
       segundo_apellido: usr.segundo_apellido,
-      password: None, // Nunca se envía la contraseña
       activo: usr.activo,
       inicio: usr.inicio,
       roles: usr.roles.iter().map(|r| *r as u8).collect(),
+      calendarios: usr
+        .calendarios
+        .iter()
+        .map(UsuarioCalendarioDTO::from)
+        .collect(),
     }
   }
 }
 
-impl From<UsuarioDTO> for Usuario {
-  fn from(usr: UsuarioDTO) -> Self {
+impl From<UsuarioBodyDTO> for Usuario {
+  fn from(usr: UsuarioBodyDTO) -> Self {
     Usuario {
       id: usr.id,
       dni: Dni::new(usr.dni),
@@ -69,6 +108,15 @@ impl From<UsuarioDTO> for Usuario {
       activo: usr.activo,
       inicio: usr.inicio,
       roles: usr.roles.into_iter().map(Rol::from).collect(),
+      calendarios: usr
+        .calendarios
+        .into_iter()
+        .map(|c| crate::usuarios::UsuarioCalendario {
+          calendario: c,
+          nombre: "".to_string(),
+          asignado: true,
+        })
+        .collect(),
     }
   }
 }
@@ -390,6 +438,68 @@ impl From<IncidenciaSolictudDTO> for IncidenciaSolictud {
       hora_inicio: inc.hora_inicio,
       hora_fin: inc.hora_fin,
       usuario_creador: inc.usuario_creador,
+    }
+  }
+}
+
+// Define la entidad de intercambio para el calendario.
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct CalendarioDTO {
+  pub id: u32,
+  pub nombre: String,
+  pub descripcion: String,
+}
+
+impl From<Calendario> for CalendarioDTO {
+  fn from(c: Calendario) -> Self {
+    CalendarioDTO {
+      id: c.id,
+      nombre: c.nombre,
+      descripcion: c.descripcion,
+    }
+  }
+}
+
+impl From<CalendarioDTO> for Calendario {
+  fn from(dto: CalendarioDTO) -> Self {
+    Calendario {
+      id: dto.id,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+    }
+  }
+}
+
+// Define la entidad de intercambio para las fechas del calendario.
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct CalendarioFechaDTO {
+  pub id: u32,
+  pub calendario: u32,
+  pub fecha_inicio: NaiveDate,
+  pub fecha_fin: NaiveDate,
+  pub tipo: u8,
+}
+
+impl From<CalendarioFecha> for CalendarioFechaDTO {
+  fn from(f: CalendarioFecha) -> Self {
+    CalendarioFechaDTO {
+      id: f.id,
+      calendario: f.calendario,
+      fecha_inicio: f.fecha_inicio,
+      fecha_fin: f.fecha_fin,
+      tipo: f.tipo.into(),
+    }
+  }
+}
+
+impl From<CalendarioFechaDTO> for CalendarioFecha {
+  fn from(dto: CalendarioFechaDTO) -> Self {
+    CalendarioFecha {
+      id: dto.id,
+      calendario: dto.calendario,
+      fecha_inicio: dto.fecha_inicio,
+      fecha_fin: dto.fecha_fin,
+      tipo: TipoCalendarioFecha::from(dto.tipo),
     }
   }
 }

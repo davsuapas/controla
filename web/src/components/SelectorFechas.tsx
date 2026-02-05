@@ -30,7 +30,7 @@ export interface SelectorFechasRef {
 
 // Componente selector que permitie elegir entre ver los
 // últimos registros o elegir entre dos fechas
-// con ref paa acceder a los valores desde el padre.
+// con ref para acceder a los valores desde el padre.
 // Debe estar integrado en un grid.
 export const SelectorFechas =
   forwardRef<SelectorFechasRef, SelectorFechasProps>((props, ref) => {

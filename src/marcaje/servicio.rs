@@ -2,31 +2,31 @@ use chrono::NaiveDate;
 
 use crate::{
   config::ConfigTrabajo,
+  horario::HorarioServicio,
   infra::{
     DominioWithCacheUsuario, ServicioError, ShortDateTimeFormat, TimeConvert,
     Transaccion,
   },
   marcaje::{Marcaje, MarcajeRepo},
-  usuarios::UsuarioServicio,
 };
 
 /// Servicio que gestiona los marcajes del usuario
 pub struct MarcajeServicio {
   cnfg: ConfigTrabajo,
   repo: MarcajeRepo,
-  usuario_servico: UsuarioServicio,
+  horario_servicio: HorarioServicio,
 }
 
 impl MarcajeServicio {
   pub fn new(
     cnfg: ConfigTrabajo,
     repo: MarcajeRepo,
-    usuario_servico: UsuarioServicio,
+    horario_servicio: HorarioServicio,
   ) -> Self {
     MarcajeServicio {
       cnfg,
       repo,
-      usuario_servico,
+      horario_servicio,
     }
   }
 }
@@ -46,6 +46,8 @@ impl MarcajeServicio {
   /// no haya sido asignado.
   ///
   /// Validaciones:
+  /// * Se valida que no existan fechas de los calendarios asignados
+  ///   a el usuario.
   /// * Si existen marcajes con alguna hora de fin sin registrar,
   /// * se devuelve un error.
   /// * Si el usuario no tiene un horario configurado, se devuelve un error.
@@ -76,7 +78,7 @@ impl MarcajeServicio {
     self.validar_agregacion(reg, excluir_marcaje_id).await?;
 
     let (usuario_horario, horario_cercano) = self
-      .usuario_servico
+      .horario_servicio
       .horario_cercano(
         reg.usuario,
         reg.hora_inicio_completa(),
@@ -387,6 +389,21 @@ impl MarcajeServicio {
     reg: &Marcaje,
     excluir_marcaje_id: u32,
   ) -> Result<(), ServicioError> {
+    if let Some(conflicto) = self
+      .horario_servicio
+      .conflicto_calendario_en_marcaje(reg.usuario, reg.fecha)
+      .await?
+    {
+      return Err(ServicioError::Validacion(format!(
+        "No se puede crear el marcaje en la fecha {} porque coincide con un \
+        período de '{}' (desde {} hasta {}) en el calendario del usuario.",
+        reg.fecha.formato_corto(),
+        conflicto.tipo.as_str(),
+        conflicto.fecha_inicio.formato_corto(),
+        conflicto.fecha_fin.formato_corto()
+      )));
+    }
+
     if self
       .repo
       .hora_fin_vacia(reg.usuario, reg.fecha, excluir_marcaje_id)

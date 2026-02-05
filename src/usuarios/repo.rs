@@ -1,15 +1,10 @@
-use std::ops::Add;
-
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime};
 use smallvec::SmallVec;
 use sqlx::{Row, mysql::MySqlRow};
 
 use crate::{
-  infra::{
-    DBError, DateOptional, Dni, NONE_DATE, Password, PoolConexion,
-    ShortDateTimeFormat, Transaccion,
-  },
-  usuarios::{ConfigHorario, DescriptorUsuario, Dia, Horario, Rol, Usuario},
+  infra::{DBError, Dni, Password, PoolConexion, Transaccion},
+  usuarios::{DescriptorUsuario, Rol, Usuario, UsuarioCalendario},
 };
 
 /// Implementación del repositorio de los usuarios y horarios.
@@ -58,6 +53,38 @@ impl UsuarioRepo {
         .map_err(DBError::from_sqlx)?;
     }
 
+    Ok(())
+  }
+
+  /// Añadir calendarios a un usuario.
+  ///
+  /// Si el usuario ya tiene calendarios, se eliminan antes de añadir los nuevos.
+  pub(in crate::usuarios) async fn agregar_calendarios(
+    &self,
+    trans: &mut Transaccion<'_>,
+    usuario: u32,
+    calendarios: &[u32],
+  ) -> Result<(), DBError> {
+    const DELETE_QUERY: &str = "DELETE FROM calendarios_usuario
+       WHERE usuario = ?;";
+
+    sqlx::query(DELETE_QUERY)
+      .bind(usuario)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    const QUERY: &str = "INSERT INTO calendarios_usuario (usuario, calendario)
+       VALUES (?, ?);";
+
+    for calendario in calendarios {
+      sqlx::query(QUERY)
+        .bind(usuario)
+        .bind(calendario)
+        .execute(&mut **trans.deref_mut())
+        .await
+        .map_err(DBError::from_sqlx)?;
+    }
     Ok(())
   }
 
@@ -381,195 +408,17 @@ impl UsuarioRepo {
     Ok(rows.into_iter().map(Rol::from).collect())
   }
 
-  /// Obtiene el horario más cercano a una hora dada para un usuario.
-  ///
-  /// Busca un horario que este entre las horas de inicio y fin
-  /// del día de la semana y que no esté ya asignado a un marcaje horario.
-  /// El horario puede tener caducidad. Si no esta caducado se selecciona.
-  /// Si no encuentra un horario entre las horas de inicio y fin,
-  /// devuelve el más cercano al inicio y que no esté ya asignado
-  /// a un marcaje horario.
-  /// Además, la hora que se busca, tiene que ser mayor de la hora
-  /// final del marcaje del horario anterior asignado.
-  ///
-  /// Se puede excluir un marcaje pasado como parámetro
-  /// Si no quiere excluir ningún marcaje use 0.
-  /// La exclusión puede ser muy útil cuando se quiere
-  /// realizar una modificación de este marcaje.
-  ///
-  /// Devuelve el identificador de usuario, horario y el horario.
-  pub(in crate::usuarios) async fn horario_cercano(
+  pub(in crate::usuarios) async fn calendarios_asignados_por_usuario(
     &self,
     usuario: u32,
-    hora: NaiveDateTime,
-    excluir_marcaje_id: u32,
-  ) -> Result<(u32, Horario), DBError> {
-    let fecha = hora.date();
-    let dia = crate::infra::letra_dia_semana(hora.weekday());
-    let hora_buscar = hora.time();
-
-    let fecha_creacion = self.fecha_creacion_horario(usuario, fecha).await?;
-
-    tracing::debug!(
-      usuario = usuario,
-      fecha = %fecha,
-      hora = %hora_buscar,
-      fecha_creacion = %fecha_creacion,
-      dia = %dia,
-      excluir_marcaje_id = excluir_marcaje_id,
-      "Buscando el horario más cercano del usuario"
-    );
-
-    // Busca un horario que esté entre las horas de inicio y fin
-    // del día de la semana siempre que no este asignado
-    // y la hora inicio debe ser mayor que la hora de fin del
-    // último marcaje previo.
-    // También se comprueba los horarios con caducidad. Si esta
-    // dentro del marcaje se selecciona.
-    const QUERY: &str = "SELECT uh.id AS uh_id,
-         h.id, h.dia, h.hora_inicio, h.hora_fin
-        FROM usuario_horarios uh
-         JOIN horarios h ON h.id = uh.horario
-        WHERE uh.usuario = ?
-         AND uh.fecha_creacion = ?
-         AND (uh.caducidad_fecha_fin IS NULL OR ? >= uh.caducidad_fecha_ini)
-         AND (uh.caducidad_fecha_fin IS NULL OR ? <= uh.caducidad_fecha_fin)         
-         AND h.dia = ?
-         AND ? BETWEEN h.hora_inicio AND h.hora_fin
-         AND NOT EXISTS 
-         (SELECT r.id
-            FROM marcajes r
-            WHERE r.usuario = uh.usuario AND r.fecha = ?
-             AND r.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
-             AND r.usuario_horario = uh.id)
-         AND ? > COALESCE(
-         (SELECT MAX(r2.hora_fin)
-            FROM marcajes r2
-            JOIN usuario_horarios uh2 ON uh2.id = r2.usuario_horario
-            JOIN horarios h2 ON h2.id = uh2.horario
-            WHERE r2.usuario = uh.usuario AND r2.fecha = ?
-              AND r2.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
-              AND h2.hora_inicio < h.hora_inicio),
-        '00:00:00')";
-
-    let result = sqlx::query(QUERY)
-      .bind(usuario)
-      .bind(fecha_creacion)
-      .bind(fecha)
-      .bind(fecha)
-      .bind(dia)
-      .bind(hora_buscar)
-      .bind(fecha)
-      .bind(excluir_marcaje_id)
-      .bind(hora_buscar)
-      .bind(fecha)
-      .bind(excluir_marcaje_id)
-      .fetch_optional(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    if let Some(row) = result {
-      Ok((row.get("uh_id"), UsuarioRepo::horario_from_row(&row)))
-    } else {
-      // Si no encuentra un horario mayor a la hora de inicio,
-      // devuelve el más cercano al inicio siempre que no este asignado
-      // y la hora inicio debe ser mayor que la hora de fin del
-      // último marcaje previo.
-      // También se comprueba los horarios con caducidad. Si esta
-      // dentro del marcaje se selecciona.
-      const QUERY: &str = "SELECT uh.id AS uh_id,
-              h.id, h.dia, h.hora_inicio, h.hora_fin
-            FROM horarios h
-            JOIN usuario_horarios uh ON h.id = uh.horario
-            WHERE uh.usuario = ?
-             AND uh.fecha_creacion = ?
-             AND (uh.caducidad_fecha_fin IS NULL OR ? >= uh.caducidad_fecha_ini)
-             AND (uh.caducidad_fecha_fin IS NULL OR ? <= uh.caducidad_fecha_fin)         
-             AND h.dia = ?
-             AND h.hora_inicio > ?
-             AND NOT EXISTS 
-             ( SELECT r.id
-                FROM marcajes r
-                WHERE r.usuario = uh.usuario AND r.fecha = ?
-                 AND r.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
-                 AND r.usuario_horario = uh.id)
-            AND ? > COALESCE(
-            (SELECT MAX(r2.hora_fin)
-              FROM marcajes r2
-                JOIN usuario_horarios uh2 ON uh2.id = r2.usuario_horario
-                JOIN horarios h2 ON h2.id = uh2.horario
-              WHERE r2.usuario = uh.usuario
-               AND r2.fecha = ?
-               AND r2.id <> ? AND modificado_por IS NULL AND eliminado IS NULL
-               AND h2.hora_inicio < h.hora_inicio),
-            '00:00:00')
-            LIMIT 1;";
-
-      let result = sqlx::query(QUERY)
-        .bind(usuario)
-        .bind(fecha_creacion)
-        .bind(fecha)
-        .bind(fecha)
-        .bind(dia)
-        .bind(hora_buscar)
-        .bind(fecha)
-        .bind(excluir_marcaje_id)
-        .bind(hora_buscar)
-        .bind(fecha)
-        .bind(excluir_marcaje_id)
-        .fetch_optional(self.pool.conexion())
-        .await
-        .map_err(DBError::from_sqlx)?;
-
-      if let Some(row) = result {
-        Ok((row.get("uh_id"), UsuarioRepo::horario_from_row(&row)))
-      } else {
-        Err(DBError::registro_vacio(format!(
-          "No se ha encontrado ningún horario próximo a la fecha: {}, \
-           que no este ya asignado. \
-           Verifique sus horarios creados en la fecha: {}",
-          hora,
-          fecha_creacion.formato_corto()
-        )))
-      }
-    }
-  }
-
-  /// Obtiene los horarios sin asignar para un usuario en una fecha dada.
-  ///
-  /// También tiene en cuenta las caducidades de los horarios.
-  /// Si se encuentra asignado se omite
-  pub(in crate::usuarios) async fn horarios_usuario_sin_asignar(
-    &self,
-    usuario: u32,
-    fecha: NaiveDate,
-  ) -> Result<Vec<Horario>, DBError> {
-    let fecha_creacion = self.fecha_creacion_horario(usuario, fecha).await?;
-    let dia = crate::infra::letra_dia_semana(fecha.weekday());
-
-    const QUERY: &str = "SELECT h.id, h.dia, h.hora_inicio, h.hora_fin
-        FROM usuario_horarios uh
-         JOIN horarios h ON h.id = uh.horario
-        WHERE uh.usuario = ?
-         AND uh.fecha_creacion = ?
-         AND (uh.caducidad_fecha_fin IS NULL OR ? >= uh.caducidad_fecha_ini)
-         AND (uh.caducidad_fecha_fin IS NULL OR ? <= uh.caducidad_fecha_fin)         
-         AND h.dia = ?
-         AND NOT EXISTS 
-         ( SELECT r.id
-            FROM marcajes r
-            WHERE r.usuario = uh.usuario AND r.fecha = ?
-             AND r.usuario_horario = uh.id
-             AND modificado_por IS NULL AND eliminado IS NULL)
-        ORDER BY h.hora_inicio;";
+  ) -> Result<Vec<UsuarioCalendario>, DBError> {
+    const QUERY: &str = "SELECT c.id, c.nombre
+        FROM calendarios c
+        JOIN calendarios_usuario cu ON c.id = cu.calendario
+        WHERE cu.usuario = ? ORDER BY c.nombre;";
 
     let rows = sqlx::query(QUERY)
       .bind(usuario)
-      .bind(fecha_creacion)
-      .bind(fecha)
-      .bind(fecha)
-      .bind(dia)
-      .bind(fecha)
       .fetch_all(self.pool.conexion())
       .await
       .map_err(DBError::from_sqlx)?;
@@ -577,7 +426,40 @@ impl UsuarioRepo {
     Ok(
       rows
         .into_iter()
-        .map(|row| UsuarioRepo::horario_from_row(&row))
+        .map(|row| UsuarioCalendario {
+          calendario: row.get("id"),
+          nombre: row.get("nombre"),
+          asignado: true,
+        })
+        .collect(),
+    )
+  }
+
+  pub(in crate::usuarios) async fn todos_los_calendarios_con_asignacion(
+    &self,
+    usuario: u32,
+  ) -> Result<Vec<UsuarioCalendario>, DBError> {
+    const QUERY: &str = "SELECT c.id, c.nombre, 
+    EXISTS(
+      SELECT 1 
+      FROM calendarios_usuario cu 
+      WHERE cu.calendario = c.id AND cu.usuario = ?) as asignado
+       FROM calendarios c ORDER BY c.nombre";
+
+    let rows = sqlx::query(QUERY)
+      .bind(usuario)
+      .fetch_all(self.pool.conexion())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    Ok(
+      rows
+        .into_iter()
+        .map(|row| UsuarioCalendario {
+          calendario: row.get("id"),
+          nombre: row.get("nombre"),
+          asignado: row.get("asignado"),
+        })
         .collect(),
     )
   }
@@ -600,427 +482,28 @@ impl UsuarioRepo {
     )?
   }
 
-  /// Crea una nueva configuración de horario para un usuario.
-  pub(in crate::usuarios) async fn agregar_config_usuario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    config: &ConfigHorario,
-    id_horario: u32,
-  ) -> Result<u32, DBError> {
-    const QUERY: &str = "INSERT INTO usuario_horarios
-      (usuario, horario, fecha_creacion, 
-      caducidad_fecha_ini, caducidad_fecha_fin)
-      VALUES (?, ?, ?, ?, ?);";
-
-    let cad_fecha_ini = config.caducidad_fecha_ini.convert_to_date();
-
-    let res = sqlx::query(QUERY)
-      .bind(config.usuario)
-      .bind(id_horario)
-      .bind(config.fecha_creacion)
-      .bind(cad_fecha_ini)
-      .bind(config.caducidad_fecha_fin)
-      .execute(&mut **trans.deref_mut())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(res.last_insert_id() as u32)
-  }
-
-  /// Modifica una configuración de horario para un usuario.
-  pub(in crate::usuarios) async fn modificar_config_usuario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    config: &ConfigHorario,
-    id_horario: u32,
-  ) -> Result<(), DBError> {
-    const QUERY: &str = "UPDATE usuario_horarios SET
-        horario = ?, caducidad_fecha_ini = ?, caducidad_fecha_fin = ?
-        WHERE id = ?;";
-
-    let cad_fecha_ini = config.caducidad_fecha_ini.convert_to_date();
-
-    let res = sqlx::query(QUERY)
-      .bind(id_horario)
-      .bind(cad_fecha_ini)
-      .bind(config.caducidad_fecha_fin)
-      .bind(config.id)
-      .execute(&mut **trans.deref_mut())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    if res.rows_affected() == 0 {
-      Err(DBError::registro_vacio(
-        "Modificando configuración de horario".to_string(),
-      ))
-    } else {
-      Ok(())
-    }
-  }
-
-  /// Elimina una configuración de horario para un usuario.
-  pub(in crate::usuarios) async fn eliminar_config_usuario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    id: u32,
-  ) -> Result<(), DBError> {
-    const QUERY: &str = "DELETE FROM usuario_horarios WHERE id = ?;";
-
-    let res = sqlx::query(QUERY)
-      .bind(id)
-      .execute(&mut **trans.deref_mut())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    if res.rows_affected() == 0 {
-      Err(DBError::registro_vacio(
-        "Eliminando configuración de horario".to_string(),
-      ))
-    } else {
-      Ok(())
-    }
-  }
-
-  /// Duplica la configuración de un horario.
-  ///
-  /// Dado el id de usuario y una fecha de creación como
-  /// parámetro, se obtiene la última fecha de creación
-  /// del empleado y se crea un nuevo grupo de horarios
-  /// para el usuario dado y la fecha de creación dadas
-  /// como parámetros y el grupo de horarios obtenidos de
-  /// la última fecha de creación y usuario existentes en la
-  /// base de datos.
-  ///
-  /// Los registros con caducidad no se duplican porque
-  /// están sujetos a un rango que ya no se encontrará
-  /// vigente
-  ///
-  /// Se verifica mediante un índice único si se intenta
-  /// duplicar para la misma fecha de creación.
-  pub(in crate::usuarios) async fn duplicar_config_horario(
+  /// Obtiene las fechas de los marcajes de un usuario
+  /// que entran en conflicto con las fechas de un calendario.
+  pub(in crate::usuarios) async fn marcajes_conflictivos_asignacion_calendario(
     &self,
     usuario: u32,
-    nueva_fecha_creacion: NaiveDate,
-  ) -> Result<(), DBError> {
-    // Se añade un día para que tenga en cuenta el día
-    // de hoy. Ver [`Self::fecha_creacion_horario`]
-    let fecha_creacion = self
-      .fecha_creacion_horario(
-        usuario,
-        nueva_fecha_creacion.add(chrono::Duration::days(1)),
-      )
-      .await?;
+    calendario: u32,
+  ) -> Result<Vec<NaiveDate>, DBError> {
+    const QUERY: &str = "SELECT DISTINCT m.fecha
+        FROM marcajes m
+        JOIN calendario_fechas cf
+         ON m.fecha BETWEEN cf.fecha_inicio AND cf.fecha_fin
+        WHERE m.usuario = ?
+          AND cf.calendario = ?
+          AND modificado_por IS NULL AND eliminado IS NULL
+        ORDER BY m.fecha";
 
-    const QUERY: &str = "INSERT INTO usuario_horarios
-      (usuario, horario, fecha_creacion,
-       caducidad_fecha_ini, caducidad_fecha_fin)
-      SELECT usuario, horario, ?, caducidad_fecha_ini, caducidad_fecha_fin
-      FROM usuario_horarios
-      WHERE usuario = ? AND fecha_creacion = ?
-      AND caducidad_fecha_fin IS NULL;";
-
-    sqlx::query(QUERY)
-      .bind(nueva_fecha_creacion)
+    sqlx::query_scalar(QUERY)
       .bind(usuario)
-      .bind(fecha_creacion)
-      .execute(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(())
-  }
-
-  /// Obtiene un horario configurado dado el id.
-  pub(in crate::usuarios) async fn config_horario_por_id(
-    &self,
-    id: u32,
-  ) -> Result<ConfigHorario, DBError> {
-    const QUERY: &str = "SELECT h.id, uh.id AS uh_id,
-        uh.usuario, uh.fecha_creacion,
-        uh.caducidad_fecha_ini, uh.caducidad_fecha_fin,
-        h.dia, h.hora_inicio, h.hora_fin
-      FROM usuario_horarios uh
-      JOIN horarios h ON uh.horario = h.id
-      WHERE uh.id = ?";
-
-    let row = sqlx::query(QUERY)
-      .bind(id)
-      .fetch_optional(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    if let Some(row) = row {
-      Ok(UsuarioRepo::config_horario_from_row(&row))
-    } else {
-      Err(DBError::registro_vacio(format!(
-        "No se ha encontrado ningún horario configurado con id: {}",
-        id
-      )))
-    }
-  }
-
-  /// Obtiene una lista de horarios configurados para un usuario
-  ///
-  /// Primero obtiene la última fecha de configuración
-  /// desde [`Self::fecha_creacion_horario`] y a continuación
-  /// recupera de la base de datos todos los horarios para el
-  /// empleado pasado como parámetro y la última fecha de configuración
-  pub(in crate::usuarios) async fn config_horario(
-    &self,
-    usuario: u32,
-    fecha_actual: NaiveDate,
-  ) -> Result<Vec<ConfigHorario>, DBError> {
-    // Se añade un día para que tenga en cuenta el día
-    // de hoy. Ver [`Self::fecha_creacion_horario`]
-    let fecha_creacion = match self
-      .fecha_creacion_horario(
-        usuario,
-        fecha_actual.add(chrono::Duration::days(1)),
-      )
-      .await
-    {
-      Ok(fecha) => fecha,
-      Err(DBError::RegistroVacio(_)) => return Ok(vec![]),
-      Err(e) => return Err(e),
-    };
-
-    const QUERY: &str = "SELECT h.id, uh.id AS uh_id,
-        uh.usuario, uh.fecha_creacion,
-        uh.caducidad_fecha_ini, uh.caducidad_fecha_fin,
-        h.dia, h.hora_inicio, h.hora_fin
-      FROM usuario_horarios uh
-      JOIN horarios h ON uh.horario = h.id
-      WHERE uh.usuario = ? AND uh.fecha_creacion = ?
-      ORDER BY h.dia, h.hora_inicio;";
-
-    let rows = sqlx::query(QUERY)
-      .bind(usuario)
-      .bind(fecha_creacion)
+      .bind(calendario)
       .fetch_all(self.pool.conexion())
       .await
-      .map_err(DBError::from_sqlx)?;
-
-    rows
-      .iter()
-      .map(|row| Ok(UsuarioRepo::config_horario_from_row(row)))
-      .collect()
-  }
-
-  /// Verifica que una configuración no se solape con otras para el mismo día.
-  ///
-  /// El solapamiento se verifica para el mismo usuario y fecha creación.
-  /// Se siguen las siguientes reglas para la configuración que se envía
-  /// como parámetro:
-  ///
-  /// - Para la verificación se excluye la configuración horaria
-  ///   que se envía como parámetro (referenciada por el id).
-  /// - No puede haber otro horario en la bd entre la hora de inicio y fin.
-  /// - Para las configuraciones con fechas de caducidad:
-  ///   - Se pueden solapar con otras con caducidad si no se solapan las
-  ///     fechas de caducidad.
-  ///   - No se pueden solapar con otras que no tienen caducidad.
-  ///
-  /// En definitiva, excepto para las fecha con caducida no puede haber
-  /// entre una hora de inicio y otra fin ninguna otra hora.
-  ///
-  /// Devuelve true si existe solapamiento.
-  pub(in crate::usuarios) async fn config_horario_solape(
-    &self,
-    config_horario: &ConfigHorario,
-  ) -> Result<bool, DBError> {
-    const QUERY: &str = "SELECT CAST(COUNT(*) AS UNSIGNED) 
-      FROM usuario_horarios uh
-      JOIN horarios h ON uh.horario = h.id
-      WHERE uh.usuario = ?
-      AND uh.fecha_creacion = ?
-      AND uh.id <> ?
-      AND h.dia = ?
-      AND h.hora_inicio < ?
-      AND h.hora_fin > ?
-      AND (
-        uh.caducidad_fecha_fin IS NULL 
-        OR ? IS NULL 
-        OR (uh.caducidad_fecha_ini <= ? AND uh.caducidad_fecha_fin >= ?)
-      );";
-
-    let cad_fecha_ini = config_horario.caducidad_fecha_ini.convert_to_date();
-    let cad_fecha_fin = config_horario.caducidad_fecha_fin;
-
-    let count: u32 = sqlx::query_scalar(QUERY)
-      .bind(config_horario.usuario)
-      .bind(config_horario.fecha_creacion)
-      .bind(config_horario.id)
-      .bind(config_horario.horario.dia.letra())
-      .bind(config_horario.horario.hora_fin)
-      .bind(config_horario.horario.hora_inicio)
-      .bind(cad_fecha_fin)
-      .bind(cad_fecha_fin)
-      .bind(cad_fecha_ini)
-      .fetch_one(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(count > 0)
-  }
-
-  /// Busca un horario por su día y horas.
-  pub(in crate::usuarios) async fn horario_por_dia_horas(
-    &self,
-    horario: &Horario,
-  ) -> Result<Option<u32>, DBError> {
-    const QUERY: &str = "SELECT id FROM horarios 
-      WHERE dia = ? AND hora_inicio = ? AND hora_fin = ?";
-
-    let row = sqlx::query_scalar(QUERY)
-      .bind(horario.dia.letra())
-      .bind(horario.hora_inicio)
-      .bind(horario.hora_fin)
-      .fetch_optional(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(row)
-  }
-
-  /// Verifica si un horario está en uso por otra configuración.
-  pub(in crate::usuarios) async fn es_horario_usado_excepto(
-    &self,
-    id_horario: u32,
-    id_config_excluida: u32,
-  ) -> Result<bool, DBError> {
-    const QUERY: &str = "SELECT CAST(COUNT(*) AS UNSIGNED) 
-      FROM usuario_horarios 
-      WHERE horario = ? AND id <> ?;";
-
-    let count: u32 = sqlx::query_scalar(QUERY)
-      .bind(id_horario)
-      .bind(id_config_excluida)
-      .fetch_one(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(count > 0)
-  }
-
-  /// Busca si el horario de un usuario se encuentra referenciado en el marcaje
-  pub(in crate::usuarios) async fn esta_horario_en_marcaje(
-    &self,
-    usuario_horario: u32,
-  ) -> Result<bool, DBError> {
-    const QUERY: &str = "SELECT CAST(COUNT(*) AS UNSIGNED) 
-      FROM marcajes 
-      WHERE usuario_horario = ?;";
-
-    let count: u32 = sqlx::query_scalar(QUERY)
-      .bind(usuario_horario)
-      .fetch_one(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(count > 0)
-  }
-
-  /// Crea un nuevo horario.
-  pub(in crate::usuarios) async fn crear_horario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    horario: &Horario,
-  ) -> Result<u32, DBError> {
-    const QUERY: &str = "INSERT INTO horarios (dia, hora_inicio, hora_fin)
-       VALUES (?, ?, ?);";
-
-    let res = sqlx::query(QUERY)
-      .bind(horario.dia.letra())
-      .bind(horario.hora_inicio)
-      .bind(horario.hora_fin)
-      .execute(&mut **trans.deref_mut())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(res.last_insert_id() as u32)
-  }
-
-  /// Elimina un horario.
-  pub(in crate::usuarios) async fn eliminar_horario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    id_horario: u32,
-  ) -> Result<(), DBError> {
-    const QUERY: &str = "DELETE FROM horarios WHERE id = ?;";
-
-    sqlx::query(QUERY)
-      .bind(id_horario)
-      .execute(&mut **trans.deref_mut())
-      .await
-      .map_err(DBError::from_sqlx)?;
-
-    Ok(())
-  }
-
-  /// Obtiene la fecha de creación más reciente del horario.
-  ///
-  /// Se pretende obtener el grupo de horarios compacto
-  /// Todos los horarios de un empleado se agrupan entorno a
-  /// una fecha de creación, incluso aunque se hayan creado a posteriori
-  /// Esto implica que si se quiere crear un nuevo horario después
-  /// de haber creado su grupo, se aplicará desde la fecha de creación
-  /// del grupo. Por tanto, si se necesita crear un horario a partir
-  /// de este nuevo instante se debe crear obligatoriamente otro grupo
-  /// y copiar todos los horarios anteriores (si se requieren).
-  async fn fecha_creacion_horario(
-    &self,
-    usuario: u32,
-    fecha: NaiveDate,
-  ) -> Result<NaiveDate, DBError> {
-    const QUERY: &str = "SELECT MAX(fecha_creacion) 
-    FROM usuario_horarios 
-    WHERE usuario = ? 
-    AND fecha_creacion < ?";
-
-    let fecha_creacion = sqlx::query_scalar::<_, Option<NaiveDate>>(QUERY)
-      .bind(usuario)
-      .bind(fecha)
-      .fetch_one(self.pool.conexion())
-      .await
-      .map_err(DBError::from_sqlx)?
-      .ok_or_else(|| {
-        DBError::registro_vacio(format!(
-          "No se ha encontrado ningún horario configurado \
-        para el usuario en la fecha: {}",
-          fecha.formato_corto()
-        ))
-      })?;
-
-    Ok(fecha_creacion)
-  }
-
-  fn config_horario_from_row(row: &MySqlRow) -> ConfigHorario {
-    ConfigHorario {
-      id: row.get("uh_id"),
-      usuario: row.get("usuario"),
-      horario: UsuarioRepo::horario_from_row(row),
-      fecha_creacion: row.get("fecha_creacion"),
-      caducidad_fecha_ini: {
-        // 01/01/1900 es equivalente a nulo, pero no se utiliza
-        // nulo porque se encuentra en un índice
-        let fecha: NaiveDate = row.get("caducidad_fecha_ini");
-        if fecha == NONE_DATE {
-          None
-        } else {
-          Some(fecha)
-        }
-      },
-      caducidad_fecha_fin: row.get("caducidad_fecha_fin"),
-    }
-  }
-
-  fn horario_from_row(row: &MySqlRow) -> Horario {
-    Horario {
-      id: row.get("id"),
-      dia: Dia::from(row.get::<String, _>("dia").as_str()),
-      hora_inicio: row.get("hora_inicio"),
-      hora_fin: row.get("hora_fin"),
-    }
+      .map_err(DBError::from_sqlx)
   }
 
   async fn usuario_from_row(
@@ -1030,10 +513,11 @@ impl UsuarioRepo {
   ) -> Result<Usuario, DBError> {
     let dni = Dni::from_encriptado(row.get("dni"), secreto)
       .map_err(DBError::cripto_from)?;
-    let roles = self.roles_por_usuario(row.get("id")).await?;
+    let id: u32 = row.get("id");
+    let roles = self.roles_por_usuario(id).await?;
 
     Ok(Usuario {
-      id: row.get("id"),
+      id,
       dni,
       email: row.get("email"),
       nombre: row.get("nombre"),
@@ -1043,6 +527,7 @@ impl UsuarioRepo {
       activo: row.get("activo"),
       inicio: row.get("inicio"),
       roles,
+      calendarios: vec![],
     })
   }
 }

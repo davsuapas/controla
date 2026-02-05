@@ -1,6 +1,6 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
-use crate::usuarios::Horario;
+use crate::horario::Horario;
 
 #[derive(Debug)]
 pub struct DescriptorMarcaje {

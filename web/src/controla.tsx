@@ -34,6 +34,12 @@ import { URL_BASE_ROUTER } from './config';
 import HorarioConfigurador from './components/HorarioConfigurador';
 import HorarioCrear from './components/HorarioCrear';
 import HorarioEdit from './components/HorarioEdit';
+import CalendarioList from './components/CalendarioList';
+import CalendarioCrear from './components/CalendarioCrear';
+import CalendarioEdit from './components/CalendarioEdit';
+import CalendarioFechas from './components/CalendarioFechas';
+import CalendarioFechaCrear from './components/CalendarioFechaCrear';
+import CalendarioFechaEdit from './components/CalendarioFechaEdit';
 
 crearAPI(false);
 
@@ -106,6 +112,27 @@ const rutas = [
         errorElement: <ErrorPage />,
         children: [
           {
+            path: 'miarea',
+            errorElement: <ErrorPage />,
+            children: [
+              {
+                path: 'password',
+                Component: UsuarioPassword,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'perfil',
+                Component: UsuarioShow,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: 'logout',
+                Component: Logout,
+                errorElement: <ErrorPage />,
+              },
+            ]
+          },
+          {
             path: 'usuarios',
             errorElement: <ErrorPage />,
             children: [
@@ -153,22 +180,37 @@ const rutas = [
             ]
           },
           {
-            path: 'miarea',
+            path: 'calendarios',
             errorElement: <ErrorPage />,
             children: [
               {
-                path: 'password',
-                Component: UsuarioPassword,
+                index: true,
+                Component: CalendarioList,
                 errorElement: <ErrorPage />,
               },
               {
-                path: 'perfil',
-                Component: UsuarioShow,
+                path: 'nuevo',
+                Component: CalendarioCrear,
                 errorElement: <ErrorPage />,
               },
               {
-                path: 'logout',
-                Component: Logout,
+                path: ':id',
+                Component: CalendarioEdit,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: ':id/fechas',
+                Component: CalendarioFechas,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: ':id/fechas/nuevo',
+                Component: CalendarioFechaCrear,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: ':id/fechas/:fechaId',
+                Component: CalendarioFechaEdit,
                 errorElement: <ErrorPage />,
               },
             ]

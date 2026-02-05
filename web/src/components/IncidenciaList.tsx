@@ -269,7 +269,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           baseColumns.push({
             field: 'accion',
             headerName: 'ACCION',
-            minWidth: 120,
+            minWidth: 100,
             renderCell: (params) => {
               const nombre = NombresEstadoIncidencia[
                 params.value as EstadoIncidencia] ?? '';
@@ -289,6 +289,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           type: 'actions',
           flex: 1,
           align: 'right',
+          minWidth: 140,
           getActions: ({ row }: GridRowParams<Incidencia>) => {
             return props.actions!
               .filter(action => !action.show || action.show(row))
@@ -440,7 +441,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
         columns={columns}
         ignoreDiacritics
         disableRowSelectionOnClick
-        pageSizeOptions={[]}
+        pageSizeOptions={[25, 50, 100]}
         initialState={{
           pagination: {
             paginationModel: { pageSize: 25, page: 0 },
@@ -452,7 +453,9 @@ export default function IncidenciaList(props: IncidenciaListProps) {
           params.row.errorServidor ? 'fila-con-error' : ''
         }
         sx={{
-          '& .fila-con-error': dataGridStyles.marcarFila(theme)
+          '& .fila-con-error': dataGridStyles.marcarFila(theme),
+          flex: 1,
+          minHeight: 400,
         }}
         slotProps={{
           loadingOverlay: {

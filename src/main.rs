@@ -35,15 +35,12 @@
 //! La carpeta de secretos debe contener un fichero por cada secreto
 //! que se quiera usar en la configuración.
 
-// TODO(ordenar por fecha entrada)
-// TODO(volver no vuelve a el empleado)
-// TODO(proba solapes en fechas caducidad)
-
 mod app;
 /// Gestiona la configuración de la aplicación.
 mod config;
 mod infra;
 
+mod horario;
 mod inc;
 mod marcaje;
 mod traza;

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::NaiveDateTime;
 use smallvec::SmallVec;
 
 use crate::infra::{Dni, Password};
@@ -46,6 +46,13 @@ impl From<u8> for Rol {
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UsuarioCalendario {
+  pub calendario: u32,
+  pub nombre: String,
+  pub asignado: bool,
+}
+
 #[derive(Debug)]
 pub struct DescriptorUsuario {
   pub id: u32,
@@ -66,6 +73,7 @@ pub struct Usuario {
   // Inicio es la fecha que el usuario se logea por primera vez
   pub inicio: Option<NaiveDateTime>,
   pub roles: SmallVec<[Rol; 7]>,
+  pub calendarios: Vec<UsuarioCalendario>,
 }
 
 impl Usuario {
@@ -80,6 +88,35 @@ impl Usuario {
       }
     }
 
+    true
+  }
+
+  pub fn eq_calendarios(&self, other: &Usuario) -> bool {
+    let self_cals: Vec<_> = self
+      .calendarios
+      .iter()
+      .filter(|c| c.asignado)
+      .map(|c| c.calendario)
+      .collect();
+
+    if self_cals.len()
+      != other.calendarios.iter().filter(|c| c.asignado).count()
+    {
+      return false;
+    }
+
+    let other_cals: Vec<_> = other
+      .calendarios
+      .iter()
+      .filter(|c| c.asignado)
+      .map(|c| c.calendario)
+      .collect();
+
+    for cal in &self_cals {
+      if !other_cals.contains(cal) {
+        return false;
+      }
+    }
     true
   }
 
@@ -111,72 +148,7 @@ impl Debug for Usuario {
       .field("activo", &self.activo)
       .field("inicio", &self.inicio)
       .field("roles", &self.roles)
+      .field("calendarios", &self.calendarios)
       .finish()
   }
-}
-
-#[derive(Debug)]
-pub enum Dia {
-  Lunes,
-  Martes,
-  Miercoles,
-  Jueves,
-  Viernes,
-  Sabado,
-  Domingo,
-}
-
-impl Dia {
-  pub fn letra(&self) -> &'static str {
-    match self {
-      Dia::Lunes => "L",
-      Dia::Martes => "M",
-      Dia::Miercoles => "X",
-      Dia::Jueves => "J",
-      Dia::Viernes => "V",
-      Dia::Sabado => "S",
-      Dia::Domingo => "D",
-    }
-  }
-}
-
-impl From<&str> for Dia {
-  fn from(dia: &str) -> Self {
-    match dia {
-      "L" => Dia::Lunes,
-      "M" => Dia::Martes,
-      "X" => Dia::Miercoles,
-      "J" => Dia::Jueves,
-      "V" => Dia::Viernes,
-      "S" => Dia::Sabado,
-      "D" => Dia::Domingo,
-      _ => panic!("Día no válido"),
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct Horario {
-  pub id: u32,
-  pub dia: Dia,
-  pub hora_inicio: NaiveTime,
-  pub hora_fin: NaiveTime,
-}
-
-impl Horario {
-  #[inline]
-  pub fn horas_a_trabajar(&self) -> f64 {
-    let diferencia = self.hora_fin - self.hora_inicio;
-    diferencia.num_milliseconds() as f64 / 3_600_000.0
-  }
-}
-
-#[derive(Debug)]
-pub struct ConfigHorario {
-  pub id: u32,
-  pub usuario: u32,
-  pub horario: Horario,
-  pub fecha_creacion: NaiveDate,
-  pub caducidad_fecha_ini: Option<NaiveDate>,
-  pub caducidad_fecha_fin: Option<NaiveDate>,
 }

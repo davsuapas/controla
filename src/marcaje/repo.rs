@@ -3,13 +3,14 @@ use chrono::{NaiveDate, NaiveTime};
 use sqlx::Row;
 
 use crate::{
+  horario::Horario,
   infra::{
     DBError, DominioWithCacheUsuario, PoolConexion, ShortDateTimeFormat,
     Transaccion,
   },
   marcaje::{DescriptorMarcaje, Marcaje},
   mysql_params,
-  usuarios::{DescriptorUsuario, Horario},
+  usuarios::DescriptorUsuario,
 };
 
 /// Implementación del repositorio de marcajes.

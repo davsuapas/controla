@@ -18,6 +18,7 @@ export class UsuarioOutDTO {
     public password: string,
     public activo: string | null,
     public roles: number[],
+    public calendarios: number[],
   ) {
   }
 
@@ -34,6 +35,7 @@ export class UsuarioOutDTO {
       usr.password!,
       formatDateTimeForServer(usr.activo),
       usr.roles.map((r) => r.id),
+      usr.calendarios.filter((c) => c.asignado).map((c) => c.calendario),
     );
   }
 }

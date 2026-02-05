@@ -15,6 +15,7 @@ pub enum TipoTraza {
   PrimerInicio = 8,
   IncConflicto = 9,
   IncReSolictar = 10,
+  UsrCalendariosModificados = 11,
 }
 
 #[repr(u8)]

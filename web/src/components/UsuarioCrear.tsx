@@ -15,12 +15,13 @@ import dayjs from 'dayjs';
 import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { UsuarioOutDTO } from '../modelos/dto';
-import { Usuario } from '../modelos/usuarios';
+import { Usuario, UsuarioCalendario } from '../modelos/usuarios';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
 
 const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
   activo: dayjs(),
+  calendarios: [],
 };
 
 export default function UsuarioCreate() {
@@ -62,7 +63,7 @@ export default function UsuarioCreate() {
       setFormState((currentState) => {
         const newFormValues = {
           ...currentState.values,
-          [name]: setPropGeneralesUsuario(name, value)
+          [name]: setPropGeneralesUsuario(name, value, currentState.values)
         };
 
         const validateAndUpdateErrors = () => {
@@ -94,6 +95,30 @@ export default function UsuarioCreate() {
   const handleFormReset = React.useCallback(() => {
     setFormValues(INITIAL_FORM_VALUES);
   }, []);
+
+  React.useEffect(() => {
+    const cargaCalendarios = async () => {
+      try {
+        const descCalendarios = await api().calendar.descriptorCalendarios();
+        const calendariosUsuario = descCalendarios.map(
+          (c) => new UsuarioCalendario(c.id, c.nombre, false)
+        );
+
+        setFormState((currentState) => ({
+          ...currentState,
+          values: {
+            ...currentState.values,
+            calendarios: calendariosUsuario,
+          },
+        }));
+      } catch (error) {
+        logError('UsuarioCrear.cargaCalendarios', error);
+        notifica.show('Error cargando calendarios', { severity: 'error' });
+      }
+    };
+
+    cargaCalendarios();
+  }, [notifica]);
 
   // Maneja el envío del formulario
   const handleFormSubmit = React.useCallback(async () => {

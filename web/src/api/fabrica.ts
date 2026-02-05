@@ -2,12 +2,14 @@ import axios from "axios";
 import { UsuariosApi, UsuariosAxiosApi, UsuariosTestApi } from "./usuarios";
 import { MarcajeApi, MarcajeAxiosApi, MarcajeTestApi } from "./marcaje";
 import { IncidenciaApi, IncidenciaAxiosApi, IncidenciaTestApi } from "./incidencias";
+import { CalendariosApi, CalendariosAxiosApi, CalendariosTestApi } from "./calendario";
 
 export class ContextoApi {
   constructor(
     public usuarios: UsuariosApi,
     public marcajes: MarcajeApi,
-    public inc: IncidenciaApi) {
+    public inc: IncidenciaApi,
+    public calendar: CalendariosApi) {
   }
 }
 
@@ -27,17 +29,20 @@ export function crearAPI(modoTest: boolean = false) {
   let usuarioApi: UsuariosApi;
   let marcajeApi: MarcajeApi;
   let incApi: IncidenciaApi;
+  let calendarApi: CalendariosApi;
 
   if (modoTest) {
     usuarioApi = new UsuariosTestApi();
     marcajeApi = new MarcajeTestApi();
     incApi = new IncidenciaTestApi();
+    calendarApi = new CalendariosTestApi();
   } else {
     usuarioApi = new UsuariosAxiosApi(axios);
     marcajeApi = new MarcajeAxiosApi(axios);
     incApi = new IncidenciaAxiosApi(axios);
+    calendarApi = new CalendariosAxiosApi(axios);
   }
 
-  const contexto = new ContextoApi(usuarioApi, marcajeApi, incApi);
+  const contexto = new ContextoApi(usuarioApi, marcajeApi, incApi, calendarApi);
   _api = contexto;
 }

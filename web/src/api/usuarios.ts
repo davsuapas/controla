@@ -9,10 +9,12 @@ export interface UsuariosApi {
   login(dni: string, passw: string): Promise<Usuario>;
   logout(id: string): Promise<void>;
   usuarios(): Promise<Usuario[]>;
-  usuario(id: string): Promise<Usuario>;
+  // todosLosCalendarios si es true se envían todos y se marcan
+  // los asignados a el usuario, si es false solo los asignados
+  usuario(id: string, todosLosCalendarios: boolean): Promise<Usuario>;
   crearUsuario(usuario: UsuarioOutDTO): Promise<void>;
-  actualizar_usuario(usuario: UsuarioOutDTO): Promise<void>;
-  actualizar_password(usuarioId: number, passw: string): Promise<void>;
+  actualizarUsuario(usuario: UsuarioOutDTO): Promise<void>;
+  actualizarPassword(usuarioId: number, passw: string): Promise<void>;
   horarioSinAsignar(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
   horarioCercano(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
   usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]>;
@@ -46,13 +48,11 @@ export class UsuariosAxiosApi implements UsuariosApi {
       : [];
   }
 
-  async usuario(id: string): Promise<Usuario> {
-    const response = await this.axios.get('usuarios/' + id);
+  async usuario(id: string, todosLosCalendarios: boolean): Promise<Usuario> {
+    const response = await this.axios.get('usuarios/' + id, {
+      params: { todos_los_calendarios: todosLosCalendarios }
+    });
     return Usuario.fromRequest(response.data)
-  }
-
-  async actualizar_usuario(usuario: UsuarioOutDTO): Promise<void> {
-    return this.axios.put('usuarios', usuario);
   }
 
   async crearUsuario(usuario: UsuarioOutDTO): Promise<void> {
@@ -60,7 +60,11 @@ export class UsuariosAxiosApi implements UsuariosApi {
     return this.axios.post('usuarios', usuario);
   }
 
-  async actualizar_password(usuarioId: number, passw: string): Promise<void> {
+  async actualizarUsuario(usuario: UsuarioOutDTO): Promise<void> {
+    return this.axios.put('usuarios', usuario);
+  }
+
+  async actualizarPassword(usuarioId: number, passw: string): Promise<void> {
     return this.axios.put(
       'usuarios/password',
       {
@@ -218,7 +222,7 @@ export class UsuariosTestApi implements UsuariosApi {
     return usuariosFicticios.map(Usuario.fromRequest);
   }
 
-  usuario(id: string): Promise<Usuario> {
+  usuario(id: string, _: boolean): Promise<Usuario> {
     return Promise.resolve(Usuario.fromRequest({
       id: id,
       dni: '12345678A',
@@ -228,11 +232,16 @@ export class UsuariosTestApi implements UsuariosApi {
       segundo_apellido: 'Gómez',
       activo: '2024-01-15',
       inicio: '2024-01-10',
-      roles: [1, 2, 3, 4, 5, 6, 7]
+      roles: [1, 2, 3, 4, 5, 6, 7],
+      calendarios: [
+        { calendario: 1, nombre: 'Calendario 1', asignado: true },
+        { calendario: 2, nombre: 'Calendario 2', asignado: false },
+        { calendario: 3, nombre: 'Calendario 3', asignado: true },
+      ]
     }));
   }
 
-  async actualizar_usuario(_: UsuarioOutDTO): Promise<void> {
+  async actualizarUsuario(_: UsuarioOutDTO): Promise<void> {
     return;
   }
 
@@ -240,7 +249,7 @@ export class UsuariosTestApi implements UsuariosApi {
     return;
   }
 
-  async actualizar_password(_: number, __: string): Promise<void> {
+  async actualizarPassword(_: number, __: string): Promise<void> {
     return;
   }
 

@@ -9,6 +9,7 @@ use std::{sync::Arc, time::Duration};
 
 pub use api::*;
 
+use crate::horario::{HorarioRepo, HorarioServicio};
 use crate::{
   config::{Config, ConfigTrabajo},
   inc::{IncidenciaRepo, IncidenciaServicio},
@@ -23,6 +24,7 @@ pub struct AppState {
   pub manejador_sesion: Arc<middleware::ManejadorSesion>,
   pub marcaje_servicio: MarcajeServicio,
   pub usuario_servicio: UsuarioServicio,
+  pub horario_servicio: HorarioServicio,
   pub inc_servicio: IncidenciaServicio,
 }
 
@@ -43,14 +45,14 @@ impl AppState {
         UsuarioRepo::new(pool.clone()),
         TrazaServicio::new(TrazaRepo::new()),
       ),
+      horario_servicio: HorarioServicio::new(
+        cnfg.clone(),
+        HorarioRepo::new(pool.clone()),
+      ),
       marcaje_servicio: MarcajeServicio::new(
         cnfg.clone(),
         MarcajeRepo::new(pool.clone()),
-        UsuarioServicio::new(
-          cnfg.clone(),
-          UsuarioRepo::new(pool.clone()),
-          TrazaServicio::new(TrazaRepo::new()),
-        ),
+        HorarioServicio::new(cnfg.clone(), HorarioRepo::new(pool.clone())),
       ),
       inc_servicio: IncidenciaServicio::new(
         cnfg.clone(),
@@ -59,11 +61,7 @@ impl AppState {
         MarcajeServicio::new(
           cnfg.clone(),
           MarcajeRepo::new(pool.clone()),
-          UsuarioServicio::new(
-            cnfg.clone(),
-            UsuarioRepo::new(pool.clone()),
-            TrazaServicio::new(TrazaRepo::new()),
-          ),
+          HorarioServicio::new(cnfg.clone(), HorarioRepo::new(pool.clone())),
         ),
       ),
     }

@@ -68,7 +68,8 @@ export const ROLES: Map<RolID, {
     rutas_acceso: [
       '/miarea/*',
       '/usuarios/*',
-      '/horarios/*'
+      '/horarios/*',
+      '/calendarios/*'
     ]
   }],
   [RolID.Director, {
@@ -140,6 +141,7 @@ export class DescriptorUsuario {
 
 export class Usuario {
   public roles: Rol[];
+  public calendarios: UsuarioCalendario[];
   public password?: string;
   public passConfirm?: string;
 
@@ -154,8 +156,10 @@ export class Usuario {
     public activo: Dayjs | null,
     public inicio: Dayjs | null,
     rolesIds: number[],
+    calendarios: any[],
   ) {
     this.roles = rolesIds.map(Rol.desdeId);
+    this.calendarios = (calendarios || []).map(UsuarioCalendario.fromRequest);
   }
 
   nombreCompleto(): string {
@@ -211,6 +215,33 @@ export class Usuario {
       obj.activo ? dayjs(obj.activo) : null,
       obj.inicio ? dayjs(obj.inicio) : null,
       obj.roles,
+      obj.calendarios ?? [],
+    );
+  }
+}
+
+export function nombresTodosLosCalendarios(
+  calendarios: UsuarioCalendario[]): string[] {
+  return calendarios.map(cal => cal.nombre);
+}
+
+export function nombresCalendariosAsignados(
+  calendarios: UsuarioCalendario[]): string[] {
+  return calendarios.filter(cal => cal.asignado).map(cal => cal.nombre);
+}
+
+export class UsuarioCalendario {
+  constructor(
+    public calendario: number,
+    public nombre: string,
+    public asignado: boolean,
+  ) { }
+
+  static fromRequest(obj: any): UsuarioCalendario {
+    return new UsuarioCalendario(
+      obj.calendario,
+      obj.nombre,
+      obj.asignado,
     );
   }
 }

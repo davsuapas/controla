@@ -75,7 +75,7 @@ export default function RevisionIncidencia() {
         label: 'Rechazar',
         tooltip: 'Marcar para rechazar motivando',
         onClick: (row: IncidenciaGrid) => {
-          dialogo.prompt( // Usa diálogo
+          dialogo.prompt(
             'Motivo del rechazo (máx. 200 caracteres)',
             { title: 'Rechazar' })
             .then(

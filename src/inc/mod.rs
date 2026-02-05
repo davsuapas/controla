@@ -57,13 +57,12 @@
 //!   Rechazar -> Rechazada
 //!   Rechazada -> Solicitud
 
-/// Módulo que gestiona toda las iteraciones sobre incidencias
-/// con la base de datos
-mod repo;
-
-/// Módulo para manejar tipos genéricos del dominio
+/// Módulo para manejar los dominios sobre las incidencias.
 mod dominio;
-/// Módulo que expone los servicios del usuario
+/// Módulo que gestiona toda las iteraciones sobre incidencias
+/// con la base de datos.
+mod repo;
+/// Módulo que expone los servicios de las incidencias.
 mod servicio;
 
 pub use dominio::*;

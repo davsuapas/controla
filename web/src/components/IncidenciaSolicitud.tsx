@@ -394,7 +394,7 @@ export default function SolicitudIncidencia() {
               disableColumnSorting
               disableColumnFilter
               disableRowSelectionOnClick
-              pageSizeOptions={[]}
+              pageSizeOptions={[25, 50, 100]}
               initialState={{
                 pagination: {
                   paginationModel: { pageSize: 25, page: 0 },

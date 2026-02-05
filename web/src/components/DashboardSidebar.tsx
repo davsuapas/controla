@@ -18,6 +18,8 @@ import AddTaskIcon from '@mui/icons-material/AddTask';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import WysiwygIcon from '@mui/icons-material/Wysiwyg';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SettingsIcon from '@mui/icons-material/Settings';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../config';
@@ -190,12 +192,40 @@ export default function DashboardSidebar({
               selected={!!matchPath('/usuarios/*', pathname)}
             />
             <DashboardSidebarPageItem
-              id="horarios"
-              title="Horarios"
-              icon={<AccessTimeIcon />}
-              href="/horarios"
-              visible={user.acceso_a_ruta('/horarios')}
-              selected={!!matchPath('/horarios/*', pathname)}
+              id="configuracion"
+              title="Configuración"
+              icon={<SettingsIcon />}
+              href="/configuracion"
+              defaultExpanded={true}
+              expanded={true}
+              nestedNavigation={
+                <List
+                  dense
+                  sx={{
+                    padding: 0,
+                    my: 1,
+                    pl: mini ? 0 : 1,
+                    minWidth: 240,
+                  }}
+                >
+                  <DashboardSidebarPageItem
+                    id="horarios"
+                    title="Horarios"
+                    icon={<AccessTimeIcon />}
+                    href="/horarios"
+                    visible={user.acceso_a_ruta('/horarios')}
+                    selected={!!matchPath('/horarios/*', pathname)}
+                  />
+                  <DashboardSidebarPageItem
+                    id="calendarios"
+                    title="Calendarios"
+                    icon={<DateRangeIcon />}
+                    href="/calendarios"
+                    visible={user.acceso_a_ruta('/calendarios')}
+                    selected={!!matchPath('/calendarios/*', pathname)}
+                  />
+                </List>
+              }
             />
             <DashboardSidebarPageItem
               id="marcajes"

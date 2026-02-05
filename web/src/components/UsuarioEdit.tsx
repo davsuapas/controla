@@ -64,7 +64,7 @@ function UsuarioEditForm({
       setFormState((currentState) => {
         const newFormValues = {
           ...currentState.values,
-          [name]: setPropGeneralesUsuario(name, value)
+          [name]: setPropGeneralesUsuario(name, value, currentState.values)
         };
 
         const validateField = () => {
@@ -172,7 +172,7 @@ export default function UsuarioEdit() {
     setIsLoading(true);
 
     try {
-      const showData = await api().usuarios.usuario(id ?? '');
+      const showData = await api().usuarios.usuario(id ?? '', true);
 
       if (isMounted.current) {
         setUsuario(showData);
@@ -200,7 +200,7 @@ export default function UsuarioEdit() {
       let usr = formValues as Usuario
       usr.autor = usrLog.id
 
-      return api().usuarios.actualizar_usuario(
+      return api().usuarios.actualizarUsuario(
         UsuarioOutDTO.fromUsuario(usr),
       );
     },

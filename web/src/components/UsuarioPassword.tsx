@@ -108,7 +108,7 @@ export default function UsuarioPassword() {
     setFormErrors({});
 
     try {
-      await api().usuarios.actualizar_password(
+      await api().usuarios.actualizarPassword(
         usuarioId, formValues.password!);
 
       notifica.show('Password cambiada satisfactóriamente', {
