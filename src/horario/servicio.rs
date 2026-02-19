@@ -186,8 +186,6 @@ impl HorarioServicio {
   ///
   /// Verifica que no exista solapamiento con otros horarios.
   /// Si existe solapamiento se envía un error al usuario.
-  /// Si no existe solapamiento se llama a [`Self::actualizar_horario`]
-  /// para actualizar el maestro del horario y devolve el ide de horario.
   /// Por último se crea la configuración del horario.
   pub async fn agregar_config_horario(
     &self,
@@ -272,9 +270,6 @@ impl HorarioServicio {
   ///
   /// Verifica que no esté referenciada en un marcaje.
   /// Verifica que no exista solapamiento con otros horarios.
-  /// Si no existe solapamiento se llama a [`Self::actualizar_horario`]
-  /// para actualizar el maestro del horario y por último se
-  /// modifica la configuración del horario.
   pub async fn modificar_config_horario(
     &self,
     config_horario: &ConfigHorario,

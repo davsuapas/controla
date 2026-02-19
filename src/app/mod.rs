@@ -13,6 +13,7 @@ use crate::horario::{HorarioRepo, HorarioServicio};
 use crate::{
   config::{Config, ConfigTrabajo},
   inc::{IncidenciaRepo, IncidenciaServicio},
+  informes::{InformeRepo, InformeServicio},
   infra::{PoolConexion, middleware},
   marcaje::{MarcajeRepo, MarcajeServicio},
   traza::{TrazaRepo, TrazaServicio},
@@ -26,6 +27,7 @@ pub struct AppState {
   pub usuario_servicio: UsuarioServicio,
   pub horario_servicio: HorarioServicio,
   pub inc_servicio: IncidenciaServicio,
+  pub informe_servicio: InformeServicio,
 }
 
 impl AppState {
@@ -64,6 +66,7 @@ impl AppState {
           HorarioServicio::new(cnfg.clone(), HorarioRepo::new(pool.clone())),
         ),
       ),
+      informe_servicio: InformeServicio::new(InformeRepo::new(pool.clone())),
     }
   }
 }

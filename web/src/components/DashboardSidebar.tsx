@@ -315,6 +315,34 @@ export default function DashboardSidebar({
                 </List>
               }
             />
+            <DashboardSidebarPageItem
+              id="informes"
+              title="Informes"
+              icon={<SettingsIcon />}
+              href="/informes"
+              defaultExpanded={true}
+              expanded={true}
+              nestedNavigation={
+                <List
+                  dense
+                  sx={{
+                    padding: 0,
+                    my: 1,
+                    pl: mini ? 0 : 1,
+                    minWidth: 240,
+                  }}
+                >
+                  <DashboardSidebarPageItem
+                    id="cumplimiento_horario"
+                    title="Cumplimiento horario"
+                    icon={<AccessTimeIcon />}
+                    href="/informes/cumplimiento"
+                    visible={user.acceso_a_ruta('/informes/cumplimiento')}
+                    selected={!!matchPath('/informes/cumplimiento/*', pathname)}
+                  />
+                </List>
+              }
+            />
           </List>
         </Box>
       </React.Fragment>

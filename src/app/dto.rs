@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::horario::{
   Calendario, CalendarioFecha, ConfigHorario, Dia, Horario, TipoCalendarioFecha,
 };
+use crate::informes::{CumplimientoHorario, InformeCumplimiento};
 use crate::{
   inc::{
     EstadoIncidencia, Incidencia, IncidenciaProceso, IncidenciaSolictud,
@@ -500,6 +501,49 @@ impl From<CalendarioFechaDTO> for CalendarioFecha {
       fecha_inicio: dto.fecha_inicio,
       fecha_fin: dto.fecha_fin,
       tipo: TipoCalendarioFecha::from(dto.tipo),
+    }
+  }
+}
+
+#[derive(Serialize)]
+pub struct CumplimientoHorarioDTO {
+  pub fecha: NaiveDate,
+  pub horas_trabajo_efectivo: f64,
+  pub horas_trabajadas: f64,
+  pub horas_a_trabajar: f64,
+  pub saldo: f64,
+  pub nota: String,
+}
+
+impl From<CumplimientoHorario> for CumplimientoHorarioDTO {
+  fn from(value: CumplimientoHorario) -> Self {
+    Self {
+      fecha: value.fecha,
+      horas_trabajo_efectivo: value.horas_trabajo_efectivo,
+      horas_trabajadas: value.horas_trabajadas,
+      horas_a_trabajar: value.horas_a_trabajar,
+      saldo: value.saldo,
+      nota: value.nota,
+    }
+  }
+}
+
+#[derive(Serialize)]
+pub struct InformeCumplimientoDTO {
+  pub lineas: Vec<CumplimientoHorarioDTO>,
+  #[serde(rename = "total_saldo")]
+  pub total_saldo: f64,
+}
+
+impl From<InformeCumplimiento> for InformeCumplimientoDTO {
+  fn from(value: InformeCumplimiento) -> Self {
+    Self {
+      lineas: value
+        .lineas
+        .into_iter()
+        .map(CumplimientoHorarioDTO::from)
+        .collect(),
+      total_saldo: value.total_saldo,
     }
   }
 }

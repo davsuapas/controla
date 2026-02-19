@@ -117,7 +117,7 @@ export default function MarcajeList({ marcajes }: MarcajeListProps) {
                 backgroundColor: 'background.default',
               }}
             >
-              HORAS TRABAJADAS
+              HORAS TRABAJO EFECTIVO
             </StyledTableCell>
             <StyledTableCell
               align="right"

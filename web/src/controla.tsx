@@ -40,6 +40,7 @@ import CalendarioEdit from './components/CalendarioEdit';
 import CalendarioFechas from './components/CalendarioFechas';
 import CalendarioFechaCrear from './components/CalendarioFechaCrear';
 import CalendarioFechaEdit from './components/CalendarioFechaEdit';
+import InformeCumplimientoHorario from './components/InformeCumplimientoHorario';
 
 crearAPI(false);
 
@@ -256,7 +257,18 @@ const rutas = [
                 errorElement: <ErrorPage />,
               },
             ]
-          }
+          },
+          {
+            path: 'informes',
+            errorElement: <ErrorPage />,
+            children: [
+              {
+                path: 'cumplimiento',
+                Component: InformeCumplimientoHorario,
+                errorElement: <ErrorPage />,
+              },
+            ]
+          },
         ],
       },
       // Ruta comodín para 404

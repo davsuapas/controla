@@ -29,6 +29,7 @@ export const ROLES: Map<RolID, {
       '/marcaje/consulta',
       '/incidencias/solicitud',
       '/incidencias/gestion',
+      '/informes/cumplimiento'
     ]
   }],
   [RolID.Registrador, {
@@ -59,7 +60,8 @@ export const ROLES: Map<RolID, {
       '/marcaje/consulta',
       '/incidencias/solicitud',
       '/incidencias/revision',
-      '/incidencias/gestion'
+      '/incidencias/gestion',
+      '/informes/cumplimiento'
     ]
   }],
   [RolID.Admin, {

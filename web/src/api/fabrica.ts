@@ -3,13 +3,15 @@ import { UsuariosApi, UsuariosAxiosApi, UsuariosTestApi } from "./usuarios";
 import { MarcajeApi, MarcajeAxiosApi, MarcajeTestApi } from "./marcaje";
 import { IncidenciaApi, IncidenciaAxiosApi, IncidenciaTestApi } from "./incidencias";
 import { CalendariosApi, CalendariosAxiosApi, CalendariosTestApi } from "./calendario";
+import { InformeApi, InformeAxiosApi, InformeTestApi } from "./informe";
 
 export class ContextoApi {
   constructor(
     public usuarios: UsuariosApi,
     public marcajes: MarcajeApi,
     public inc: IncidenciaApi,
-    public calendar: CalendariosApi) {
+    public calendar: CalendariosApi,
+    public informe: InformeApi) {
   }
 }
 
@@ -30,19 +32,23 @@ export function crearAPI(modoTest: boolean = false) {
   let marcajeApi: MarcajeApi;
   let incApi: IncidenciaApi;
   let calendarApi: CalendariosApi;
+  let informeApi: InformeApi;
 
   if (modoTest) {
     usuarioApi = new UsuariosTestApi();
     marcajeApi = new MarcajeTestApi();
     incApi = new IncidenciaTestApi();
     calendarApi = new CalendariosTestApi();
+    informeApi = new InformeTestApi();
   } else {
     usuarioApi = new UsuariosAxiosApi(axios);
     marcajeApi = new MarcajeAxiosApi(axios);
     incApi = new IncidenciaAxiosApi(axios);
     calendarApi = new CalendariosAxiosApi(axios);
+    informeApi = new InformeAxiosApi(axios);
   }
 
-  const contexto = new ContextoApi(usuarioApi, marcajeApi, incApi, calendarApi);
+  const contexto = new ContextoApi(
+    usuarioApi, marcajeApi, incApi, calendarApi, informeApi);
   _api = contexto;
 }

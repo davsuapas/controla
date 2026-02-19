@@ -42,6 +42,7 @@ mod infra;
 
 mod horario;
 mod inc;
+mod informes;
 mod marcaje;
 mod traza;
 mod usuarios;

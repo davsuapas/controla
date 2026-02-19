@@ -1,4 +1,4 @@
-//! Gestiona los horarios de los empleados.
+//! Gestiona los horarios y calendarios de los empleados.
 //!
 //! Los horarios de los empleados se gestionan por grupos. Cada nueva
 //! configuración o grupo, se relacionan en base a la fecha de creación
@@ -19,14 +19,25 @@
 //! empleado debe realizar un horario extra a su horario normal.
 //! El administrador podrá asignar estas caducidad y tendrá vigencia
 //! durante las fechas de inicio y fin de caducidad.
+//!
+//! Los calendarios son rangos de fechas que permiten establecer
+//! días inhábiles de un empleado. Se componen de tablas maestras
+//! que se pueden asignar a un usuario. Cada usuario se le puede
+//! asignar de 0 a N calendarios.
+//!
+//! No se pueden realizar marcajes en días inhábiles. Además los
+//! calendarios son utilizados en todos los informes para
+//! establecer los días inhábiles y no se tienen en cuenta a la
+//! hora de calcular las horas a trabajar.
 
 /// Módulo para manejar los dominios sobre los horarios.
 mod dominio;
-/// Módulo que gestiona toda las iteraciones sobre el horario
-/// con la base de datos
-mod repo;
 /// Módulo que expone los servicios del horario
 mod servicio;
+
+/// Módulo que gestiona toda las iteraciones sobre el horario
+/// con la base de datos
+pub mod repo;
 
 pub use dominio::*;
 pub use repo::*;

@@ -17,9 +17,9 @@ use crate::{
       CalendarioDTO, CalendarioFechaDTO, ConfigHorarioDTO,
       DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioDTO,
       IncidenciaDTO, IncidenciaInProcesoDTO, IncidenciaOutProcesoDTO,
-      IncidenciaSolictudDTO, IncidenciasFiltroParams, MarcajeInDTO,
-      MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO, UsuarioBodyDTO,
-      UsuarioOutDTO, vec_dominio_to_dtos,
+      IncidenciaSolictudDTO, IncidenciasFiltroParams, InformeCumplimientoDTO,
+      MarcajeInDTO, MarcajeOutDTO, PasswordDniDTO, PasswordUsuarioDTO,
+      UsuarioBodyDTO, UsuarioOutDTO, vec_dominio_to_dtos,
     },
   },
   inc::{EstadoIncidencia, IncidenciaProceso},
@@ -33,6 +33,14 @@ pub struct FiltroParams {
   pub fecha_inicio: Option<NaiveDate>,
   pub fecha_fin: Option<NaiveDate>,
   pub usuario_reg: Option<u32>,
+}
+
+#[derive(Deserialize)]
+pub struct InformeCumplimientoParams {
+  #[serde(rename = "empleadoId")]
+  empleado_id: u32,
+  mes: u32,
+  anio: i32,
 }
 
 #[derive(Deserialize)]
@@ -122,16 +130,11 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
     )
     .route("/incidencias/procesar", post(procesar_incidencias))
     .route("/incidencias/por/fechas", post(incidencias_por_fechas))
-    .layer(axum::middleware::from_fn(
-      crate::infra::middleware::autenticacion,
-    ))
-    // Calendarios
     .route("/calendarios", get(calendarios))
     .route("/calendarios/{id}", get(calendario))
     .route("/calendarios", post(crear_calendario))
     .route("/calendarios", put(actualizar_calendario))
     .route("/calendarios/{id}", delete(eliminar_calendario))
-    // Fechas de calendario
     .route("/calendarios/{id}/fechas", get(fechas_calendario))
     .route("/calendarios/fechas/{id}", get(fecha_calendario))
     .route("/calendarios/fechas", post(crear_fecha_calendario))
@@ -139,7 +142,14 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
     .route(
       "/calendarios/fechas/{id}",
       delete(eliminar_fecha_calendario),
-    );
+    )
+    .route(
+      "/informes/cumplimiento/horario",
+      get(informe_cumplimiento_horario),
+    )
+    .layer(axum::middleware::from_fn(
+      crate::infra::middleware::autenticacion,
+    ));
 
   let ruta_app = if cod_app.is_empty() {
     String::new()
@@ -565,6 +575,19 @@ async fn cambiar_incidencia_solicitud(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|regs| Json(DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs)))
+}
+
+/// Api para obtener el informe de cumplimiento horario
+async fn informe_cumplimiento_horario(
+  State(state): State<Arc<AppState>>,
+  axum::extract::Query(params): axum::extract::Query<InformeCumplimientoParams>,
+) -> impl IntoResponse {
+  state
+    .informe_servicio
+    .cumplimiento_horario(params.empleado_id, params.mes, params.anio)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|informe| Json(InformeCumplimientoDTO::from(informe)))
 }
 
 /// Api para obtener todos los calendarios laborales.

@@ -371,10 +371,7 @@ impl HorarioRepo {
       .await
       .map_err(DBError::from_sqlx)?;
 
-    rows
-      .iter()
-      .map(|row| Ok(config_horario_from_row(row)))
-      .collect()
+    Ok(rows.iter().map(config_horario_from_row).collect())
   }
 
   /// Verifica que una configuración no se solape con otras para el mismo día.
@@ -540,7 +537,7 @@ impl HorarioRepo {
   }
 }
 
-fn config_horario_from_row(row: &MySqlRow) -> ConfigHorario {
+pub(crate) fn config_horario_from_row(row: &MySqlRow) -> ConfigHorario {
   ConfigHorario {
     id: row.get("uh_id"),
     usuario: row.get("usuario"),

@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{NaiveDate, NaiveTime, Weekday};
 
 #[derive(Debug)]
 pub enum Dia {
@@ -36,6 +36,20 @@ impl From<&str> for Dia {
       "S" => Dia::Sabado,
       "D" => Dia::Domingo,
       _ => panic!("Día no válido"),
+    }
+  }
+}
+
+impl From<Weekday> for Dia {
+  fn from(dia: Weekday) -> Self {
+    match dia {
+      Weekday::Mon => Dia::Lunes,
+      Weekday::Tue => Dia::Martes,
+      Weekday::Wed => Dia::Miercoles,
+      Weekday::Thu => Dia::Jueves,
+      Weekday::Fri => Dia::Viernes,
+      Weekday::Sat => Dia::Sabado,
+      Weekday::Sun => Dia::Domingo,
     }
   }
 }
