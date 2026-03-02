@@ -219,6 +219,24 @@ export class IncidenciaTestApi implements IncidenciaApi {
         motivoRechazo: null
       },
       {
+        id: 6,
+        tipo: TipoIncidencia.CorrecionEntrada,
+        fechaSolicitud: "2024-01-17",
+        fechaResolucion: null,
+        fecha: "2024-01-17",
+        horaInicio: "09:15",
+        horaFin: "18:30",
+        marcaje: new DescriptorMarcaje(205, "09:15", null),
+        estado: EstadoIncidencia.Resuelta,
+        fechaEstado: null,
+        error: null,
+        usuario: new DescriptorUsuario(1, "Juan", "Pérez", "Gómez"),
+        usuarioCreador: new DescriptorUsuario(4, "Carlos", "Martínez", 'Perez'),
+        usuarioGestor: new DescriptorUsuario(5, "Ana", "Sánchez", "Fernández"),
+        motivoSolicitud: "Corrección de hora de salida",
+        motivoRechazo: null
+      },
+      {
         id: 99,
         tipo: TipoIncidencia.EliminacionMarcaje,
         fechaSolicitud: "2024-01-19",

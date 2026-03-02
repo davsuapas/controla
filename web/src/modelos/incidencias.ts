@@ -10,11 +10,13 @@ export enum TipoIncidencia {
   NuevoMarcaje = 1,
   EliminacionMarcaje = 2,
   CorrecionSalida = 3,
+  CorrecionEntrada = 4,
 }
 
 export const NombresTipoIncidencia: Record<TipoIncidencia, string> = {
   [TipoIncidencia.NuevoMarcaje]: "Nuevo marcaje",
   [TipoIncidencia.EliminacionMarcaje]: "Eliminación marcaje",
+  [TipoIncidencia.CorrecionEntrada]: "Correción entrada",
   [TipoIncidencia.CorrecionSalida]: "Correción salida",
 };
 

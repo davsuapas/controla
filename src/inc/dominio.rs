@@ -44,6 +44,7 @@ pub enum TipoIncidencia {
   NuevoMarcaje = 1,
   EliminacionMarcaje = 2,
   CorrecionSalida = 3,
+  CorrecionEntrada = 4,
 }
 
 impl From<u8> for TipoIncidencia {
@@ -52,6 +53,7 @@ impl From<u8> for TipoIncidencia {
       1 => TipoIncidencia::NuevoMarcaje,
       2 => TipoIncidencia::EliminacionMarcaje,
       3 => TipoIncidencia::CorrecionSalida,
+      4 => TipoIncidencia::CorrecionEntrada,
       _ => panic!("Valor de Tipo de incidencia no válido"),
     }
   }

@@ -16,7 +16,8 @@ import { DescriptorMarcaje, Marcaje } from '../modelos/marcaje';
 import dayjs, { Dayjs } from 'dayjs';
 import LocalizationProviderES from '../theme/location';
 import { useTheme } from '@mui/material/styles';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import InputIcon from '@mui/icons-material/Input';
+import OutputIcon from '@mui/icons-material/Output';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import Tooltip from '@mui/material/Tooltip';
 import Button from '@mui/material/Button';
@@ -167,17 +168,57 @@ export default function SolicitudIncidencia() {
         return;
       }
 
+      const { horaEntrada, horaSalida } = info;
+      let esValido = true;
+      let mensajeError = '';
+
+      const horaOriginalADayjs = (hora: string | null | undefined) => {
+        if (!hora) return null;
+        return createDayjsFromTime(hora, fecha);
+      };
+
+      if (horaEntrada && horaSalida) {
+        // Se modifican ambas horas
+        if (!horaSalida.isAfter(horaEntrada)) {
+          esValido = false;
+          mensajeError = 'La hora de salida debe ser posterior a la hora de entrada.';
+        }
+      } else if (horaEntrada && !horaSalida) {
+        // Se modifica solo la hora de entrada
+        const horaFinOriginal = horaOriginalADayjs(marcaje?.horaFin);
+        if (horaFinOriginal && !horaFinOriginal.isAfter(horaEntrada)) {
+          esValido = false;
+          mensajeError = 'La hora de entrada corregida debe ser anterior a la hora de salida original.';
+        }
+      } else if (!horaEntrada && horaSalida) {
+        // Se modifica solo la hora de salida
+        const horaInicioOriginal = horaOriginalADayjs(marcaje?.horaInicio);
+        if (horaInicioOriginal && !horaSalida.isAfter(horaInicioOriginal)) {
+          esValido = false;
+          mensajeError = 'La hora de salida corregida debe ser posterior a la hora de entrada original.';
+        }
+      }
+
+      if (!esValido) {
+        notifica.show(mensajeError, { severity: 'warning', autoHideDuration: 6000 });
+        return;
+      }
+
       switch (tipo) {
+        case TipoIncidencia.NuevoMarcaje:
+          msgNotifica = 'Solicitud "nuevo marcaje" creada satisfactoriamente';
+          break;
+
+        case TipoIncidencia.CorrecionEntrada:
+          msgNotifica = 'Solicitud "entrada errónea" creada satisfactoriamente';
+          break;
+
         case TipoIncidencia.CorrecionSalida:
           msgNotifica = 'Solicitud "salida errónea" creada satisfactoriamente';
           break;
 
         case TipoIncidencia.EliminacionMarcaje:
           msgNotifica = 'Solicitud de eliminación creada satisfactoriamente';
-          break;
-
-        case TipoIncidencia.NuevoMarcaje:
-          msgNotifica = 'Solicitud "nuevo marcaje" creada satisfactoriamente';
           break;
 
         default:
@@ -243,8 +284,16 @@ export default function SolicitudIncidencia() {
     },
     [tipoSolicitud, marcajeSeleccionado, procesarSolicitud]);
 
+  // Abre una solictud para corregir entradas erróneas
+  const handleCoreccionEntradaClick = React.useCallback(
+    (marcaje: Marcaje) => () => {
+      abrirModalInfo(TipoIncidencia.CorrecionEntrada, marcaje);
+    },
+    [fecha, empleado, agregarSolicitudCreada, usuarioLog.id, notifica]
+  );
+
   // Abre una solictud para corregir salidas erróneas
-  const handleSolicitudClick = React.useCallback(
+  const handleCoreccionSalidaClick = React.useCallback(
     (marcaje: Marcaje) => () => {
       abrirModalInfo(TipoIncidencia.CorrecionSalida, marcaje);
     },
@@ -316,19 +365,27 @@ export default function SolicitudIncidencia() {
         field: 'actions',
         type: 'actions',
         flex: 1,
-        minWidth: 100,
+        minWidth: 140,
         align: 'right',
         getActions: ({ row }) => {
           if (solicitudesProcesadas.has(row.id)) {
             return [];
           }
           return [
+            <Tooltip title="Corregir entrada" key="entrada-erronea-tooltip">
+              <GridActionsCellItem
+                key="solicitud-entrada-erronea"
+                icon={<InputIcon />}
+                label="Corregir entrada"
+                onClick={handleCoreccionEntradaClick(row)}
+              />
+            </Tooltip>,
             <Tooltip title="Corregir salida" key="salida-erronea-tooltip">
               <GridActionsCellItem
                 key="solicitud-salida-erronea"
-                icon={<AutoFixHighIcon />}
+                icon={<OutputIcon />}
                 label="Corregir salida"
-                onClick={handleSolicitudClick(row)}
+                onClick={handleCoreccionSalidaClick(row)}
               />
             </Tooltip>,
             solicitudEliminacion && (
@@ -346,7 +403,8 @@ export default function SolicitudIncidencia() {
       },
     ],
     [solicitudesProcesadas, theme, solicitudEliminacion,
-      handleSolicitudClick, handleEliminarClick]
+      handleCoreccionEntradaClick, handleCoreccionSalidaClick,
+      handleEliminarClick]
   );
 
   return (
@@ -425,7 +483,8 @@ export default function SolicitudIncidencia() {
                 fecha={fecha}
                 {...crearModalInfoSolicitudProps(
                   fecha, tipoSolicitud,
-                  undefined,
+                  marcajeSeleccionado?.horaInicio ?
+                    marcajeSeleccionado.horaInicio : undefined,
                   marcajeSeleccionado?.horaFin ?
                     marcajeSeleccionado.horaFin : undefined)!}
               />
@@ -456,6 +515,18 @@ export function crearModalInfoSolicitudProps(
   horaInicio?: string,
   horaFin?: string
 ) {
+  if (tipo === TipoIncidencia.CorrecionEntrada) {
+    return {
+      titulo: 'CORREGIR ENTRADA',
+      mostrarEntrada: true,
+      mostrarSalida: false,
+      info: {
+        horaEntrada: horaInicio ? createDayjsFromTime(horaInicio, fecha) : undefined,
+        horaSalida: undefined,
+      }
+    };
+  }
+
   if (tipo === TipoIncidencia.CorrecionSalida) {
     return {
       titulo: 'CORREGIR SALIDA',

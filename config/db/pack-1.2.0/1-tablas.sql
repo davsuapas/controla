@@ -1,3 +1,5 @@
+USE @DB_NOMBRE;
+
 -- ISSUE #9 y #11 
 
 -- Calendarios

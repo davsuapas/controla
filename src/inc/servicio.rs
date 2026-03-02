@@ -257,7 +257,8 @@ impl IncidenciaServicio {
                           error_message = Some(err);
                         }
                       }
-                      TipoIncidencia::CorrecionSalida => {
+                      TipoIncidencia::CorrecionSalida
+                      | TipoIncidencia::CorrecionEntrada => {
                         if let Err(err) = self
                           .corregir_marcaje(&mut tr, usuario_gestor, incp, &inc)
                           .await
@@ -456,10 +457,11 @@ impl IncidenciaServicio {
     }
   }
 
-  /// Corregir la hora de salida
+  /// Corrige la hora de inicio o fin de un marcaje.
   ///
-  /// Crea un marcaje nuevo con la hora de entrada existente
-  /// en el marcaje asociado y la hora de salida solicitada
+  /// Crea un marcaje nuevo con la hora de inicio o fin corregida,
+  /// basándose en el tipo de incidencia. El marcaje original se marca
+  /// como modificado para mantener la trazabilidad.
   ///
   /// Si existe un error, se devuelve la descripción del mismo
   async fn corregir_marcaje(
@@ -471,6 +473,17 @@ impl IncidenciaServicio {
   ) -> Result<(), &'static str> {
     let marcaje_asociado = inc.marcaje.as_ref().unwrap();
 
+    let (hora_inicio, hora_fin) = match inc.tipo {
+      TipoIncidencia::CorrecionEntrada => {
+        (inc.hora_inicio.unwrap(), marcaje_asociado.hora_fin)
+      }
+      TipoIncidencia::CorrecionSalida => {
+        (marcaje_asociado.hora_inicio.unwrap(), inc.hora_fin)
+      }
+      // Esta función solo se llama para los tipos de corrección
+      _ => unreachable!(),
+    };
+
     let marcaje = Marcaje {
       id: 0,
       usuario: inc.usuario,
@@ -481,8 +494,8 @@ impl IncidenciaServicio {
       },
       horario: None,
       fecha: inc.fecha,
-      hora_inicio: marcaje_asociado.hora_inicio.unwrap(),
-      hora_fin: inc.hora_fin,
+      hora_inicio,
+      hora_fin,
     };
 
     match self
@@ -502,21 +515,20 @@ impl IncidenciaServicio {
                 marcaje = marcaje_id,
                 id = incp.id,
                 incidencia = ?inc,
-                "Salida del marcaje corregido correctamente \
-                al resolver la incidencia"
+                "Marcaje corregido correctamente al resolver la incidencia"
               );
 
               Ok(())
             } else {
               Err(
-                "El marcaje que se instenta corregir la salida ya no existe. \
-                Consulte con el administrador",
+                "El marcaje que se intenta corregir ya no existe. Consulte \
+                 con el administrador",
               )
             }
           }
           Err(_) => Err(
-            "No se ha podido deshabilitar el marcaje que \
-             se quiere corregir la salida. Consulte con el administrador",
+            "No se ha podido deshabilitar el marcaje que se quiere corregir. \
+             Consulte con el administrador",
           ),
         }
       }
@@ -525,7 +537,7 @@ impl IncidenciaServicio {
           id = incp.id,
           incidencia = ?inc,
           error = %err,
-          "Corrigiendo marcaje de salida asociado a la incidencia"
+          "Corrigiendo marcaje asociado a la incidencia"
         );
 
         self
@@ -534,9 +546,8 @@ impl IncidenciaServicio {
             incp.id,
             usuario_gestor,
             err,
-            "No se ha podido corregir el marcaje de salida \
-            asociado a la incidencia. \
-            Consulte con el administrador del sistema.",
+            "No se ha podido corregir el marcaje asociado a la incidencia. \
+             Consulte con el administrador del sistema.",
           )
           .await
       }
