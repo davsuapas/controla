@@ -66,7 +66,10 @@ impl AppState {
           HorarioServicio::new(cnfg.clone(), HorarioRepo::new(pool.clone())),
         ),
       ),
-      informe_servicio: InformeServicio::new(InformeRepo::new(pool.clone())),
+      informe_servicio: InformeServicio::new(
+        cnfg.clone(),
+        InformeRepo::new(pool.clone()),
+      ),
     }
   }
 }

@@ -1,16 +1,18 @@
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate, Utc};
 use smallvec::SmallVec;
 
+use crate::config::ConfigTrabajo;
 use crate::informes::{CumplimientoHorario, InformeCumplimiento, InformeRepo};
 use crate::infra::{DBError, ServicioError};
 
 pub struct InformeServicio {
+  cnfg: ConfigTrabajo,
   repo: InformeRepo,
 }
 
 impl InformeServicio {
-  pub fn new(repo: InformeRepo) -> Self {
-    InformeServicio { repo }
+  pub fn new(cnfg: ConfigTrabajo, repo: InformeRepo) -> Self {
+    InformeServicio { cnfg, repo }
   }
 }
 
@@ -23,6 +25,9 @@ impl InformeServicio {
   /// de sus marcajes. El objetivo es obtener un balance preciso de las
   /// horas trabajadas y detectar posibles inconsistencias.
   ///
+  /// No se emite en el informe los días donde el usuario no tiene asignado
+  /// horario y tampoco tiene en cuenta los día superiores a la fecha actual.
+  ///
   /// Para cada día del mes, el informe calcula:
   /// - **Horas a trabajar**: La jornada teórica que el usuario debía
   ///   cumplir según su horario asignado.
@@ -32,8 +37,8 @@ impl InformeServicio {
   ///   y las horas teóricas.
   /// - **Notas**: Anotaciones para aclarar situaciones especiales, como:
   ///   - Días inhábiles (vacaciones, festivos, bajas).
-  ///   - Inconsistencias, como marcajes realizados en un día inhábil o en un día
-  ///     sin un horario laboral definido.
+  ///   - Inconsistencias, como marcajes realizados en un día inhábil
+  ///     o en un día sin un horario laboral definido.
   ///
   /// Finalmente, el informe consolida un **saldo total mensual**,
   /// que representa el cómputo global de horas extra o deficitarias
@@ -114,26 +119,46 @@ impl InformeServicio {
     let mut total_saldo = 0.0;
     let mut curr = fecha_inicio;
 
+    let fecha_actual = Utc::now()
+      .with_timezone(&self.cnfg.zona_horaria)
+      .naive_local()
+      .date();
+
     while curr <= fecha_fin {
+      if curr > fecha_actual {
+        break;
+      }
+
+      let horas_a_trabajar = horarios_usuario.horas_a_trabajar(curr);
+
+      if horas_a_trabajar == 0.0 {
+        curr = curr.succ_opt().unwrap();
+        continue;
+      }
+
       let horas_efectivas = horas_efectivas_marcajes
         .horas_efectivas(curr.day())
         .unwrap_or(0.0);
 
-      let dia_inhabil = dias_inhabiles.buscar(curr);
-      let horas_a_trabajar = horarios_usuario.horas_a_trabajar(curr);
-
-      let linea = if (dia_inhabil.is_some() && horas_efectivas > 0.0)
-        || (dia_inhabil.is_none()
-          && (horas_a_trabajar != 0.0 || horas_efectivas != 0.0))
-      {
-        let nota = if dia_inhabil.is_some() {
-          "No puede haber días inhábiles con marcajes".to_string()
-        } else if dia_inhabil.is_none() && horas_a_trabajar == 0.0 {
-          "No puede haber marcajes sin horarios".to_string()
+      let linea = if let Some(inhabil) = dias_inhabiles.buscar(curr) {
+        if horas_efectivas > 0.0 {
+          let saldo = horas_efectivas - horas_a_trabajar;
+          total_saldo += saldo;
+          CumplimientoHorario {
+            fecha: curr,
+            horas_trabajo_efectivo: horas_efectivas,
+            horas_trabajadas: horas_efectivas,
+            horas_a_trabajar,
+            saldo,
+            nota: "No puede haber días inhábiles con marcajes".to_string(),
+          }
         } else {
-          String::new()
-        };
-
+          CumplimientoHorario::with_fecha_y_nota(
+            curr,
+            format!("Día inhábil. Motivo: {:?}", inhabil.tipo),
+          )
+        }
+      } else {
         let saldo = horas_efectivas - horas_a_trabajar;
         total_saldo += saldo;
         CumplimientoHorario {
@@ -142,15 +167,8 @@ impl InformeServicio {
           horas_trabajadas: horas_efectivas,
           horas_a_trabajar,
           saldo,
-          nota,
+          nota: String::new(),
         }
-      } else if let Some(inhabil) = dia_inhabil {
-        CumplimientoHorario::with_fecha_y_nota(
-          curr,
-          format!("Día inhábil. Motivo: {:?}", inhabil.tipo),
-        )
-      } else {
-        CumplimientoHorario::with_fecha_y_nota(curr, String::new())
       };
 
       lineas.push(linea);

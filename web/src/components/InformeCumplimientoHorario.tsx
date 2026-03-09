@@ -62,10 +62,17 @@ export default function InformeCumplimientoHorario() {
   const [anio, setAnio] = React.useState<number>(dayjs().year());
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isExpanded, setIsExpanded] = React.useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
 
   const currentYear = dayjs().year();
+  const currentMonth = dayjs().month() + 1;
   const years = Array.from({ length: 21 }, (_, i) => currentYear - i);
+
+  React.useEffect(() => {
+    if (anio === currentYear && mes > currentMonth) {
+      setMes(currentMonth);
+    }
+  }, [anio, mes, currentYear, currentMonth]);
 
   const cargarInforme = React.useCallback(
     async () => {
@@ -140,11 +147,16 @@ export default function InformeCumplimientoHorario() {
                   label="Mes"
                   onChange={(e) => setMes(Number(e.target.value))}
                 >
-                  {MONTH_NAMES.map((nombre, index) => (
-                    <MenuItem key={index + 1} value={index + 1}>
-                      {nombre}
-                    </MenuItem>
-                  ))}
+                  {MONTH_NAMES
+                    .map((nombre, index) => ({ nombre, value: index + 1 }))
+                    .filter(month =>
+                      anio < currentYear || month.value <= currentMonth
+                    )
+                    .map(({ nombre, value }) => (
+                      <MenuItem key={value} value={value}>
+                        {nombre}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
             </Grid>
