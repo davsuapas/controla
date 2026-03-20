@@ -37,7 +37,7 @@ export class NetErrorControlado {
 }
 
 export interface ConfigRequest extends AxiosRequestConfig {
-  manejarAuth?: boolean;
+  manejarErrorInesperado?: boolean;
 }
 
 // Interceptor de response para manejo de errores
@@ -115,14 +115,15 @@ axios.interceptors.response.use(
 
         break;
       default:
+        if ((error.config as ConfigRequest)?.manejarErrorInesperado === true) {
+          return Promise.reject(error);
+        }
         logError('interceptor:', error);
 
-        notifica.show(
-          'Error inesperado. Contacte con el administrador',
-          {
-            severity: 'error',
-            autoHideDuration: 5000,
-          });
+        notifica.show('Error inesperado. Contacte con el administrador', {
+          severity: 'error',
+          autoHideDuration: 5000,
+        });
     }
 
     return Promise.reject(new NetErrorControlado(error));

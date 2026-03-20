@@ -142,7 +142,7 @@ impl InformeRepo {
 
     let fecha_fin = Self::fin_de_mes(anio, mes)?;
 
-    const QUERY_PREV: &str = "SELECT MAX(fecha_creacion) FROM usuario_horarios 
+    const QUERY_PREV: &str = "SELECT MAX(fecha_creacion) FROM horarios 
       WHERE usuario = ? AND fecha_creacion < ?";
 
     let fecha_prev: Option<NaiveDate> = sqlx::query_scalar(QUERY_PREV)
@@ -153,13 +153,10 @@ impl InformeRepo {
       .map_err(DBError::from_sqlx)?;
 
     let mut query = String::from(
-      "SELECT h.id, uh.id AS uh_id,
-        uh.usuario, uh.fecha_creacion,
-        uh.caducidad_fecha_ini, uh.caducidad_fecha_fin,
-        h.dia, h.hora_inicio, h.hora_fin
-      FROM usuario_horarios uh
-      JOIN horarios h ON uh.horario = h.id
-      WHERE uh.usuario = ? AND (",
+      "SELECT id, usuario, fecha_creacion, dia, horas, cortesia,
+        caducidad_fecha_ini, caducidad_fecha_fin
+      FROM horarios
+      WHERE usuario = ? AND (",
     );
 
     let mut args = sqlx::mysql::MySqlArguments::default();
@@ -168,13 +165,13 @@ impl InformeRepo {
       .map_err(|_| DBError::Parametros("Usuario"))?;
 
     if let Some(prev) = fecha_prev {
-      query.push_str("uh.fecha_creacion = ? OR ");
+      query.push_str("fecha_creacion = ? OR ");
       args
         .add(prev)
         .map_err(|_| DBError::Parametros("Fecha prev"))?;
     }
 
-    query.push_str("uh.fecha_creacion BETWEEN ? AND ?)");
+    query.push_str("fecha_creacion BETWEEN ? AND ?)");
     args
       .add(fecha_inicio)
       .map_err(|_| DBError::Parametros("Fecha inicio"))?;

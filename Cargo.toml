@@ -9,7 +9,7 @@ repository = "https://github.com/davsuapas/controla"
 description = "Control del registro horario del personal de una organización"
 
 [dependencies]
-uuid = { version = "1.20.0", features = ["v4"] }
+uuid = { version = "1.22.0", features = ["v4"] }
 hmac = "0.12.1"
 hex = "0.4.3"
 ring = "0.17.14"
@@ -17,19 +17,19 @@ base64 = "0.22.1"
 sha2 = "0.10.9"
 data-encoding = "2.10.0"
 derive_builder = "0.20.2"
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 thiserror = "2.0.18"
 smallvec = "1.15.1"
 tracing = "0.1.44"
-tracing-subscriber = "0.3.22"
+tracing-subscriber = "0.3.23"
 serde = "1.0.228"
 serde_json = "1.0.149"
-chrono = { version = "0.4.43", features = ["serde"] }
+chrono = { version = "0.4.44", features = ["serde"] }
 chrono-tz = { version = "0.10.4", features = ["serde"] }
 time = "0.3.47"
 axum = "0.8.8"
 axum-extra = { version = "0.12.5", features = ["cookie"] }
-tokio = { version = "1.49.0", features = ["full"] }
+tokio = { version = "1.50.0", features = ["full"] }
 tower = "0.5.3"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "mysql", "chrono"] }
 

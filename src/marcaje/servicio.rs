@@ -41,10 +41,6 @@ impl MarcajeServicio {
   }
   /// Añade un nuevo marcaje horario para el usuario.
   ///
-  /// Para calcular las horas a trabajar utiliza el horario más
-  /// cercano a la hora de inicio del marcaje que todavía
-  /// no haya sido asignado.
-  ///
   /// Validaciones:
   /// * Se valida que no existan fechas de los calendarios asignados
   ///   a el usuario.
@@ -54,9 +50,6 @@ impl MarcajeServicio {
   /// * Si la hora de inicio o fin ya están asignadas al usuario,
   ///   se devuelve un error.
   /// * El nuevo marcaje no se puede solapar con ningún otro marcaje.
-  /// * La hora de inicio no puede ser anterior a la hora de fin
-  ///   de un marcaje previo con un horario anterior al horario cercano
-  ///   obtenido.
   ///
   /// Se puede excluir un marcaje pasado como parámetro
   /// Si no quiere excluir ningún marcaje use 0
@@ -77,30 +70,24 @@ impl MarcajeServicio {
 
     self.validar_agregacion(reg, excluir_marcaje_id).await?;
 
-    let (usuario_horario, horario_cercano) = self
+    let horario_cercano = self
       .horario_servicio
-      .horario_cercano(
-        reg.usuario,
-        reg.hora_inicio_completa(),
-        excluir_marcaje_id,
-      )
-      .await
-      .inspect_err(|err| {
-        tracing::error!(
-          marcaje = ?reg,
-          error = %err,
-         "Buscando el horario más cercano cuando se añade un marcaje");
+      .horario_usuario_cercano(reg.usuario, reg.fecha)
+      .await?
+      .ok_or_else(|| {
+        ServicioError::Validacion(format!(
+          "No se encontró una configuración de horario activa para el usuario {} en la fecha {}",
+          reg.usuario,
+          reg.fecha.formato_corto()
+        ))
       })?;
 
-    let horas_a_trabajar = horario_cercano.horas_a_trabajar();
-
     tracing::debug!(
-      usuario_horario = usuario_horario,
       horario = ?horario_cercano,
-      horas_a_trabajar = format!("{:.2}", horas_a_trabajar),
-      "Horario más cercano a el marcajes horario del usuario");
+      "Horario más cercano al marcaje horario del usuario"
+    );
 
-    let id = match self.repo.agregar(tr, reg, usuario_horario).await {
+    let id = match self.repo.agregar(tr, reg, horario_cercano.id).await {
       Ok(reg_id) => reg_id,
       Err(err) => {
         tracing::error!(

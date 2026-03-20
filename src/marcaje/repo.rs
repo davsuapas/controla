@@ -3,7 +3,7 @@ use chrono::{NaiveDate, NaiveTime};
 use sqlx::Row;
 
 use crate::{
-  horario::Horario,
+  horario::DescriptorHorario,
   infra::{
     DBError, DominioWithCacheUsuario, PoolConexion, ShortDateTimeFormat,
     Transaccion,
@@ -32,16 +32,16 @@ impl MarcajeRepo {
     &self,
     tr: Option<&mut Transaccion<'_>>,
     reg: &Marcaje,
-    usuario_horario: u32,
+    horario: u32,
   ) -> Result<u32, DBError> {
     const QUERY: &str = "INSERT INTO marcajes
-      (usuario, fecha, usuario_horario, hora_inicio, hora_fin, usuario_registrador)
+      (usuario, fecha, horario, hora_inicio, hora_fin, usuario_registrador)
       VALUES (?, ?, ?, ?, ?, ?)";
 
     let query = sqlx::query(QUERY)
       .bind(reg.usuario)
       .bind(reg.fecha)
-      .bind(usuario_horario)
+      .bind(horario)
       .bind(reg.hora_inicio)
       .bind(reg.hora_fin)
       .bind(reg.usuario_reg);
@@ -470,11 +470,9 @@ impl MarcajeRepo {
         ur.id AS ur_id, ur.nombre AS ur_nombre,
         ur.primer_apellido AS ur_primer_apellido,
         ur.segundo_apellido AS ur_segundo_apellido,
-        h.id AS h_id, h.dia, h.hora_inicio AS h_hora_inicio, 
-        h.hora_fin AS h_hora_fin
+        h.id AS h_id, h.dia, h.horas
         FROM marcajes r
-        JOIN usuario_horarios uh ON uh.id = r.usuario_horario
-        JOIN horarios h ON h.id = uh.horario
+        JOIN horarios h ON h.id = r.horario
         JOIN usuarios u ON u.id = r.usuario
         LEFT JOIN usuarios ur ON ur.id = r.usuario_registrador";
 
@@ -539,11 +537,10 @@ impl MarcajeRepo {
         id: row.get("id"),
         usuario: row.get("u_id"),
         usuario_reg: row.try_get::<u32, _>("ur_id").ok(),
-        horario: Some(Horario {
+        horario: Some(DescriptorHorario {
           id: row.get("h_id"),
           dia: row.get::<String, _>("dia").as_str().into(),
-          hora_inicio: row.get("h_hora_inicio"),
-          hora_fin: row.get("h_hora_fin"),
+          horas: row.get("horas"),
         }),
         fecha: row.get("fecha"),
         hora_inicio: row.get("hora_inicio"),

@@ -1,6 +1,6 @@
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveTime};
 
-use crate::horario::Horario;
+use crate::horario::DescriptorHorario;
 
 #[derive(Debug)]
 pub struct DescriptorMarcaje {
@@ -14,18 +14,13 @@ pub struct Marcaje {
   pub id: u32,
   pub usuario: u32,
   pub usuario_reg: Option<u32>,
-  pub horario: Option<Horario>,
+  pub horario: Option<DescriptorHorario>,
   pub fecha: NaiveDate,
   pub hora_inicio: NaiveTime,
   pub hora_fin: Option<NaiveTime>,
 }
 
 impl Marcaje {
-  #[inline]
-  pub fn hora_inicio_completa(&self) -> NaiveDateTime {
-    NaiveDateTime::new(self.fecha, self.hora_inicio)
-  }
-
   #[inline]
   pub fn horas_trabajadas(&self) -> Option<f64> {
     self.hora_fin.map(|fin| {

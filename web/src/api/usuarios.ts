@@ -3,7 +3,7 @@ import { ConfigHorario, DescriptorUsuario, DiaSemana, Horario, RolID, Usuario } 
 import { UsuarioOutDTO } from '../modelos/dto';
 import dayjs, { Dayjs } from 'dayjs';
 import { formatDateForServer, formatDateTimeForServer } from '../modelos/formatos';
-import { instanceToPlain } from 'class-transformer';
+import { ConfigRequest } from '../net/interceptor';
 
 export interface UsuariosApi {
   login(dni: string, passw: string): Promise<Usuario>;
@@ -15,8 +15,7 @@ export interface UsuariosApi {
   crearUsuario(usuario: UsuarioOutDTO): Promise<void>;
   actualizarUsuario(usuario: UsuarioOutDTO): Promise<void>;
   actualizarPassword(usuarioId: number, passw: string): Promise<void>;
-  horarioSinAsignar(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
-  horarioCercano(usuarioId: string, fechaHora: Dayjs): Promise<Horario[]>;
+  horarioCercano(usuarioId: string, fechaHora: Dayjs): Promise<Horario | null>;
   usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]>;
   duplicarHorario(usuarioId: number, fechaCreacion: Dayjs): Promise<ConfigHorario[]>;
   horarios(usuarioId: number): Promise<ConfigHorario[]>;
@@ -98,28 +97,20 @@ export class UsuariosAxiosApi implements UsuariosApi {
     return this.axios.get(`usuarios/${id}/logout`);
   }
 
-  async horarioSinAsignar(
-    usuarioId: string, fechaHora: Dayjs): Promise<Horario[]> {
-    let response;
-
-    response = await this.axios.get(
-      `usuarios/${usuarioId}/horario/sin/asignar/${formatDateTimeForServer(fechaHora)}`);
-
-    return Array.isArray(response.data)
-      ? response.data.map(Horario.fromRequest)
-      : [];
-  }
-
   async horarioCercano(
-    usuarioId: string, fechaHora: Dayjs): Promise<Horario[]> {
-    let response;
-
-    response = await this.axios.get(
-      `usuarios/${usuarioId}/horario/cercano/${formatDateTimeForServer(fechaHora)}`);
-
-    return Array.isArray(response.data)
-      ? response.data.map(Horario.fromRequest)
-      : [];
+    usuarioId: string, fechaHora: Dayjs): Promise<Horario | null> {
+    try {
+      const response = await this.axios.get(
+        `usuarios/${usuarioId}/horario/cercano/${formatDateTimeForServer(fechaHora)}`,
+        { manejarErrorInesperado: true } as ConfigRequest,
+      );
+      return Horario.fromRequest(response.data);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async usuariosPorRol(id: RolID): Promise<DescriptorUsuario[]> {
@@ -154,11 +145,11 @@ export class UsuariosAxiosApi implements UsuariosApi {
   }
 
   async crearHorario(horario: ConfigHorario): Promise<void> {
-    return this.axios.post('horarios', instanceToPlain(horario));
+    return this.axios.post('horarios', horario.toServer());
   }
 
   async actualizarHorario(horario: ConfigHorario): Promise<void> {
-    return this.axios.put('horarios', instanceToPlain(horario));
+    return this.axios.put('horarios', horario.toServer());
   }
 
   async eliminarHorario(id: number): Promise<void> {
@@ -271,43 +262,14 @@ export class UsuariosTestApi implements UsuariosApi {
     return;
   }
 
-  async horarioSinAsignar(_: string, __: Dayjs): Promise<Horario[]> {
-    const horariosFicticios = [
+  async horarioCercano(_: string, __: Dayjs): Promise<Horario | null> {
+    return Horario.fromRequest(
       {
         dia: 'L',
-        hora_inicio: '08:00',
-        hora_fin: '10:00',
-        horas_a_trabajar: 2
-      },
-      {
-        dia: 'L',
-        hora_inicio: '12:00',
-        hora_fin: '13:00',
-        horas_a_trabajar: 1
-      },
-    ]
-
-    return horariosFicticios.map(Horario.fromRequest);
+        horas: 2
+      });
   }
 
-  async horarioCercano(_: string, __: Dayjs): Promise<Horario[]> {
-    const horariosFicticios = [
-      {
-        dia: 'L',
-        hora_inicio: '08:00',
-        hora_fin: '10:00',
-        horas_a_trabajar: 2
-      },
-      {
-        dia: 'L',
-        hora_inicio: '12:00',
-        hora_fin: '13:00',
-        horas_a_trabajar: 1
-      },
-    ]
-
-    return horariosFicticios.map(Horario.fromRequest);
-  }
   async usuariosPorRol(_: RolID): Promise<DescriptorUsuario[]> {
     const usuariosFicticios = [
       {
@@ -335,10 +297,9 @@ export class UsuariosTestApi implements UsuariosApi {
         usuario: usuarioId,
         horario: new Horario({
           dia: DiaSemana.Lunes,
-          horaInicio: '08:00',
-          horaFin: '15:00',
-          horasATrabajar: 7
+          horas: 2,
         }),
+        cortesia: 0,
         fechaCreacion: fechaCreacion,
         caducidadFechaIni: null,
         caducidadFechaFin: null
@@ -350,11 +311,10 @@ export class UsuariosTestApi implements UsuariosApi {
       usuario: usuarioId,
       horario: new Horario({
         dia: DiaSemana.Martes,
-        horaInicio: '09:00',
-        horaFin: '16:00',
-        horasATrabajar: 7
+        horas: 5,
       }),
       fechaCreacion: fechaCreacion,
+      cortesia: 3,
       caducidadFechaIni: dayjs().add(7, 'days'),
       caducidadFechaFin: dayjs().add(7, 'days')
     }));
@@ -369,10 +329,9 @@ export class UsuariosTestApi implements UsuariosApi {
         usuario: usuarioId,
         horario: new Horario({
           dia: DiaSemana.Lunes,
-          horaInicio: '08:00',
-          horaFin: '15:00',
-          horasATrabajar: 7
+          horas: 3,
         }),
+        cortesia: 0,
         fechaCreacion: fecha,
         caducidadFechaIni: dayjs().add(7, 'days'),
         caducidadFechaFin: fecha.add(1, 'year')
@@ -382,9 +341,7 @@ export class UsuariosTestApi implements UsuariosApi {
         usuario: usuarioId,
         horario: new Horario({
           dia: DiaSemana.Martes,
-          horaInicio: '08:00',
-          horaFin: '15:00',
-          horasATrabajar: 7
+          horas: 5,
         }),
         fechaCreacion: fecha,
         caducidadFechaIni: dayjs().add(7, 'days'),
@@ -400,10 +357,9 @@ export class UsuariosTestApi implements UsuariosApi {
       usuario: 1,
       horario: new Horario({
         dia: DiaSemana.Jueves,
-        horaInicio: '08:00',
-        horaFin: '15:00',
-        horasATrabajar: 7
+        horas: 2,
       }),
+      cortesia: 7,
       fechaCreacion: fecha,
       caducidadFechaIni: dayjs().add(7, 'days'),
       caducidadFechaFin: fecha.add(1, 'year')

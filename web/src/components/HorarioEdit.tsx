@@ -15,9 +15,8 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
-import dayjs, { Dayjs } from 'dayjs';
-import { DiaSemana, ConfigHorario, Horario } from '../modelos/usuarios';
-import { createDayjsFromTime, formatDateForServer, formatTimeForServer } from '../modelos/formatos';
+import dayjs from 'dayjs';
+import { ConfigHorario, DiaSemana, Horario } from '../modelos/usuarios';
 
 export default function HorarioEdit() {
   const { id } = useParams();
@@ -33,8 +32,8 @@ export default function HorarioEdit() {
   const [formState, setFormState] = React.useState<HorarioFormState>({
     values: {
       dia: DiaSemana.Lunes,
-      entrada: null,
-      salida: null,
+      horas: 8,
+      cortesia: 0,
       caducidadFechaIni: null,
       caducidadFechaFin: null
     },
@@ -50,8 +49,8 @@ export default function HorarioEdit() {
 
       const loadedValues: HorarioFormValues = {
         dia: data.horario.dia as DiaSemana,
-        entrada: createDayjsFromTime(data.horario.horaInicio),
-        salida: createDayjsFromTime(data.horario.horaFin),
+        horas: data.horario.horas,
+        cortesia: data.cortesia,
         caducidadFechaIni: data.caducidadFechaIni ?
           dayjs(data.caducidadFechaIni) : null,
         caducidadFechaFin: data.caducidadFechaFin ?
@@ -129,15 +128,14 @@ export default function HorarioEdit() {
       const horarioActualizado = new ConfigHorario({
         id: configHorario.id,
         usuario: configHorario.usuario,
-        fechaCreacion: formatDateForServer(configHorario.fechaCreacion as Dayjs)!,
-        caducidadFechaIni: formatDateForServer(values.caducidadFechaIni),
-        caducidadFechaFin: formatDateForServer(values.caducidadFechaFin),
+        fechaCreacion: configHorario.fechaCreacion,
+        caducidadFechaIni: values.caducidadFechaIni,
+        caducidadFechaFin: values.caducidadFechaFin,
+        cortesia: values.cortesia,
         horario: new Horario({
           id: configHorario.horario.id,
           dia: values.dia,
-          horaInicio: formatTimeForServer(values.entrada!)!,
-          horaFin: formatTimeForServer(values.salida!)!,
-          horasATrabajar: 0 // Mo es relevante
+          horas: values.horas!,
         })
       });
 

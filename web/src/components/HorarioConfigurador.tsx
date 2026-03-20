@@ -194,18 +194,18 @@ export default function HorarioConfigurador() {
           diaSemanaToPalabra[row.horario.dia as DiaSemana],
       },
       {
-        field: 'entrada',
-        headerName: 'ENTRADA',
+        field: 'horas',
+        headerName: 'HORAS A TRABAJAR',
         flex: 1,
         minWidth: 100,
-        valueGetter: (_, row: ConfigHorario) => row.horario.horaInicio,
+        valueGetter: (_, row: ConfigHorario) => row.horario.horas,
       },
       {
-        field: 'salida',
-        headerName: 'SALIDA',
+        field: 'cortesia',
+        headerName: 'MIN. CORTESÍA',
         flex: 1,
         minWidth: 100,
-        valueGetter: (_, row: ConfigHorario) => row.horario.horaFin
+        valueGetter: (_, row: ConfigHorario) => row.cortesia,
       },
       {
         field: 'caducidadFechaIni',

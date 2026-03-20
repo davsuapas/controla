@@ -35,7 +35,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
   const notifica = useNotifications();
 
   const [marcaje, setMarcaje] = useState<Marcaje[]>([]);
-  const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [horario, setHorario] = useState<Horario | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Carga los últimos marcajes (solo depende de usuarioId)
@@ -78,21 +78,13 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
   const cargarHorarios = React.useCallback(
     async (
       usuarioId: string,
-      fecha: dayjs.Dayjs | undefined,
-      horaInicio: dayjs.Dayjs | undefined) => {
+      fecha: dayjs.Dayjs | undefined) => {
 
-      let horario: Horario[] = [];
+      let horario: Horario | null = null;
 
       try {
-        if (fecha && horaInicio) {
-          const hora: dayjs.Dayjs = fecha
-            .set('hour', horaInicio.hour())
-            .set('minute', horaInicio.minute());
-          horario = await api().usuarios.horarioCercano(usuarioId, hora);
-        } else {
-          if (fecha) {
-            horario = await api().usuarios.horarioSinAsignar(usuarioId, fecha);
-          }
+        if (fecha) {
+          horario = await api().usuarios.horarioCercano(usuarioId, fecha);
         }
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
@@ -108,7 +100,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
       }
 
       if (isMounted.current) {
-        setHorarios(horario);
+        setHorario(horario);
       };
     }, [notifica]);
 
@@ -124,11 +116,11 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
   // Efecto para cargar horarios (cuando cambia usuarioId o fechaHora)
   React.useEffect(() => {
     if (props.usuarioId) {
-      cargarHorarios(props.usuarioId, props.fecha, props.horaInicio);
+      cargarHorarios(props.usuarioId, props.fecha);
     } else {
-      setHorarios([]);
+      setHorario(null);
     }
-  }, [props.usuarioId, props.fecha, props.horaInicio]);
+  }, [props.usuarioId, props.fecha]);
 
   return (
     <Box sx={{ flex: 1, overflow: 'hidden', height: '100%' }}>
@@ -139,25 +131,21 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             display: 'flex', alignItems: 'center',
             gap: 1, flexWrap: 'wrap'
           }}>
-          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-            Horario/s posible/s:
-          </Typography>
-
-          {horarios.length === 0 ? (
+          {horario === null ? (
             <Typography variant="body2" color="text.secondary"
               fontStyle="italic">
-              No hay horarios disponibles o ya están asignados
+              No hay horario disponible para este día
             </Typography>
           ) : (
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {horarios.map((horario) => (
+              {
                 <Chip
                   key={horario.horarioToStr()}
                   label={horario.horarioToStr()}
                   size="medium"
                   variant="outlined"
                 />
-              ))}
+              }
             </Box>
           )}
         </Box>

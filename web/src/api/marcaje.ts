@@ -134,9 +134,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 1,
           horario: {
             dia: 'L',
-            hora_inicio: '08:00',
-            hora_fin: '16:00',
-            horas_a_trabajar: 8
+            horas: 8
           },
           fecha: '2024-01-15',
           hora_inicio: '08:00',
@@ -150,9 +148,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: null,
           horario: {
             dia: 'M',
-            hora_inicio: '09:00',
-            hora_fin: '17:00',
-            horas_a_trabajar: 8
+            horas: 8
           },
           fecha: '2024-01-16',
           hora_inicio: '09:00',
@@ -166,9 +162,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'X',
-            hora_inicio: '07:30',
-            hora_fin: '15:30',
-            horas_a_trabajar: 8
+            horas: 8
           },
           fecha: '2024-01-17',
           hora_inicio: '07:30',
@@ -182,9 +176,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 3,
           horario: {
             dia: 'J',
-            hora_inicio: '08:30',
-            hora_fin: '16:30',
-            horas_a_trabajar: 8
+            horas: 8
           },
           fecha: '2024-01-18',
           hora_inicio: '08:30',
@@ -197,9 +189,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 3,
           horario: {
             dia: 'V',
-            hora_inicio: '07:00',
-            hora_fin: '15:00',
-            horas_a_trabajar: 8
+            horas: 8
           },
           fecha: '2024-01-19',
           hora_inicio: '07:00',
@@ -212,9 +202,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 4
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',
@@ -227,9 +215,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 4
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',
@@ -242,9 +228,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 6
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',
@@ -257,9 +241,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 8
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',
@@ -272,9 +254,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 8
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',
@@ -287,9 +267,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 8
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',
@@ -302,9 +280,7 @@ export class MarcajeTestApi implements MarcajeApi {
           usuario_reg: 2,
           horario: {
             dia: 'S',
-            hora_inicio: '08:00',
-            hora_fin: '12:00',
-            horas_a_trabajar: 4
+            horas: 8
           },
           fecha: '2024-01-20',
           hora_inicio: '08:00',

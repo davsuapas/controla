@@ -1,9 +1,11 @@
-use chrono::{NaiveDate, NaiveDateTime, Utc};
+use chrono::{NaiveDate, Utc};
 
 use crate::{
   config::ConfigTrabajo,
-  horario::{Calendario, CalendarioFecha, ConfigHorario, Horario, HorarioRepo},
-  infra::{DBError, ServicioError, ShortDateTimeFormat, Transaccion},
+  horario::{
+    Calendario, CalendarioFecha, ConfigHorario, DescriptorHorario, HorarioRepo,
+  },
+  infra::{DBError, ServicioError, ShortDateTimeFormat},
 };
 
 /// Servicio para manejar operaciones relacionadas con horarios.
@@ -19,30 +21,6 @@ impl HorarioServicio {
 }
 
 impl HorarioServicio {
-  /// Devuelve los horarios del usuario sin asingnar.
-  ///
-  /// Si no se proporciona una hora, devuelve el horario del día actual.
-  /// simpre que no este asignado.
-  /// Si se proporciona una hora, devuelve el horario más cercano a esa hora.
-  pub async fn horarios_usuario_sin_asignar(
-    &self,
-    usuario: u32,
-    fecha: NaiveDate,
-  ) -> Result<Vec<Horario>, ServicioError> {
-    self
-      .repo
-      .horarios_usuario_sin_asignar(usuario, fecha)
-      .await
-      .map_err(|err| {
-        tracing::error!(
-        usuario = usuario,
-        hora = ?fecha,
-        error = %err,
-       "Obteniendo horario del usuario sin asignar");
-        ServicioError::from(err)
-      })
-  }
-
   /// Devuelve el horario del usuario más cercano.
   ///
   /// Si no devuelve ningún horario se tracea el error y
@@ -50,58 +28,33 @@ impl HorarioServicio {
   pub async fn horario_usuario_cercano(
     &self,
     usuario: u32,
-    hora: NaiveDateTime,
-  ) -> Result<Vec<Horario>, ServicioError> {
+    fecha: NaiveDate,
+  ) -> Result<Option<DescriptorHorario>, ServicioError> {
     tracing::debug!(
       usuario = usuario,
-      hora = %hora,
+      hora = %fecha,
       "Consultando el horario más cercano del usuario");
 
-    let res = self
-      .repo
-      .horario_cercano(usuario, hora, 0)
-      .await
-      .map(|(_, horario)| vec![horario]);
+    let res = self.repo.horario_cercano(usuario, fecha).await;
     match res {
-      Ok(horarios) => Ok(horarios),
+      Ok(horario) => Ok(Some(horario)),
       Err(err) => match err {
         DBError::RegistroVacio(e) => {
           tracing::warn!(
             error = %e,
            "Consulta horario cercano");
-          Ok(vec![])
+          Ok(None)
         }
         _ => {
           tracing::error!(
             usuario = usuario,
-            hora = ?hora,
+            hora = ?fecha,
             error = %err,
           "Consulta horario cercano");
           Err(ServicioError::from(err))
         }
       },
     }
-  }
-
-  /// Devuelve el horario más cercano al usuario.
-  ///
-  /// Se puede excluir un marcaje pasado como parámetro
-  /// Si no quiere excluir ningún marcaje use 0
-  /// La exclusión puede ser muy útil cuando se quiere
-  /// realizar una modificación de este marcaje
-  ///
-  /// Devuelve el identificador de usuario, horario y el horario.
-  pub async fn horario_cercano(
-    &self,
-    usuario: u32,
-    hora: NaiveDateTime,
-    excluir_marcaje_id: u32,
-  ) -> Result<(u32, Horario), ServicioError> {
-    self
-      .repo
-      .horario_cercano(usuario, hora, excluir_marcaje_id)
-      .await
-      .map_err(ServicioError::from)
   }
 
   /// Devuelve la configuración de horarios de un usuario.
@@ -216,27 +169,7 @@ impl HorarioServicio {
       )));
     }
 
-    let mut tr =
-      self
-        .repo
-        .conexion()
-        .empezar_transaccion()
-        .await
-        .map_err(|err| {
-          tracing::error!(
-           usuario = config_horario.usuario, error = %err,
-           "Iniciando transacción para agregar configuración de horario");
-          ServicioError::from(err)
-        })?;
-
-    let id_horario = self
-      .obtener_o_crear_horario(&mut tr, &config_horario.horario)
-      .await?;
-
-    let id_config = match self
-      .repo
-      .agregar_config_usuario(&mut tr, config_horario, id_horario)
-      .await
+    let id_config = match self.repo.agregar_config_usuario(config_horario).await
     {
       Ok(id) => id,
       Err(err) => {
@@ -249,13 +182,6 @@ impl HorarioServicio {
         return Err(ServicioError::from(err));
       }
     };
-
-    tr.commit().await.map_err(|err| {
-      tracing::error!(
-         usuario = config_horario.usuario, error = %err,
-        "Commit transacción para agregar configuración de horario");
-      ServicioError::from(err)
-    })?;
 
     tracing::debug!(
       id_config = id_config,
@@ -318,29 +244,7 @@ impl HorarioServicio {
       )));
     }
 
-    let mut tr =
-      self
-        .repo
-        .conexion()
-        .empezar_transaccion()
-        .await
-        .map_err(|err| {
-          tracing::error!(
-           usuario = config_horario.usuario, error = %err,
-           "Iniciando transacción para modificar configuración de horario");
-          ServicioError::from(err)
-        })?;
-
-    let id_horario_antiguo = config_horario.horario.id;
-    let id_nuevo_horario = self
-      .obtener_o_crear_horario(&mut tr, &config_horario.horario)
-      .await?;
-
-    if let Err(err) = self
-      .repo
-      .modificar_config_usuario(&mut tr, config_horario, id_nuevo_horario)
-      .await
-    {
+    if let Err(err) = self.repo.modificar_config_usuario(config_horario).await {
       tracing::error!(
         config_horario = ?config_horario,
         error = %err,
@@ -348,19 +252,6 @@ impl HorarioServicio {
       );
       return Err(ServicioError::from(err));
     }
-
-    if id_horario_antiguo != id_nuevo_horario {
-      self
-        .eliminar_horario(&mut tr, id_horario_antiguo, config_horario.id)
-        .await?;
-    }
-
-    tr.commit().await.map_err(|err| {
-      tracing::error!(
-         usuario = config_horario.usuario, error = %err,
-        "Commit transacción para modificar configuración de horario");
-      ServicioError::from(err)
-    })?;
 
     tracing::debug!(
       id_config = config_horario.id,
@@ -374,8 +265,6 @@ impl HorarioServicio {
   /// Elimina una configuración de horario.
   ///
   /// Verifica que no esté referenciada en un marcaje.
-  /// Elimina la configuración y si el horario asociado no se usa
-  /// en ninguna otra configuración, también se elimina.
   pub async fn eliminar_config_horario(
     &self,
     id_config: u32,
@@ -404,24 +293,7 @@ impl HorarioServicio {
       ));
     }
 
-    let config = self.config_horario_por_id(id_config).await?;
-
-    let mut tr =
-      self
-        .repo
-        .conexion()
-        .empezar_transaccion()
-        .await
-        .map_err(|err| {
-          tracing::error!(
-           id_config = id_config, error = %err,
-           "Iniciando transacción para eliminar configuración de horario");
-          ServicioError::from(err)
-        })?;
-
-    if let Err(err) =
-      self.repo.eliminar_config_usuario(&mut tr, id_config).await
-    {
+    if let Err(err) = self.repo.eliminar_config_usuario(id_config).await {
       tracing::error!(
         id_config = id_config,
         error = %err,
@@ -430,107 +302,11 @@ impl HorarioServicio {
       return Err(ServicioError::from(err));
     }
 
-    self
-      .eliminar_horario(&mut tr, config.horario.id, id_config)
-      .await?;
-
-    tr.commit().await.map_err(|err| {
-      tracing::error!(
-         id_config = id_config, error = %err,
-        "Commit transacción para eliminar configuración de horario");
-      ServicioError::from(err)
-    })?;
-
     tracing::debug!(
       id_config = id_config,
       "Se ha completado satisfactoriamente la eliminación de la configuración de horario"
     );
 
-    Ok(())
-  }
-
-  /// Obtiene el id de un horario existente o crea uno nuevo.
-  ///
-  /// Si existe ya un horario (mismo día y fechas) devuelve el id.
-  /// Si no existe lo crea y devuelve el nuevo id.
-  async fn obtener_o_crear_horario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    horario: &Horario,
-  ) -> Result<u32, ServicioError> {
-    tracing::info!(
-      horario = ?horario,
-      "Se ha iniciado el servicio para obtener o crear un horario");
-
-    if let Some(id) =
-      self
-        .repo
-        .horario_por_dia_horas(horario)
-        .await
-        .map_err(|err| {
-          tracing::error!(
-            horario = ?horario,
-            error = %err,
-            "Buscando horario por día y horas"
-          );
-          ServicioError::from(err)
-        })?
-    {
-      Ok(id)
-    } else {
-      tracing::debug!("No existe el horario maestro. Se crea uno nuevo");
-      match self.repo.crear_horario(trans, horario).await {
-        Ok(id) => Ok(id),
-        Err(err) => {
-          tracing::error!(
-            horario = ?horario,
-            error = %err,
-            "Creando nuevo horario maestro"
-          );
-          Err(ServicioError::from(err))
-        }
-      }
-    }
-  }
-
-  /// Elimina el horario si no es usado por ninguna otra configuración.
-  async fn eliminar_horario(
-    &self,
-    trans: &mut Transaccion<'_>,
-    id_horario: u32,
-    id_config_excluida: u32,
-  ) -> Result<(), ServicioError> {
-    if !self
-      .repo
-      .es_horario_usado_excepto(id_horario, id_config_excluida)
-      .await
-      .map_err(|err| {
-        tracing::error!(
-          id_horario = id_horario,
-          id_config_excluida = id_config_excluida,
-          error = %err,
-          "Verificando si el horario está en uso"
-        );
-        ServicioError::from(err)
-      })?
-    {
-      tracing::debug!(
-        id_horario = id_horario,
-        "El horario ya no se referencia. Se elimina"
-      );
-      self
-        .repo
-        .eliminar_horario(trans, id_horario)
-        .await
-        .map_err(|err| {
-          tracing::error!(
-            id_horario = id_horario,
-            error = %err,
-            "Eliminando horario no referenciado"
-          );
-          ServicioError::from(err)
-        })?;
-    }
     Ok(())
   }
 

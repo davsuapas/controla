@@ -4,7 +4,8 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
 use crate::horario::{
-  Calendario, CalendarioFecha, ConfigHorario, Dia, Horario, TipoCalendarioFecha,
+  Calendario, CalendarioFecha, ConfigHorario, DescriptorHorario, Dia,
+  TipoCalendarioFecha,
 };
 use crate::informes::{CumplimientoHorario, InformeCumplimiento};
 use crate::{
@@ -166,35 +167,19 @@ pub struct PasswordUsuarioDTO {
   pub password: String,
 }
 
-/// Define la entidad de intercambio de salida para el horario
 #[derive(Serialize, Deserialize)]
 pub(in crate::app) struct HorarioDTO {
   pub id: u32,
   pub dia: String,
-  pub hora_inicio: NaiveTime,
-  pub hora_fin: NaiveTime,
-  pub horas_a_trabajar: f64,
+  pub horas: u8,
 }
 
-impl From<Horario> for HorarioDTO {
-  fn from(horario: Horario) -> Self {
+impl From<DescriptorHorario> for HorarioDTO {
+  fn from(h: DescriptorHorario) -> Self {
     HorarioDTO {
-      id: horario.id,
-      dia: horario.dia.letra().to_string(),
-      hora_inicio: horario.hora_inicio,
-      hora_fin: horario.hora_fin,
-      horas_a_trabajar: horario.horas_a_trabajar(),
-    }
-  }
-}
-
-impl From<HorarioDTO> for Horario {
-  fn from(dto: HorarioDTO) -> Self {
-    Horario {
-      id: dto.id,
-      dia: Dia::from(dto.dia.as_str()),
-      hora_inicio: dto.hora_inicio,
-      hora_fin: dto.hora_fin,
+      id: h.id,
+      dia: h.dia.letra().to_string(),
+      horas: h.horas,
     }
   }
 }
@@ -203,10 +188,12 @@ impl From<HorarioDTO> for Horario {
 pub(in crate::app) struct ConfigHorarioDTO {
   pub id: u32,
   pub usuario: u32,
-  pub horario: HorarioDTO,
+  pub dia: String,
+  pub horas: u8,
   pub fecha_creacion: NaiveDate,
   pub caducidad_fecha_ini: Option<NaiveDate>,
   pub caducidad_fecha_fin: Option<NaiveDate>,
+  pub cortesia: u8,
 }
 
 impl From<ConfigHorario> for ConfigHorarioDTO {
@@ -214,10 +201,12 @@ impl From<ConfigHorario> for ConfigHorarioDTO {
     ConfigHorarioDTO {
       id: config.id,
       usuario: config.usuario,
-      horario: config.horario.into(),
+      dia: config.dia.letra().to_string(),
+      horas: config.horas,
       fecha_creacion: config.fecha_creacion,
       caducidad_fecha_ini: config.caducidad_fecha_ini,
       caducidad_fecha_fin: config.caducidad_fecha_fin,
+      cortesia: config.cortesia,
     }
   }
 }
@@ -227,10 +216,12 @@ impl From<ConfigHorarioDTO> for ConfigHorario {
     ConfigHorario {
       id: dto.id,
       usuario: dto.usuario,
-      horario: dto.horario.into(),
+      dia: Dia::from(dto.dia.as_str()),
+      horas: dto.horas,
       fecha_creacion: dto.fecha_creacion,
       caducidad_fecha_ini: dto.caducidad_fecha_ini,
       caducidad_fecha_fin: dto.caducidad_fecha_fin,
+      cortesia: dto.cortesia,
     }
   }
 }
@@ -510,7 +501,7 @@ pub struct CumplimientoHorarioDTO {
   pub fecha: NaiveDate,
   pub horas_trabajo_efectivo: f64,
   pub horas_trabajadas: f64,
-  pub horas_a_trabajar: f64,
+  pub horas_a_trabajar: u8,
   pub saldo: f64,
   pub nota: String,
 }

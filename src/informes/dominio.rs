@@ -10,7 +10,7 @@ pub struct CumplimientoHorario {
   pub fecha: NaiveDate,
   pub horas_trabajo_efectivo: f64,
   pub horas_trabajadas: f64,
-  pub horas_a_trabajar: f64,
+  pub horas_a_trabajar: u8,
   pub saldo: f64,
   pub nota: String,
 }
@@ -21,7 +21,7 @@ impl CumplimientoHorario {
       fecha,
       horas_trabajo_efectivo: 0.0,
       horas_trabajadas: 0.0,
-      horas_a_trabajar: 0.0,
+      horas_a_trabajar: 0,
       saldo: 0.0,
       nota,
     }
@@ -97,14 +97,15 @@ impl HorariosUsuario {
     HorariosUsuario { horarios }
   }
 
-  /// Calcula las horas teóricas que el usuario debería trabajar para una fecha.
+  /// Busca el horario dada una fecha.
   ///
   /// Este cálculo identifica primero el bloque de configuración horaria vigente
   /// (aquel cuya fecha de creación es la más reciente anterior a la
   /// fecha consultada).
+  ///
   /// Posteriormente, filtra por el día de la semana y verifica que el horario
   /// específico no haya caducado para esa fecha.
-  pub fn horas_a_trabajar(&self, fecha: NaiveDate) -> f64 {
+  pub fn buscar(&self, fecha: NaiveDate) -> Option<&ConfigHorario> {
     let fecha_creacion = self
       .horarios
       .iter()
@@ -115,20 +116,14 @@ impl HorariosUsuario {
     if let Some(fecha_creacion) = fecha_creacion {
       let dia_letra = crate::horario::Dia::from(fecha.weekday()).letra();
 
-      self
-        .horarios
-        .iter()
-        .filter(|h| h.fecha_creacion == fecha_creacion)
-        .filter(|h| h.horario.dia.letra() == dia_letra)
-        .filter(|h| {
-          let inicio_ok = h.caducidad_fecha_ini.is_none_or(|ini| fecha >= ini);
-          let fin_ok = h.caducidad_fecha_fin.is_none_or(|fin| fecha <= fin);
-          inicio_ok && fin_ok
-        })
-        .map(|h| h.horario.horas_a_trabajar())
-        .sum()
+      self.horarios.iter().find(|h| {
+        h.fecha_creacion == fecha_creacion
+          && h.dia.letra() == dia_letra
+          && h.caducidad_fecha_ini.is_none_or(|ini| fecha >= ini)
+          && h.caducidad_fecha_fin.is_none_or(|fin| fecha <= fin)
+      })
     } else {
-      0.0
+      None
     }
   }
 }
@@ -136,8 +131,7 @@ impl HorariosUsuario {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::horario::{Dia, Horario, TipoCalendarioFecha};
-  use chrono::NaiveTime;
+  use crate::horario::{Dia, TipoCalendarioFecha};
 
   #[test]
   fn test_dias_inhabiles_buscar() {
@@ -172,26 +166,22 @@ mod tests {
       descripcion: &'static str,
       configs: Vec<ConfigHorario>,
       fecha_consulta: NaiveDate,
-      horas_esperadas: f64,
+      horas_esperadas: u8,
     }
 
-    let h_base = |dia: Dia, h_ini: u32, h_fin: u32| Horario {
-      id: 1,
-      dia,
-      hora_inicio: NaiveTime::from_hms_opt(h_ini, 0, 0).unwrap(),
-      hora_fin: NaiveTime::from_hms_opt(h_fin, 0, 0).unwrap(),
-    };
-
-    let config = |horario: Horario,
+    let config = |dia: Dia,
+                  horas: u8,
                   creacion: NaiveDate,
                   ini: Option<NaiveDate>,
                   fin: Option<NaiveDate>| ConfigHorario {
       id: 1,
       usuario: 1,
-      horario,
+      dia,
+      horas,
       fecha_creacion: creacion,
       caducidad_fecha_ini: ini,
       caducidad_fecha_fin: fin,
+      cortesia: 0,
     };
 
     let fecha_creacion = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
@@ -199,121 +189,115 @@ mod tests {
     let casos = vec![
       TestCase {
         descripcion: "Prueba: Consulta de un día con horario válido. Se espera: 8 horas.",
-        configs: vec![config(
-          h_base(Dia::Lunes, 8, 16),
-          fecha_creacion,
-          None,
-          None,
-        )],
+        configs: vec![config(Dia::Lunes, 8, fecha_creacion, None, None)],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
-        horas_esperadas: 8.0,
+        horas_esperadas: 8,
       },
       TestCase {
         descripcion: "Prueba: Consulta de un día sin horario asignado. Se espera: 0 horas.",
-        configs: vec![config(
-          h_base(Dia::Lunes, 8, 16),
-          fecha_creacion,
-          None,
-          None,
-        )],
+        configs: vec![config(Dia::Lunes, 8, fecha_creacion, None, None)],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 1, 3).unwrap(),
-        horas_esperadas: 0.0,
+        horas_esperadas: 0,
       },
       TestCase {
         descripcion: "Prueba: Consulta en fecha anterior a la creación del horario. Se espera: 0 horas.",
-        configs: vec![config(
-          h_base(Dia::Domingo, 8, 16),
-          fecha_creacion,
-          None,
-          None,
-        )],
+        configs: vec![config(Dia::Domingo, 8, fecha_creacion, None, None)],
         fecha_consulta: fecha_creacion,
-        horas_esperadas: 0.0,
+        horas_esperadas: 0,
       },
       TestCase {
         descripcion: "Prueba: Consulta dentro del periodo de vigencia (caducidad). Se espera: 8 horas.",
         configs: vec![config(
-          h_base(Dia::Lunes, 8, 16),
+          Dia::Lunes,
+          8,
           fecha_creacion,
           Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
           Some(NaiveDate::from_ymd_opt(2023, 2, 28).unwrap()),
         )],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 2, 6).unwrap(),
-        horas_esperadas: 8.0,
+        horas_esperadas: 8,
       },
       TestCase {
         descripcion: "Prueba: Consulta antes del periodo de vigencia. Se espera: 0 horas.",
         configs: vec![config(
-          h_base(Dia::Lunes, 8, 16),
+          Dia::Lunes,
+          8,
           fecha_creacion,
           Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
           Some(NaiveDate::from_ymd_opt(2023, 2, 28).unwrap()),
         )],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 1, 30).unwrap(),
-        horas_esperadas: 0.0,
+        horas_esperadas: 0,
       },
       TestCase {
         descripcion: "Prueba: Consulta después del periodo de vigencia. Se espera: 0 horas.",
         configs: vec![config(
-          h_base(Dia::Lunes, 8, 16),
+          Dia::Lunes,
+          8,
           fecha_creacion,
           Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
           Some(NaiveDate::from_ymd_opt(2023, 2, 28).unwrap()),
         )],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 3, 6).unwrap(),
-        horas_esperadas: 0.0,
+        horas_esperadas: 0,
       },
       TestCase {
         descripcion: "Prueba: Consulta en el límite inferior de vigencia. Se espera: 8 horas.",
         configs: vec![config(
-          h_base(Dia::Miercoles, 8, 16),
+          Dia::Miercoles,
+          8,
           fecha_creacion,
           Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
           Some(NaiveDate::from_ymd_opt(2023, 2, 28).unwrap()),
         )],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 2, 1).unwrap(),
-        horas_esperadas: 8.0,
+        horas_esperadas: 8,
       },
       TestCase {
         descripcion: "Prueba: Consulta en el límite superior de vigencia. Se espera: 8 horas.",
         configs: vec![config(
-          h_base(Dia::Martes, 8, 16),
+          Dia::Martes,
+          8,
           fecha_creacion,
           Some(NaiveDate::from_ymd_opt(2023, 2, 1).unwrap()),
           Some(NaiveDate::from_ymd_opt(2023, 2, 28).unwrap()),
         )],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 2, 28).unwrap(),
-        horas_esperadas: 8.0,
+        horas_esperadas: 8,
       },
       TestCase {
         descripcion: "Prueba: Cambio de configuración de horario. Se espera: Horas del nuevo horario (4).",
         configs: vec![
-          config(h_base(Dia::Lunes, 8, 16), fecha_creacion, None, None),
+          config(Dia::Lunes, 8, fecha_creacion, None, None),
           config(
-            h_base(Dia::Lunes, 9, 13),
+            Dia::Lunes,
+            4,
             NaiveDate::from_ymd_opt(2023, 2, 1).unwrap(),
             None,
             None,
           ),
         ],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 2, 6).unwrap(),
-        horas_esperadas: 4.0,
+        horas_esperadas: 4,
       },
       TestCase {
-        descripcion: "Prueba: Múltiples horarios para el mismo día. Se espera: Suma de horas (8).",
+        descripcion: "Prueba: Múltiples horarios para el mismo día (ahora una sola entrada). Se espera: 8 horas.",
         configs: vec![
-          config(h_base(Dia::Lunes, 8, 12), fecha_creacion, None, None),
-          config(h_base(Dia::Lunes, 14, 18), fecha_creacion, None, None),
+          // Este caso ya no es posible, la BBDD agregará las horas en una sola fila.
+          config(Dia::Lunes, 8, fecha_creacion, None, None),
         ],
         fecha_consulta: NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
-        horas_esperadas: 8.0,
+        horas_esperadas: 8,
       },
     ];
 
     for caso in casos {
       let horarios_usuario = HorariosUsuario::new(caso.configs);
       assert_eq!(
-        horarios_usuario.horas_a_trabajar(caso.fecha_consulta),
+        horarios_usuario
+          .buscar(caso.fecha_consulta)
+          .map(|h| h.horas)
+          .unwrap_or(0),
         caso.horas_esperadas,
         "Fallo en: {}",
         caso.descripcion

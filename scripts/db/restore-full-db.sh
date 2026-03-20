@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Script para restaurar una base de datos específica desde un backup completo de MariaDB
+# Crea un fichero .sql en la carpeta destino para ejecutar desde el cliente.
 # Uso: ./restore_db.sh <nombre_bd> <fichero_backup.sql.gz> <ruta_destino>
 
 # Verificar número de argumentos

@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveTime, Weekday};
+use chrono::{NaiveDate, Weekday};
 
 #[derive(Debug)]
 pub enum Dia {
@@ -55,29 +55,22 @@ impl From<Weekday> for Dia {
 }
 
 #[derive(Debug)]
-pub struct Horario {
+pub struct DescriptorHorario {
   pub id: u32,
   pub dia: Dia,
-  pub hora_inicio: NaiveTime,
-  pub hora_fin: NaiveTime,
-}
-
-impl Horario {
-  #[inline]
-  pub fn horas_a_trabajar(&self) -> f64 {
-    let diferencia = self.hora_fin - self.hora_inicio;
-    diferencia.num_milliseconds() as f64 / 3_600_000.0
-  }
+  pub horas: u8,
 }
 
 #[derive(Debug)]
 pub struct ConfigHorario {
   pub id: u32,
   pub usuario: u32,
-  pub horario: Horario,
   pub fecha_creacion: NaiveDate,
+  pub dia: Dia,
+  pub horas: u8,
   pub caducidad_fecha_ini: Option<NaiveDate>,
   pub caducidad_fecha_fin: Option<NaiveDate>,
+  pub cortesia: u8,
 }
 
 #[derive(Debug)]

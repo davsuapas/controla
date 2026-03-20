@@ -95,28 +95,6 @@ export default function MarcajeList({ marcajes }: MarcajeListProps) {
                 backgroundColor: 'background.default',
               }}
             >
-              HORA A ENTRAR
-            </StyledTableCell>
-            <StyledTableCell
-              align="right"
-              sx={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                backgroundColor: 'background.default',
-              }}
-            >
-              HORA A SALIR
-            </StyledTableCell>
-            <StyledTableCell
-              align="right"
-              sx={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                backgroundColor: 'background.default',
-              }}
-            >
               HORAS TRABAJO EFECTIVO
             </StyledTableCell>
             <StyledTableCell
@@ -129,6 +107,17 @@ export default function MarcajeList({ marcajes }: MarcajeListProps) {
               }}
             >
               HORAS A TRABAJAR
+            </StyledTableCell>
+            <StyledTableCell
+              align="left"
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: 'background.default',
+              }}
+            >
+              REGISTRADOR EXTERNO
             </StyledTableCell>
           </TableRow>
         </TableHead>
@@ -149,12 +138,6 @@ export default function MarcajeList({ marcajes }: MarcajeListProps) {
               >
                 {marcaje.horaFinToStr()}
               </StyledTableCell>
-              <StyledTableCell align="right">
-                {marcaje.horario!.horaInicio}
-              </StyledTableCell>
-              <StyledTableCell align="right">
-                {marcaje.horario!.horaFin}
-              </StyledTableCell>
               <StyledTableCell
                 align="right"
                 sx={{
@@ -164,7 +147,16 @@ export default function MarcajeList({ marcajes }: MarcajeListProps) {
                 {marcaje.horaTrabajadasToStr()}
               </StyledTableCell>
               <StyledTableCell align="right">
-                {marcaje.horario!.horasATrabajarToStr()}
+                {marcaje.horario!.horas}
+              </StyledTableCell>
+              <StyledTableCell
+                align="left"
+                sx={{
+                  fontSize: '0.75rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {marcaje.registradorToStr()}
               </StyledTableCell>
             </StyledTableRow>
           ))}

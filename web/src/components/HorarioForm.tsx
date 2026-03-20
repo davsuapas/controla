@@ -7,6 +7,7 @@ import Grid from '@mui/material/Grid';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router';
@@ -14,15 +15,14 @@ import dayjs, { Dayjs } from 'dayjs';
 import { DiaSemana } from '../modelos/usuarios';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { useIsMounted } from '../hooks/useComponentMounted';
-import { TimeField } from '@mui/x-date-pickers/TimeField';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import LocalizationProviderES from '../theme/location';
 import { validarFechaHora } from '../error';
 
 export interface HorarioFormValues {
   dia: DiaSemana;
-  entrada: Dayjs | null;
-  salida: Dayjs | null;
+  horas: number;
+  cortesia: number;
   caducidadFechaIni: Dayjs | null;
   caducidadFechaFin: Dayjs | null;
 }
@@ -32,7 +32,7 @@ export interface HorarioFormState {
   errors: Partial<Record<keyof HorarioFormValues, string>>;
 }
 
-export type FormFieldValue = string | Dayjs | null;
+export type FormFieldValue = string | number | Dayjs | null;
 
 export interface HorarioFormProps {
   formState: HorarioFormState;
@@ -58,18 +58,14 @@ export function validaHorario(values: HorarioFormValues): ValidationResult {
     issues.push({ message: 'El día es requerido', path: ['dia'] });
   }
 
-  if (!values.entrada || !validarFechaHora(values.entrada)) {
-    issues.push({ message: 'La hora de entrada es requerida', path: ['entrada'] });
+  if (!values.horas) {
+    issues.push({ message: 'Las horas son requeridas', path: ['horas'] });
+  } else if (values.horas < 1 || values.horas > 24) {
+    issues.push({ message: 'Las horas deben estar entre 1 y 24', path: ['horas'] });
   }
 
-  if (!values.salida || !validarFechaHora(values.salida)) {
-    issues.push({ message: 'La hora de salida es requerida', path: ['salida'] });
-  }
-
-  if (values.entrada && values.salida && validarFechaHora(values.entrada) && validarFechaHora(values.salida)) {
-    if (values.salida.isBefore(values.entrada) || values.salida.isSame(values.entrada)) {
-      issues.push({ message: 'La salida debe ser mayor a la entrada', path: ['salida'] });
-    }
+  if (values.cortesia < 0 || values.cortesia > 120) {
+    issues.push({ message: 'Los minutos de cortesía deben estar entre 0 y 120', path: ['cortesia'] });
   }
 
   if (values.caducidadFechaIni) {
@@ -160,6 +156,16 @@ export default function HorarioForm(props: HorarioFormProps) {
     [onFieldChange],
   );
 
+  const handleNumberFieldChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onFieldChange(
+        event.target.name as keyof HorarioFormValues,
+        Number(event.target.value),
+      );
+    },
+    [onFieldChange],
+  );
+
   const handleDateFieldChange = React.useCallback(
     (name: keyof HorarioFormValues) => (value: Dayjs | null) => {
       onFieldChange(name, value);
@@ -220,33 +226,33 @@ export default function HorarioForm(props: HorarioFormProps) {
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>
-            <TimeField
-              label="Entrada"
-              value={formValues.entrada}
-              onChange={handleDateFieldChange('entrada')}
-              format="HH:mm"
+            <TextField
+              name="horas"
+              label="Horas a trabajar"
+              type="number"
+              value={formValues.horas}
+              onChange={handleNumberFieldChange}
+              error={!!formErrors.horas}
+              helperText={formErrors.horas ?? ' '}
+              fullWidth
               slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!formErrors.entrada,
-                  helperText: formErrors.entrada ?? ' '
-                }
+                htmlInput: { min: 1, max: 24, step: 1 }
               }}
             />
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex' }}>
-            <TimeField
-              label="Salida"
-              value={formValues.salida}
-              onChange={handleDateFieldChange('salida')}
-              format="HH:mm"
+            <TextField
+              name="cortesia"
+              label="Minutos de cortesía"
+              type="number"
+              value={formValues.cortesia}
+              onChange={handleNumberFieldChange}
+              error={!!formErrors.cortesia}
+              helperText={formErrors.cortesia ?? ' '}
+              fullWidth
               slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!formErrors.salida,
-                  helperText: formErrors.salida ?? ' '
-                }
+                htmlInput: { min: 0, max: 120, step: 1 }
               }}
             />
           </Grid>

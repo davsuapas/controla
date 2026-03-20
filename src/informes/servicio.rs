@@ -31,8 +31,10 @@ impl InformeServicio {
   /// Para cada día del mes, el informe calcula:
   /// - **Horas a trabajar**: La jornada teórica que el usuario debía
   ///   cumplir según su horario asignado.
-  /// - **Horas efectivas**: La suma total de horas trabajadas,
+  /// - **Horas efectivas**: La suma total de horas trabajadas sin cortesía,
   ///   calculada a partir de los marcajes de entrada y salida.
+  /// - **Horas trabajadas**: La suma total de horas trabajadas más la
+  ///   cortesía.
   /// - **Saldo diario**: La diferencia entre las horas efectivas
   ///   y las horas teóricas.
   /// - **Notas**: Anotaciones para aclarar situaciones especiales, como:
@@ -124,55 +126,58 @@ impl InformeServicio {
       .naive_local()
       .date();
 
-    while curr <= fecha_fin {
-      if curr > fecha_actual {
-        break;
-      }
-
-      let horas_a_trabajar = horarios_usuario.horas_a_trabajar(curr);
-
-      if horas_a_trabajar == 0.0 {
+    while curr <= fecha_fin && curr <= fecha_actual {
+      let Some(h) = horarios_usuario.buscar(curr) else {
         curr = curr.succ_opt().unwrap();
         continue;
-      }
+      };
+
+      let horas_a_trabajar = h.horas as f64;
+      let cortesia_en_horas = h.cortesia as f64 / 60.0;
 
       let horas_efectivas = horas_efectivas_marcajes
         .horas_efectivas(curr.day())
         .unwrap_or(0.0);
 
-      let linea = if let Some(inhabil) = dias_inhabiles.buscar(curr) {
-        if horas_efectivas > 0.0 {
-          let saldo = horas_efectivas - horas_a_trabajar;
+      let horas_trabajadas = if horas_efectivas < horas_a_trabajar {
+        (horas_efectivas + cortesia_en_horas).min(horas_a_trabajar)
+      } else {
+        horas_efectivas
+      };
+
+      let saldo = horas_trabajadas - horas_a_trabajar;
+
+      let linea = match dias_inhabiles.buscar(curr) {
+        Some(inhabil) if horas_efectivas > 0.0 => {
           total_saldo += saldo;
           CumplimientoHorario {
             fecha: curr,
             horas_trabajo_efectivo: horas_efectivas,
-            horas_trabajadas: horas_efectivas,
-            horas_a_trabajar,
+            horas_trabajadas,
+            horas_a_trabajar: h.horas,
             saldo,
-            nota: "No puede haber días inhábiles con marcajes".to_string(),
+            nota: format!("Día inhábil con marcajes: {:?}", inhabil.tipo),
           }
-        } else {
-          CumplimientoHorario::with_fecha_y_nota(
-            curr,
-            format!("Día inhábil. Motivo: {:?}", inhabil.tipo),
-          )
         }
-      } else {
-        let saldo = horas_efectivas - horas_a_trabajar;
-        total_saldo += saldo;
-        CumplimientoHorario {
-          fecha: curr,
-          horas_trabajo_efectivo: horas_efectivas,
-          horas_trabajadas: horas_efectivas,
-          horas_a_trabajar,
-          saldo,
-          nota: String::new(),
+        Some(inhabil) => CumplimientoHorario::with_fecha_y_nota(
+          curr,
+          format!("Día inhábil. Motivo: {:?}", inhabil.tipo),
+        ),
+        None => {
+          total_saldo += saldo;
+          CumplimientoHorario {
+            fecha: curr,
+            horas_trabajo_efectivo: horas_efectivas,
+            horas_trabajadas,
+            horas_a_trabajar: h.horas,
+            saldo,
+            nota: String::new(),
+          }
         }
       };
 
       lineas.push(linea);
-      curr = curr.succ_opt().unwrap();
+      curr = curr.succ_opt().unwrap_or(curr);
     }
 
     Ok(InformeCumplimiento {

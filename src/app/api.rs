@@ -92,10 +92,6 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
     )
     .route("/usuarios/{id}/ultimos_marcajes", get(ultimos_marcajes))
     .route(
-      "/usuarios/{id}/horario/sin/asignar/{fecha}",
-      get(horario_usuario_sin_asignar),
-    )
-    .route(
       "/usuarios/{id}/horario/cercano/{fecha}",
       get(horario_cercano),
     )
@@ -407,30 +403,22 @@ async fn ultimos_marcajes(
     .map(|regs| Json(DominiosWithCacheUsuarioDTO::<MarcajeOutDTO>::from(regs)))
 }
 
-/// Api para obtener el horario de un usuario completo.
-async fn horario_usuario_sin_asignar(
-  State(state): State<Arc<AppState>>,
-  Path(params): Path<UsuarioFechaParams>,
-) -> impl IntoResponse {
-  state
-    .horario_servicio
-    .horarios_usuario_sin_asignar(params.id, params.fecha.date())
-    .await
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
-}
-
 /// Api para obtener el horario de un usuario más próximo
 async fn horario_cercano(
   State(state): State<Arc<AppState>>,
   Path(params): Path<UsuarioFechaParams>,
 ) -> impl IntoResponse {
-  state
+  match state
     .horario_servicio
-    .horario_usuario_cercano(params.id, params.fecha)
+    .horario_usuario_cercano(params.id, params.fecha.date())
     .await
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
-    .map(|horarios| Json(vec_dominio_to_dtos::<_, HorarioDTO>(horarios)))
+  {
+    Ok(Some(horario)) => Json(HorarioDTO::from(horario)).into_response(),
+    Ok(None) => StatusCode::NOT_FOUND.into_response(),
+    Err(err) => {
+      (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()).into_response()
+    }
+  }
 }
 
 /// Api para obtener la configuración de horarios de un usuario.

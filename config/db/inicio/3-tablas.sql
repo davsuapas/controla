@@ -36,29 +36,19 @@ CREATE TABLE IF NOT EXISTS trazas (
   CONSTRAINT trazas_usuarios_FK_1 FOREIGN KEY (autor) REFERENCES usuarios (id) ON UPDATE CASCADE
 ) AUTO_INCREMENT=1 COMMENT='Son las trazas de cada registro';
 
-CREATE TABLE IF NOT EXISTS horarios (
-  id int(10) unsigned NOT NULL AUTO_INCREMENT,
-  dia char(1) NOT NULL,
-  hora_inicio time NOT NULL,
-  hora_fin time NOT NULL,
-  PRIMARY KEY (id),
-  INDEX idx_horarios_lookup (dia, hora_inicio, hora_fin)
-) AUTO_INCREMENT=1 COMMENT='Son lo horarios de cada usuario trabajador';
-
-
-CREATE TABLE `usuario_horarios` (
+CREATE TABLE `horarios` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `usuario` int(10) unsigned NOT NULL,
-  `horario` int(10) unsigned NOT NULL,
   `fecha_creacion` date NOT NULL,
+  `dia` char(1) NOT NULL,
+  `horas` TINYINT UNSIGNED NOT NULL,
   `caducidad_fecha_ini` date NOT NULL DEFAULT '1900-01-01',
   `caducidad_fecha_fin` date DEFAULT NULL,
+  `cortesia` TINYINT UNSIGNED DEFAULT 0,
   PRIMARY KEY (`id`),
-  KEY `usuario_horarios_horarios_FK` (`horario`),
-  UNIQUE KEY `idx_usuario_fecha` (`usuario`,`fecha_creacion` DESC, `horario`, `caducidad_fecha_ini`),
-  CONSTRAINT `usuario_horarios_horarios_FK` FOREIGN KEY (`horario`) REFERENCES `horarios` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `usuario_horarios_usuarios_FK` FOREIGN KEY (`usuario`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE
-) AUTO_INCREMENT=1 COMMENT='Se define los horarios que tiene un usuario para una fecha';
+  UNIQUE KEY `idx_usuario_fecha` (`usuario`,`fecha_creacion` DESC, `dia`, `caducidad_fecha_ini`),
+  CONSTRAINT `horarios_usuarios_FK` FOREIGN KEY (`usuario`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE
+) AUTO_INCREMENT=1 COMMENT='Define las horas a trabajar por un usuario para un día de la semana a partir de una fecha.';
 
 CREATE TABLE IF NOT EXISTS marcajes (
   id int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -66,15 +56,15 @@ CREATE TABLE IF NOT EXISTS marcajes (
   fecha date NOT NULL,
   hora_inicio time NOT NULL,
   hora_fin time DEFAULT NULL,
-  usuario_horario int(10) unsigned NOT NULL,
+  horario int(10) unsigned NOT NULL,
   usuario_registrador int(10) unsigned DEFAULT NULL,
   modificado_por int(10) unsigned DEFAULT NULL,
   eliminado tinyint(1) DEFAULT NULL,
   PRIMARY KEY (id),
-  KEY registros_horarios_FK (usuario_horario),
+  KEY `marcajes_horarios_FK` (`horario`),
   KEY registros_usuarios_FK_1 (usuario_registrador),
   KEY marcajes_usuario_fecha_desc (usuario,fecha DESC) USING BTREE,
-  CONSTRAINT marcajes_usuario_horarios_FK FOREIGN KEY (usuario_horario) REFERENCES usuario_horarios (id) ON UPDATE CASCADE,
+  CONSTRAINT `marcajes_horarios_FK` FOREIGN KEY (`horario`) REFERENCES `horarios` (`id`) ON UPDATE CASCADE,
   CONSTRAINT registros_usuarios_FK FOREIGN KEY (usuario) REFERENCES usuarios (id) ON UPDATE CASCADE,
   CONSTRAINT registros_usuarios_FK_1 FOREIGN KEY (usuario_registrador) REFERENCES usuarios (id) ON UPDATE CASCADE
 ) AUTO_INCREMENT=1 COMMENT='Son los registros de cada empleado (usuario)';

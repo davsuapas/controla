@@ -13,7 +13,6 @@ import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
 import { ConfigHorario, DiaSemana, Horario } from '../modelos/usuarios';
-import { formatDateForServer, formatTimeForServer } from '../modelos/formatos';
 
 // Mapeo de dayjs().day() (0=Domingo, 1=Lunes...) a DiaSemana
 const getDiaActual = (): DiaSemana => {
@@ -32,8 +31,8 @@ const getDiaActual = (): DiaSemana => {
 
 const INITIAL_FORM_VALUES: HorarioFormValues = {
   dia: getDiaActual(),
-  entrada: null,
-  salida: null,
+  horas: 8,
+  cortesia: 0,
   caducidadFechaIni: null,
   caducidadFechaFin: null,
 };
@@ -121,15 +120,14 @@ export default function HorarioCrear() {
       const nuevoHorario = new ConfigHorario({
         id: 0,
         usuario: state.usuarioId,
-        fechaCreacion: formatDateForServer(state.fechaCreacion)!,
-        caducidadFechaIni: formatDateForServer(values.caducidadFechaIni),
-        caducidadFechaFin: formatDateForServer(values.caducidadFechaFin),
+        fechaCreacion: state.fechaCreacion,
+        caducidadFechaIni: values.caducidadFechaIni,
+        caducidadFechaFin: values.caducidadFechaFin,
+        cortesia: values.cortesia,
         horario: new Horario({
           id: 0,
           dia: values.dia as DiaSemana,
-          horaInicio: formatTimeForServer(values.entrada!)!,
-          horaFin: formatTimeForServer(values.salida!)!,
-          horasATrabajar: 0
+          horas: values.horas!,
         })
       });
 

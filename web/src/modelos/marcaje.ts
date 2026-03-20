@@ -65,4 +65,11 @@ export class Marcaje {
       : '--';
   }
 
+  registradorToStr(): string {
+    if (!this.usuario_reg) {
+      return '';
+    }
+    return this.usuario_reg.nombreCorto();
+  }
+
 }
