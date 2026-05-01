@@ -44,6 +44,7 @@ export default function HorarioConfigurador() {
   const navigate = useNavigate();
   const location = useLocation();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const { confirm } = useDialogs();
   const isMounted = useIsMounted();
   const [fechaConfiguracion, setFechaConfiguracion] =
@@ -74,7 +75,7 @@ export default function HorarioConfigurador() {
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('horario-configurador.cargar', error);
+        logError('horario-configurador.cargar', dialogo?.alert, error);
         notifica.show('Error inesperado al cargar los horarios', {
           severity: 'error',
           autoHideDuration: 5000,
@@ -85,7 +86,7 @@ export default function HorarioConfigurador() {
         setIsLoading(false);
       }
     }
-  }, [notifica, isMounted]);
+  }, [notifica, isMounted, dialogo]);
 
   React.useEffect(() => {
     if (empleadoId) {
@@ -132,7 +133,7 @@ export default function HorarioConfigurador() {
         { severity: 'success', autoHideDuration: 5000 });
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('horario-configurador.duplicar', error);
+        logError('horario-configurador.duplicar', dialogo?.alert, error);
         notifica.show('Error al duplicar la configuración', { severity: 'error' });
       }
     } finally {
@@ -140,7 +141,7 @@ export default function HorarioConfigurador() {
         setIsLoading(false);
       }
     }
-  }, [empleadoId, fechaConfiguracion, notifica]);
+  }, [empleadoId, fechaConfiguracion, notifica, dialogo]);
 
   const handleNuevoHorario = React.useCallback(() => {
     if (!empleadoId) {
@@ -177,8 +178,10 @@ export default function HorarioConfigurador() {
         }
       } catch (error) {
         if (error instanceof NetErrorControlado) return;
-        logError('horario-configurador.eliminar', error);
-        notifica.show('Error al eliminar el horario', { severity: 'error', autoHideDuration: 5000 });
+        logError('horario-configurador.eliminar', dialogo?.alert, error);
+        notifica.show(
+          'Error al eliminar el horario',
+          { severity: 'error', autoHideDuration: 5000 });
       }
     }
   }, [confirm, api, notifica, empleadoId, loadData]);

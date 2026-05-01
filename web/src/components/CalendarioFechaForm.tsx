@@ -36,6 +36,7 @@ export interface CalendarioFechaFormProps {
   onBack: () => void;
 }
 
+
 export type ValidationResult = {
   issues: { message: string; path: (keyof CalendarioFecha)[] }[]
 };

@@ -5,6 +5,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import { api } from '../api/fabrica';
 import { NetErrorControlado } from '../net/interceptor';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import { logError } from '../error';
 import { useIsMounted } from '../hooks/useComponentMounted';
@@ -28,6 +29,7 @@ export default function SelectorEmpleado({
 }: SelectorEmpleadoProps) {
   const isMounted = useIsMounted();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
 
   const [empleados, setEmpleados] = useState<DescriptorUsuario[]>([]);
   const [empleado, setEmpleado] =
@@ -63,7 +65,7 @@ export default function SelectorEmpleado({
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('selector-empleado.cargar', error);
+        logError('selector-empleado.cargar', dialogo?.alert, error);
         notifica.show(
           'Error inesperado al cargar los empleados',
           {
@@ -78,8 +80,8 @@ export default function SelectorEmpleado({
       setEmpleados(empls);
       setIsLoading(false);
       if (onLoadingChange) onLoadingChange(false);
-    };
-  }, [onLoadingChange, onChange, notifica]);
+    }
+  }, [onLoadingChange, onChange, notifica, dialogo]);
 
   useEffect(() => {
     cargarEmpleados();

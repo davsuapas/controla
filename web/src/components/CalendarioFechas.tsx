@@ -26,6 +26,7 @@ export default function CalendarioFechas() {
   const navegar = useNavigate();
   const notifica = useNotifications();
   const isMounted = useIsMounted();
+  const dialogo = useDialogs();
   const { confirm } = useDialogs();
   const selectorFechasRef = React.useRef<SelectorFechasRef>(null);
 
@@ -48,7 +49,7 @@ export default function CalendarioFechas() {
       if (isMounted.current) setRows(listData);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('calendario-fechas.cargar', error);
+        logError('calendario-fechas.cargar', dialogo?.alert, error);
         notifica.show('Error inesperado al cargar las fechas del calendario', {
           severity: 'error',
           autoHideDuration: 5000,
@@ -88,7 +89,7 @@ export default function CalendarioFechas() {
         await loadData();
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('calendario-fechas.eliminar', error);
+          logError('calendario-fechas.eliminar', dialogo?.alert, error);
           notifica.show('Error inesperado al eliminar la fecha', {
             severity: 'error',
             autoHideDuration: 5000,

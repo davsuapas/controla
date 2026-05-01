@@ -15,6 +15,7 @@ if [ -z "$1" ]; then
 fi
 
 APP=$1
+DEBUG_VAL=${2:-false} # Aceptar el segundo argumento para el valor de debug, por defecto false
 
 PROJECT_DIR="./web"
 DIST_DIR="dist"
@@ -30,8 +31,8 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Ejecutar el comando de build de Vite
-echo "Ejecutando 'npm run build'..."
-VITE_CONTROLA_WEB_APP=$APP npm run build
+echo "Ejecutando 'npm run build' (VITE_CONTROLA_WEB_DEBUG=$DEBUG_VAL VITE_CONTROLA_WEB_APP=$APP)..."
+VITE_CONTROLA_WEB_DEBUG=$DEBUG_VAL VITE_CONTROLA_WEB_APP=$APP npm run build
 
 # Mover o confirmar la ubicación de la distribución
 if [ -d "$DIST_DIR" ]; then

@@ -20,6 +20,7 @@ import { MarcajeOutDTO } from '../modelos/dto';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError, validarFechaHora } from '../error';
 import SelectorEmpleado from './SelectorEmpleado';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useIsMounted } from '../hooks/useComponentMounted';
 
 interface FormularioData {
@@ -41,6 +42,7 @@ export default function MarcajeManual() {
   const isMounted = useIsMounted();
   const usuarioLogeado = useUsuarioLogeado();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
 
   const [formData, setFormData] = useState<FormularioData>({
     fecha: dayjs(),
@@ -139,7 +141,7 @@ export default function MarcajeManual() {
 
         } catch (error) {
           if (!(error instanceof NetErrorControlado)) {
-            logError('marcaje-manual.registrar', error);
+            logError('marcaje-manual.registrar', dialogo?.alert, error);
 
             notifica.show(
               'Error inesperado al registrar el marcaje',

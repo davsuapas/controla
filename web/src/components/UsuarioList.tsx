@@ -19,6 +19,7 @@ import { api } from '../api/fabrica';
 import Chip from '@mui/material/Chip';
 import { NetErrorControlado } from '../net/interceptor';
 import useNotifications from '../hooks/useNotifications/useNotifications';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import PasswordIcon from '@mui/icons-material/Password';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { logError } from '../error';
@@ -27,6 +28,7 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 export default function UsuarioList() {
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const isMounted = useIsMounted();
 
   const [rowsState, setRowsState] = React.useState<{
@@ -47,7 +49,7 @@ export default function UsuarioList() {
       listData = await api().usuarios.usuarios();
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('usuario-listar.cargar', error);
+        logError('usuario-listar.cargar', dialogo?.alert, error);
 
         notifica.show(
           'Error inesperado al cargar la lista de usuarios',
@@ -64,7 +66,7 @@ export default function UsuarioList() {
         rows: listData,
       });
       setIsLoading(false);
-    };
+    }
 
   }, [notifica]);
 

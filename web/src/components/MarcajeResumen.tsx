@@ -12,6 +12,7 @@ import { Horario } from '../modelos/usuarios';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import Chip from '@mui/material/Chip';
 import { api } from '../api/fabrica';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { logError } from '../error';
 import Backdrop from '@mui/material/Backdrop';
 import { useIsMounted } from '../hooks/useComponentMounted';
@@ -32,6 +33,7 @@ interface ResumenMarcajesProps {
 export default function ResumenMacaje(props: ResumenMarcajesProps) {
 
   const isMounted = useIsMounted();
+  const dialogo = useDialogs();
   const notifica = useNotifications();
 
   const [marcaje, setMarcaje] = useState<Marcaje[]>([]);
@@ -57,14 +59,16 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
         }
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('resumen-marcaje.cargar.marcajes', error);
-          notifica.show(
-            'Error inesperado al cargar los últimos marcajes',
-            {
-              severity: 'error',
-              autoHideDuration: 5000,
-            },
-          );
+          if (!(error instanceof NetErrorControlado)) {
+            logError('resumen-marcaje.cargar.marcajes', dialogo?.alert, error);
+            notifica.show(
+              'Error inesperado al cargar los últimos marcajes',
+              {
+                severity: 'error',
+                autoHideDuration: 5000,
+              },
+            );
+          }
         }
       }
 
@@ -72,7 +76,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
         setMarcaje(marcajesData);
         setIsLoading(false);
       };
-    }, [notifica]);
+    }, [notifica, dialogo]);
 
   // Carga los horarios (depende de usuarioId, fecha y horaInicio)
   const cargarHorarios = React.useCallback(
@@ -88,7 +92,8 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
         }
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('resumen-marcaje.cargar.horarios', error);
+          logError('resumen-marcaje.cargar.horarios', dialogo?.alert, error);
+          // Eliminado logError duplicado
           notifica.show(
             'Error inesperado al cargar el horario',
             {
@@ -102,7 +107,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
       if (isMounted.current) {
         setHorario(horario);
       };
-    }, [notifica]);
+    }, [notifica, dialogo]);
 
   // Efecto para cargar marcajes (solo cuando cambia usuarioId)
   React.useEffect(() => {

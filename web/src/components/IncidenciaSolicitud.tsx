@@ -36,6 +36,7 @@ import { dataGridStyles } from '../theme/customizations/dataGrid';
 import SelectorEmpleado from './SelectorEmpleado';
 import { DescriptorUsuario, filtroUsuarioRegistra, RolID } from '../modelos/usuarios';
 import { useIsMounted } from '../hooks/useComponentMounted';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 
 const HORA_NO_VALIDA = 'Hora no valida';
 
@@ -54,6 +55,7 @@ const HORA_NO_VALIDA = 'Hora no valida';
 export default function SolicitudIncidencia() {
   const theme = useTheme();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const usuarioLog = useUsuarioLogeado().getUsrLogeado()
   const isMounted = useIsMounted();
 
@@ -115,7 +117,7 @@ export default function SolicitudIncidencia() {
         );
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('solicitud-incidencia.cargar', error);
+          logError('solicitud-incidencia.cargar', dialogo?.alert, error);
           notifica.show('Error inesperado al cargar la lista de marcajes', {
             severity: 'error',
             autoHideDuration: 5000,
@@ -127,7 +129,7 @@ export default function SolicitudIncidencia() {
         setRows(listData);
         limpiarSolicitudCreada();
         setIsLoading(false);
-      };
+      }
     },
     [usuarioLog.id, usuarioLog.roles, limpiarSolicitudCreada,
       notifica, setRows, setIsLoading]
@@ -259,7 +261,7 @@ export default function SolicitudIncidencia() {
           return;
         }
 
-        logError('solicitud-incidencia.crear', error);
+        logError('solicitud-incidencia.crear', dialogo?.alert, error);
 
         notifica.show('Error inesperado al crear una solicitud de incidencia', {
           severity: 'error',
@@ -267,7 +269,7 @@ export default function SolicitudIncidencia() {
         });
       }
     },
-    [fecha]
+    [fecha, dialogo]
   );
 
   // Cierra la modal mediante un borón aceptar y otro cancelar

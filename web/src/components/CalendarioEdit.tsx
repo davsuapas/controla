@@ -9,6 +9,7 @@ import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
 import { useIsMounted } from '../hooks/useComponentMounted';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import CalendarioForm, {
   validaCalendario,
   type FormFieldValue,
@@ -25,6 +26,7 @@ function CalendarioEditForm({
 }) {
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
 
   const [formState, setFormState] = React.useState<CalendarioFormState>({
     values: initialValues,
@@ -82,7 +84,7 @@ function CalendarioEditForm({
     } catch (error) {
       if (error instanceof NetErrorControlado) return;
 
-      logError('calendario-editar.actualizar', error);
+      logError('calendario-editar.actualizar', dialogo?.alert, error);
 
       notifica.show('Error inesperado al actualizar el calendario', {
         severity: 'error',
@@ -105,6 +107,7 @@ function CalendarioEditForm({
 export default function CalendarioEdit() {
   const { id } = useParams<{ id: string }>();
   const isMounted = useIsMounted();
+  const dialogo = useDialogs();
 
   const [calendario, setCalendario] = React.useState<Calendario | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -119,7 +122,7 @@ export default function CalendarioEdit() {
         if (isMounted.current) setCalendario(showData);
       } catch (err) {
         if (!(err instanceof NetErrorControlado)) {
-          logError('calendario-editar.cargar', err);
+          logError('calendario-editar.cargar', dialogo?.alert, err);
           setError(Error('Error inesperado al cargar el calendario'));
         }
       } finally {

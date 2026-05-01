@@ -14,6 +14,7 @@ import { EstadoIncidencia, Incidencia, NombresEstadoIncidencia, NombresTipoIncid
 import { Button, Card, CardContent, FormControl, Grid, InputLabel, MenuItem, Popover, Select, Stack, Tooltip, useTheme, Typography, Box, Chip, Divider, useMediaQuery } from '@mui/material';
 import dayjs from 'dayjs';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { dataGridStyles } from '../theme/customizations/dataGrid';
 import { timeToStr } from '../modelos/formatos';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
@@ -86,6 +87,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
   const theme = useTheme();
   const notifica = useNotifications();
   const usuario = useUsuarioLogeado().getUsrLogeado();
+  const dialogo = useDialogs();
   const isMounted = useIsMounted();
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -158,7 +160,7 @@ export default function IncidenciaList(props: IncidenciaListProps) {
         props.usuarioFiltro ? props.usuarioFiltro : null)
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('incidencias-listar.cargar', error);
+        logError('incidencias-listar.cargar', dialogo?.alert, error);
         notifica.show(
           'Error inesperado al cargar la lista de incidencias',
           {

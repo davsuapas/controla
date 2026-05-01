@@ -17,6 +17,7 @@ import { Usuario } from '../modelos/usuarios';
 import { UsuarioOutDTO } from '../modelos/dto';
 import { api } from '../api/fabrica';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { logError } from '../error';
 import { useIsMounted } from '../hooks/useComponentMounted';
 
@@ -29,6 +30,7 @@ function UsuarioEditForm({
 }) {
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
 
   const [formState, setFormState] = React.useState<UsuarioFormState>(() => ({
     values: initialValues,
@@ -134,7 +136,7 @@ function UsuarioEditForm({
         return;
       }
 
-      logError('usuario-editar.actualizar', error);
+      logError('usuario-editar.actualizar', dialogo?.alert, error);
 
       notifica.show(
         'Error inesperado al actualizar el usuario',
@@ -144,7 +146,7 @@ function UsuarioEditForm({
         },
       );
     }
-  }, [formValues, notifica, navegar, onSubmit]);
+  }, [formValues, notifica, navegar, onSubmit, dialogo]);
 
   return (
     <UsuarioForm
@@ -162,6 +164,7 @@ export default function UsuarioEdit() {
   const { id } = useParams();
   const { getUsrLogeado } = useUsuarioLogeado()
   const isMounted = useIsMounted();
+  const dialogo = useDialogs();
 
   const [usuario, setUsuario] = React.useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -179,7 +182,7 @@ export default function UsuarioEdit() {
       };
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('usuario-editar.cargar', error);
+        logError('usuario-editar.cargar', dialogo?.alert, error);
         setError(Error('Error inesperado al crear el usuario'));
       }
     }
@@ -187,7 +190,7 @@ export default function UsuarioEdit() {
     if (isMounted.current) {
       setIsLoading(false);
     };
-  }, [id]);
+  }, [id, dialogo]);
 
   React.useEffect(() => {
     loadData();

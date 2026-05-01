@@ -11,6 +11,7 @@ import PageContainer from './PageContainer';
 import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useIsMounted } from '../hooks/useComponentMounted';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -22,6 +23,7 @@ export default function HorarioEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const isMounted = useIsMounted();
 
   const [isLoading, setIsLoading] = React.useState(true);
@@ -64,7 +66,7 @@ export default function HorarioEdit() {
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('horario-edit.cargar', error);
+        logError('horario-edit.cargar', dialogo?.alert, error);
         if (isMounted.current) {
           setError(Error('Error inesperado al cargar el horario'));
         }
@@ -74,7 +76,7 @@ export default function HorarioEdit() {
         setIsLoading(false);
       }
     }
-  }, [id, isMounted]);
+  }, [id, isMounted, dialogo]);
 
   React.useEffect(() => {
     loadData();
@@ -151,7 +153,7 @@ export default function HorarioEdit() {
       });
     } catch (error) {
       if (error instanceof NetErrorControlado) return;
-      logError('horario-edit.actualizar', error);
+      logError('horario-edit.actualizar', dialogo?.alert, error);
       notifica.show('Error inesperado al actualizar el horario',
         { severity: 'error', autoHideDuration: 5000 });
     }

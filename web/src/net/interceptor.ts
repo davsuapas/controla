@@ -62,7 +62,6 @@ axios.interceptors.response.use(
 
     switch (status) {
       case 400:
-        console.log('Error 400:', data);
         notifica.show(
           'Información no legible. Contacte con el administrador',
           {
@@ -70,6 +69,7 @@ axios.interceptors.response.use(
             autoHideDuration: 5000,
           });
 
+        await logError('Error 400', dialogo?.alert, error);
         break;
 
       case 401:
@@ -105,7 +105,7 @@ axios.interceptors.response.use(
               autoHideDuration: duracion,
             });
         } else {
-          console.log('Error 500 interno:', data);
+          console.log('Error 500 interno (data):', data);
           notifica.show(msg_error_interno,
             {
               severity: 'error',
@@ -113,17 +113,18 @@ axios.interceptors.response.use(
             });
         }
 
+        await logError('Error 500', dialogo?.alert, error);
         break;
       default:
         if ((error.config as ConfigRequest)?.manejarErrorInesperado === true) {
           return Promise.reject(error);
         }
-        logError('interceptor:', error);
 
         notifica.show('Error inesperado. Contacte con el administrador', {
           severity: 'error',
           autoHideDuration: 5000,
         });
+        await logError('Error desconocido', dialogo?.alert, error);
     }
 
     return Promise.reject(new NetErrorControlado(error));

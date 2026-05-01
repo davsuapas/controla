@@ -16,6 +16,7 @@ import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { UsuarioOutDTO } from '../modelos/dto';
 import { Usuario, UsuarioCalendario } from '../modelos/usuarios';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
 
@@ -27,6 +28,7 @@ const INITIAL_FORM_VALUES: Partial<UsuarioFormState['values']> = {
 export default function UsuarioCreate() {
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const { getUsrLogeado } = useUsuarioLogeado()
 
   const [formState, setFormState] = React.useState<UsuarioFormState>(() => ({
@@ -112,7 +114,7 @@ export default function UsuarioCreate() {
           },
         }));
       } catch (error) {
-        logError('UsuarioCrear.cargaCalendarios', error);
+        logError('UsuarioCrear.cargaCalendarios', dialogo?.alert, error);
         notifica.show('Error cargando calendarios', { severity: 'error' });
       }
     };
@@ -164,7 +166,7 @@ export default function UsuarioCreate() {
         return;
       }
 
-      logError('usuario-crear.crear', error);
+      logError('usuario-crear.crear', dialogo?.alert, error);
 
       notifica.show(
         'Error inesperado al crear el usuario',
@@ -174,7 +176,7 @@ export default function UsuarioCreate() {
         },
       );
     }
-  }, [formValues, notifica, navegar, getUsrLogeado]);
+  }, [formValues, notifica, navegar, getUsrLogeado, dialogo]);
 
   return (
     <PageContainer

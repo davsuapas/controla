@@ -11,6 +11,7 @@ const puertoDebug = '5000'
 // Variables de entorno
 // Si se modifica este nombre cambiarlo en /scripts/web/build.sh
 const APP = import.meta.env.VITE_CONTROLA_WEB_APP;
+export const IS_DEBUG = import.meta.env.VITE_CONTROLA_WEB_DEBUG === 'true';
 
 // Configuración para la comunicación con el API
 const protocol = window.location.protocol;

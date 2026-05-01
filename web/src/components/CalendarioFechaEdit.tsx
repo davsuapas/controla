@@ -9,6 +9,7 @@ import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
 import { useIsMounted } from '../hooks/useComponentMounted';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import CalendarioFechaForm, {
   validaCalendarioFecha,
   type FormFieldValue,
@@ -26,6 +27,7 @@ function CalendarioFechaEditForm({
   onBack: () => void;
 }) {
   const notifica = useNotifications();
+  const dialogo = useDialogs();
 
   const [formState, setFormState] = React.useState<CalendarioFechaFormState>({
     values: initialValues,
@@ -81,7 +83,7 @@ function CalendarioFechaEditForm({
 
     } catch (error) {
       if (error instanceof NetErrorControlado) return;
-      logError('calendario-fecha-editar.actualizar', error);
+      logError('calendario-fecha-editar.actualizar', dialogo?.alert, error);
       notifica.show('Error inesperado al actualizar la fecha', {
         severity: 'error',
         autoHideDuration: 5000,
@@ -104,6 +106,7 @@ function CalendarioFechaEditForm({
 export default function CalendarioFechaEdit() {
   const { id: calendarioId, fechaId } = useParams<{ id: string, fechaId: string }>();
   const isMounted = useIsMounted();
+  const dialogo = useDialogs();
   const navegar = useNavigate();
 
   const [fecha, setFecha] = React.useState<CalendarioFecha | null>(null);
@@ -119,7 +122,7 @@ export default function CalendarioFechaEdit() {
         if (isMounted.current) setFecha(showData);
       } catch (err) {
         if (!(err instanceof NetErrorControlado)) {
-          logError('calendario-fecha-editar.cargar', err);
+          logError('calendario-fecha-editar.cargar', dialogo?.alert, err);
           if (isMounted.current) {
             setError(Error('Error inesperado al cargar la fecha del calendario'));
           }

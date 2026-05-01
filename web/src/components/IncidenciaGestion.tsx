@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { crearModalInfoSolicitudProps, InfoSolicitud, ModalInfoSolicitud } from './IncidenciaSolicitud';
 import { NetErrorControlado } from '../net/interceptor';
 import { logError } from '../error';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import useNotifications from '../hooks/useNotifications/useNotifications';
 import { api } from '../api/fabrica';
 import { useIsMounted } from '../hooks/useComponentMounted';
@@ -22,6 +23,7 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 export default function GestionIncidencia() {
   const notifica = useNotifications();
   const usuario = useUsuarioLogeado().getUsrLogeado();
+  const dialogo = useDialogs();
   const isMounted = useIsMounted();
 
   const [rows, setRows] = React.useState<IncidenciaGrid[]>([]);
@@ -54,7 +56,7 @@ export default function GestionIncidencia() {
         };
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('gestion-incidencia.solicitar-incidencia', error);
+          logError('gestion-incidencia.solicitar-incidencia', dialogo?.alert, error);
           notifica.show( // <--- Dependencia
             'Error inesperado al volver a realizar una solicitud de incidencia',
             { severity: 'error', autoHideDuration: 5000 }
@@ -63,7 +65,7 @@ export default function GestionIncidencia() {
       }
       if (isMounted.current) {
         setIsLoading(false);
-      };
+      }
     },
     [usuario.id, actualizarRegistro, notifica] // Dependencias estables
   );

@@ -11,10 +11,10 @@ import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import IncidenciaList, { IncidenciaAction, IncidenciaGrid } from './IncidenciaList';
 import { EstadoIncidencia } from '../modelos/incidencias';
 import React from 'react';
-import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { api } from '../api/fabrica';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { IncidenciaProcesoDTO } from '../modelos/dto';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import dayjs from 'dayjs';
 import { NetErrorControlado } from '../net/interceptor';
 import { logError } from '../error';
@@ -187,7 +187,7 @@ export default function RevisionIncidencia() {
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('incidencias.procesar', error);
+        logError('incidencias.procesar', dialogo?.alert, error);
         notifica.show(
           'Error inesperado al cargar la lista de incidencias procesadas',
           {

@@ -11,6 +11,7 @@ import PageContainer from './PageContainer';
 import dayjs from 'dayjs';
 import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { logError } from '../error';
 import { ConfigHorario, DiaSemana, Horario } from '../modelos/usuarios';
 
@@ -40,6 +41,7 @@ const INITIAL_FORM_VALUES: HorarioFormValues = {
 export default function HorarioCrear() {
   const navigate = useNavigate();
   const location = useLocation();
+  const dialogo = useDialogs();
   const notifica = useNotifications();
 
   const [formState, setFormState] = React.useState<HorarioFormState>(() => ({
@@ -144,7 +146,7 @@ export default function HorarioCrear() {
 
     } catch (error) {
       if (error instanceof NetErrorControlado) return;
-      logError('horario-crear.crear', error);
+      logError('horario-crear.crear', dialogo?.alert, error);
       notifica.show('Error inesperado al crear el horario',
         { severity: 'error', autoHideDuration: 5000 });
     }

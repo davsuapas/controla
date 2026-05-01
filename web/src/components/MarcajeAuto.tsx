@@ -13,6 +13,7 @@ import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import SelectorEmpleado from './SelectorEmpleado';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import PageContainer from './PageContainer';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { useIsMounted } from '../hooks/useComponentMounted';
 
@@ -23,6 +24,7 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 export default function MarcajeAuto() {
   const usuarioLog = useUsuarioLogeado().getUsrLogeado();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const isMounted = useIsMounted();
 
   const [fechaActual, setFechaActual] = React.useState<dayjs.Dayjs>(dayjs());
@@ -51,9 +53,9 @@ export default function MarcajeAuto() {
       // El manejo de errores puede o no usar safeExecute.
       // Las notificaciones (notifica.show) generalmente se pueden disparar
       // sin necesidad de safeExecute, ya que no suelen actualizar el estado interno
-      // del componente que se está desmontando, sino un componente externo (el Notifier).
+      // del componente que se está desmontando, sino un componente externo (el Notifier).      if (!(error instanceof NetErrorControlado)) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('marcaje-auto.salida-nula', error);
+        logError('marcaje-auto.salida-nula', dialogo?.alert, error);
         notifica.show(
           'Error inesperado obteniendo estado del marcaje. ' +
           'Vuelva a intentarlo, recargando la página con F5', {
@@ -66,7 +68,7 @@ export default function MarcajeAuto() {
         setBloquear(true);
       };
     }
-  }, [empleado, notifica]);
+  }, [empleado, notifica, dialogo]);
 
   React.useEffect(() => {
     activarEntradaSalida();
@@ -97,7 +99,7 @@ export default function MarcajeAuto() {
       });
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('marcaje-auto.entrada', error);
+        logError('marcaje-auto.entrada', dialogo?.alert, error);
         notifica.show(
           'Error inesperado enviando la entrada del marcaje. ' +
           'Vuelva a intentarlo.', {
@@ -106,7 +108,7 @@ export default function MarcajeAuto() {
         });
       }
     }
-  }, [notifica]);
+  }, [notifica, dialogo]);
 
   // Marcar la salida
   const handleSalida = React.useCallback(async () => {
@@ -126,7 +128,7 @@ export default function MarcajeAuto() {
       });
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('marcaje-auto.salida', error);
+        logError('marcaje-auto.salida', dialogo?.alert, error);
         notifica.show(
           'Error inesperado enviando la salida del marcaje. ' +
           'Vuelva a intentarlo.', {
@@ -135,7 +137,7 @@ export default function MarcajeAuto() {
         });
       }
     }
-  }, [notifica]);
+  }, [notifica, dialogo]);
 
   const handleEmpleadoChange = React.useCallback(
     (empleado: DescriptorUsuario) => {

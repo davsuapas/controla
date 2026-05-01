@@ -5,6 +5,7 @@ import PageContainer from './PageContainer';
 import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
 import { logError } from '../error';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import CalendarioFechaForm, {
   validaCalendarioFecha,
   type FormFieldValue,
@@ -22,6 +23,7 @@ const INITIAL_FORM_VALUES: Partial<CalendarioFechaFormState['values']> = {
 export default function CalendarioFechaCrear() {
   const { id: calendarioId } = useParams<{ id: string }>();
   const navegar = useNavigate();
+  const dialogo = useDialogs();
   const notifica = useNotifications();
 
   const [formState, setFormState] = React.useState<CalendarioFechaFormState>({
@@ -87,7 +89,7 @@ export default function CalendarioFechaCrear() {
         if (error instanceof NetErrorControlado) {
           return;
         }
-        logError('calendario-fecha-crear.crear', error);
+        logError('calendario-fecha-crear.crear', dialogo?.alert, error);
         notifica.show('Error inesperado al crear la fecha', {
           severity: 'error',
           autoHideDuration: 5000,

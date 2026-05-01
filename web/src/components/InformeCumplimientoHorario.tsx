@@ -10,6 +10,7 @@ import { api } from '../api/fabrica';
 import { Backdrop, CircularProgress, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, useMediaQuery, useTheme, FormControl, InputLabel, Select, MenuItem, TextField, Typography } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { DescriptorUsuario, RolID } from '../modelos/usuarios';
 import SelectorEmpleado from './SelectorEmpleado';
@@ -48,6 +49,7 @@ export default function InformeCumplimientoHorario() {
   const isMounted = useIsMounted();
   const theme = useTheme();
   const usuarioLog = useUsuarioLogeado().getUsrLogeado();
+  const dialogo = useDialogs();
   const notifica = useNotifications();
 
   const [informe, setInforme] = useState<InformeCumplimiento | null>(null);
@@ -85,7 +87,7 @@ export default function InformeCumplimientoHorario() {
           empleado, mes, anio);
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('informe-cumplimiento.cargar.informe', error);
+          logError('informe-cumplimiento.cargar.informe', dialogo?.alert, error);
           notifica.show(
             'Error inesperado al cargar el informe',
             {
@@ -100,8 +102,7 @@ export default function InformeCumplimientoHorario() {
         setInforme(informeData);
         setIsLoading(false);
       }
-    },
-    [empleado, mes, anio, usuarioLog, notifica]
+    }, [empleado, mes, anio, usuarioLog, notifica, dialogo]
   );
 
   React.useEffect(() => {

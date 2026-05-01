@@ -11,6 +11,7 @@ import { Usuario } from '../modelos/usuarios';
 import { api } from '../api/fabrica';
 import useUsuarioLogeado from "../hooks/useUsuarioLogeado/useUsuarioLogeado";
 import { NetErrorControlado } from '../net/interceptor';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { logError } from '../error';
 import { useIsMounted } from '../hooks/useComponentMounted';
@@ -18,6 +19,7 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 export default function UsuarioShow() {
   const { getUsrLogeado } = useUsuarioLogeado();
   const isMounted = useIsMounted();
+  const dialogo = useDialogs();
 
   const [usuario, setUsuario] = React.useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -36,7 +38,7 @@ export default function UsuarioShow() {
       }
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('usuario-visualizar.cargar', error);
+        logError('usuario-visualizar.cargar', dialogo?.alert, error);
         if (isMounted.current) {
           setError(Error('Error inesperado al visualizar el usuario'));
         }
@@ -46,7 +48,7 @@ export default function UsuarioShow() {
     if (isMounted.current) {
       setIsLoading(false);
     }
-  }, [getUsrLogeado]);
+  }, [getUsrLogeado, dialogo]);
 
   React.useEffect(() => {
     loadData();

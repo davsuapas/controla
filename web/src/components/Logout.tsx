@@ -6,12 +6,14 @@ import React from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
+import { useDialogs } from "../hooks/useDialogs/useDialogs";
 import PageContainer from "./PageContainer";
 import { logError } from "../error";
 import { useIsMounted } from '../hooks/useComponentMounted';
 import { URL_BASE_ROUTER } from "../config";
 
 export default function Logout() {
+  const dialogo = useDialogs();
   const { setUsrLogeado, getUsrLogeado } = useUsuarioLogeado()
   const isMounted = useIsMounted();
 
@@ -36,7 +38,7 @@ export default function Logout() {
       window.location.replace(URL_BASE_ROUTER);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('logout', error);
+        logError('logout', dialogo?.alert, error);
 
         if (isMounted.current) {
           setError(Error('Error inesperado al cerrar la sesión'));
@@ -46,7 +48,7 @@ export default function Logout() {
 
     if (isMounted.current) {
       setIsLoading(false);
-    };
+    }
 
   }, [setUsrLogeado, getUsrLogeado]);
 

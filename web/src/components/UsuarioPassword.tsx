@@ -10,6 +10,7 @@ import UsuarioForm, {
 import PageContainer from './PageContainer';
 import { NetErrorControlado } from '../net/interceptor';
 import { api } from '../api/fabrica';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { logError } from '../error';
 
@@ -21,6 +22,7 @@ export default function UsuarioPassword() {
   const { id } = useParams();
   const navegar = useNavigate();
   const notifica = useNotifications();
+  const dialogo = useDialogs();
   const { getUsrLogeado } = useUsuarioLogeado()
 
   const componentePadre = id !== undefined
@@ -124,7 +126,7 @@ export default function UsuarioPassword() {
         return;
       }
 
-      logError('usuario-password.actualizar', error);
+      logError('usuario-password.actualizar', dialogo?.alert, error);
 
       notifica.show(
         'Error inesperado al modificar las password de el usuario',

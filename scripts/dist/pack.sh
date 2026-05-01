@@ -66,9 +66,9 @@ leer_variables_configuracion() {
     # Lee las líneas del archivo en un array
     readarray -t CONFIG_VARS < "$CONFIG_FILE"
     
-    # Comprobar que tenemos 6 variables.
-    if [ ${#CONFIG_VARS[@]} -lt 5 ]; then
-          echo "❌ Error: El archivo $CONFIG_FILE debe contener exactamente 5 líneas (valores). Se encontraron ${#CONFIG_VARS[@]}." >&2
+    # Comprobar que tenemos al menos 9 variables (indices 0-8).
+    if [ ${#CONFIG_VARS[@]} -lt 9 ]; then
+          echo "❌ Error: El archivo $CONFIG_FILE debe contener al menos 9 líneas (valores). Se encontraron ${#CONFIG_VARS[@]}." >&2
           exit
     fi
 
@@ -80,6 +80,7 @@ leer_variables_configuracion() {
     SRV_PROD="${CONFIG_VARS[5]}"
     BOOT_ADMIN_CREAR="${CONFIG_VARS[6]}"
     BOOT_ADMIN_DNI="${CONFIG_VARS[7]}"
+    SRV_DEBUG="${CONFIG_VARS[8]}" # Nueva variable para el modo debug
   else
     echo "❌ Error: No se encontró el archivo de configuración en $CONFIG_FILE." >&2
     exit 1
@@ -100,10 +101,12 @@ build() {
 
       echo "  ➡️ Construyendo y desplegando la aplicación $APP_NAME..."
 
+      leer_variables_configuracion "$dir/config.var"
+
       # Se construye por cada app porque se incrusta la app
       # dentro de los binarios. Esto no es necesario en el servicio api
       # porque la app va en el fichero de configuración.
-      ./scripts/web/build.sh "$APP_NAME"
+      ./scripts/web/build.sh "$APP_NAME" "$SRV_DEBUG" 
       if [ $? -ne 0 ]; then
         echo "❌ Error: build.sh falló" >&2
         exit 1
@@ -166,7 +169,7 @@ config() {
       local PACK_ETC_APP_CONFIG="$PACK_ETC_APP/config.json"
       mkdir -p $PACK_ETC_APP
 
-      leer_variables_configuracion "$dir/config.var"    
+      leer_variables_configuracion "$dir/config.var"
       
       ./scripts/dist/config.sh "$CONFIG_FOLDER/config-api.json" "$PACK_ETC_APP_CONFIG" $APP_NAME $DB_SOCKET $APP_NAME $DB_NOMBRE $DB_MAX_CONN $LOG_LEVEL $SRV_PUERTO $SRV_PROD $BOOT_ADMIN_CREAR $BOOT_ADMIN_DNI
 

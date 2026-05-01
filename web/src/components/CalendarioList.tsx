@@ -25,7 +25,8 @@ export default function CalendarioList() {
   const navegar = useNavigate();
   const notifica = useNotifications();
   const isMounted = useIsMounted();
-  const { confirm } = useDialogs();
+  const dialogo = useDialogs();
+  const { confirm } = dialogo;
 
   const [rows, setRows] = React.useState<Calendario[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -37,7 +38,7 @@ export default function CalendarioList() {
       if (isMounted.current) setRows(listData);
     } catch (error) {
       if (!(error instanceof NetErrorControlado)) {
-        logError('calendario-listar.cargar', error);
+        logError('calendario-listar.cargar', dialogo?.alert, error);
         notifica.show('Error inesperado al cargar los calendarios', {
           severity: 'error',
           autoHideDuration: 5000,
@@ -79,7 +80,7 @@ export default function CalendarioList() {
         await loadData();
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('calendario-listar.eliminar', error);
+          logError('calendario-listar.eliminar', dialogo?.alert, error);
           notifica.show('Error inesperado al eliminar el calendario', {
             severity: 'error',
             autoHideDuration: 5000,

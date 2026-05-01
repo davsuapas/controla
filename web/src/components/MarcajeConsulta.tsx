@@ -14,6 +14,7 @@ import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
 import { DescriptorUsuario, filtroUsuarioRegistra, RolID } from '../modelos/usuarios';
 import SelectorEmpleado from './SelectorEmpleado';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useIsMounted } from '../hooks/useComponentMounted';
 
@@ -23,6 +24,7 @@ export default function ConsultaMarcaje() {
   const isMounted = useIsMounted();
   const theme = useTheme();
   const usuarioLog = useUsuarioLogeado().getUsrLogeado();
+  const dialogo = useDialogs();
   const notifica = useNotifications();
 
   const selectorFechasRef = React.useRef<SelectorFechasRef>(null);
@@ -64,7 +66,7 @@ export default function ConsultaMarcaje() {
           );
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
-          logError('consulta-marcaje.cargar.marcajes', error);
+          logError('consulta-marcaje.cargar.marcajes', dialogo?.alert, error);
           notifica.show(
             'Error inesperado al cargar los marcajes',
             {
@@ -79,7 +81,7 @@ export default function ConsultaMarcaje() {
         setMarcaje(marcajesData);
         setIsLoading(false);
       };
-    }, [empleado, usuarioLog, notifica]);
+    }, [empleado, usuarioLog, notifica, dialogo]);
 
   React.useEffect(() => {
     cargarMarcaje();
