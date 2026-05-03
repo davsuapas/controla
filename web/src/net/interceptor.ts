@@ -105,15 +105,14 @@ axios.interceptors.response.use(
               autoHideDuration: duracion,
             });
         } else {
-          console.log('Error 500 interno (data):', data);
           notifica.show(msg_error_interno,
             {
               severity: 'error',
               autoHideDuration: 5000,
             });
+          await logError('Error 500', dialogo?.alert, error);
         }
 
-        await logError('Error 500', dialogo?.alert, error);
         break;
       default:
         if ((error.config as ConfigRequest)?.manejarErrorInesperado === true) {
