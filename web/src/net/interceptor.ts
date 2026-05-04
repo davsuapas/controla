@@ -95,6 +95,8 @@ axios.interceptors.response.use(
           let duracion = 15000;
 
           if (mensajeUsuario === "") {
+            await logError('Error 500', dialogo?.alert, error);
+
             mensajeUsuario = msg_error_interno
             duracion = 5000
           }

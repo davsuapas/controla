@@ -319,7 +319,15 @@ impl MarcajeServicio {
       .repo
       .hora_fin_vacia(usuario, fecha, 0)
       .await
-      .map_err(ServicioError::from);
+      .map_err(|err| {
+        tracing::error!(
+          usuario = usuario,
+          fecha = ?fecha,
+          error = %err,
+          "Verificando si existe un marcaje sin hora fin para el usuario y fecha"
+        );
+        ServicioError::from(err)
+      });
   }
 
   /// Obtiene el marcaje dado un usuario y la fecha

@@ -131,6 +131,13 @@ impl MarcajeRepo {
     fecha: NaiveDate,
     excluir_marcaje_id: u32,
   ) -> Result<bool, DBError> {
+    tracing::debug!(
+      usuario = usuario,
+      fecha = ?fecha,
+      excluir_marcaje_id = excluir_marcaje_id,
+      "Verificando si existe un marcaje sin hora fin para el usuario y fecha"
+    );
+
     const QUERY: &str = "SELECT id
       FROM marcajes
       WHERE usuario = ? AND fecha = ?
@@ -139,7 +146,7 @@ impl MarcajeRepo {
       LIMIT 1;";
 
     Ok(
-      sqlx::query_scalar::<_, bool>(QUERY)
+      sqlx::query_scalar::<_, u32>(QUERY)
         .bind(usuario)
         .bind(fecha)
         .bind(excluir_marcaje_id)
