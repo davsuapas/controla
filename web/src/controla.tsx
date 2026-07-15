@@ -42,7 +42,7 @@ import CalendarioFechaCrear from './components/CalendarioFechaCrear';
 import CalendarioFechaEdit from './components/CalendarioFechaEdit';
 import InformeCumplimientoHorario from './components/InformeCumplimientoHorario';
 
-crearAPI(false);
+crearAPI(true);
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {

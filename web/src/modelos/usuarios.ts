@@ -76,13 +76,21 @@ export const ROLES: Map<RolID, {
   }],
   [RolID.Director, {
     nombre: 'Director',
-    ruta_login: '/',
-    rutas_acceso: ['/miarea/*']
+    ruta_login: '/marcaje/consulta',
+    rutas_acceso: [
+      '/miarea/*',
+      '/marcaje/consulta',
+      '/informes/cumplimiento'
+    ]
   }],
   [RolID.Inspector, {
     nombre: 'Inspector',
-    ruta_login: '',
-    rutas_acceso: ['/miarea/*']
+    ruta_login: '/marcaje/consulta',
+    rutas_acceso: [
+      '/miarea/*',
+      '/marcaje/consulta',
+      '/informes/cumplimiento'
+    ]
   }],
 ]);
 

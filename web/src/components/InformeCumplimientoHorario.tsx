@@ -57,7 +57,9 @@ export default function InformeCumplimientoHorario() {
 
   const usuarioSoloEmpleado =
     !usuarioLog.tieneRol(RolID.Registrador) &&
-    !usuarioLog.tieneRol(RolID.Supervisor);
+    !usuarioLog.tieneRol(RolID.Supervisor) &&
+    !usuarioLog.tieneRol(RolID.Director) &&
+    !usuarioLog.tieneRol(RolID.Inspector);
 
   const [empleado, setEmpleado] = React.useState<number>(usuarioLog.id);
   const [mes, setMes] = React.useState<number>(dayjs().month() + 1); // 1-12
