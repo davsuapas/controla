@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use sqlx::{Arguments, Row};
+use sqlx::{QueryBuilder, Row};
 
 use crate::{
   horario::{CalendarioFecha, repo::config_horario_from_row},
@@ -152,34 +152,29 @@ impl InformeRepo {
       .await
       .map_err(DBError::from_sqlx)?;
 
-    let mut query = String::from(
+    let mut qb = QueryBuilder::new(
       "SELECT id, usuario, fecha_creacion, dia, horas, cortesia,
         caducidad_fecha_ini, caducidad_fecha_fin
       FROM horarios
-      WHERE usuario = ? AND (",
+      WHERE usuario = ",
     );
-
-    let mut args = sqlx::mysql::MySqlArguments::default();
-    args
-      .add(usuario)
-      .map_err(|_| DBError::Parametros("Usuario"))?;
+    qb.push_bind(usuario);
+    qb.push(" AND (");
 
     if let Some(prev) = fecha_prev {
-      query.push_str("fecha_creacion = ? OR ");
-      args
-        .add(prev)
-        .map_err(|_| DBError::Parametros("Fecha prev"))?;
+      qb.push("fecha_creacion = ");
+      qb.push_bind(prev);
+      qb.push(" OR ");
     }
 
-    query.push_str("fecha_creacion BETWEEN ? AND ?)");
-    args
-      .add(fecha_inicio)
-      .map_err(|_| DBError::Parametros("Fecha inicio"))?;
-    args
-      .add(fecha_fin)
-      .map_err(|_| DBError::Parametros("Fecha fin"))?;
+    qb.push("fecha_creacion BETWEEN ");
+    qb.push_bind(fecha_inicio);
+    qb.push(" AND ");
+    qb.push_bind(fecha_fin);
+    qb.push(")");
 
-    let rows = sqlx::query_with(&query, args)
+    let rows = qb
+      .build()
       .fetch_all(self.pool.conexion())
       .await
       .map_err(DBError::from_sqlx)?;

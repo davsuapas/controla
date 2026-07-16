@@ -254,7 +254,7 @@ export class UsuariosTestApi implements UsuariosApi {
       segundo_apellido: 'Gómez',
       activo: '2024-01-15',
       inicio: '2024-01-10',
-      roles: [6]
+      roles: [1, 2, 3, 4, 5, 6, 7]
     })
   }
 

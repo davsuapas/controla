@@ -1,6 +1,6 @@
 use chrono::{NaiveDate, NaiveTime};
 
-use sqlx::Row;
+use sqlx::{QueryBuilder, Row};
 
 use crate::{
   horario::DescriptorHorario,
@@ -9,7 +9,6 @@ use crate::{
     Transaccion,
   },
   marcaje::{DescriptorMarcaje, Marcaje},
-  mysql_params,
   usuarios::DescriptorUsuario,
 };
 
@@ -298,17 +297,16 @@ impl MarcajeRepo {
   pub(in crate::marcaje) async fn ultimos_marcajes(
     &self,
     usuario: u32,
-    top: Option<&str>,
+    limit: Option<&str>,
   ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
 
     self
-      .marcajes(
-        top,
-        Some("r.usuario = ?"),
-        Some(mysql_params![usuario => "Usuario"]),
-        Some(ORDER_BY),
-      )
+      .marcajes(limit, Some(ORDER_BY), |qb| {
+        qb.push("r.usuario = ");
+        qb.push_bind(usuario);
+        Ok(())
+      })
       .await
   }
 
@@ -316,7 +314,7 @@ impl MarcajeRepo {
   ///
   /// Si la fechas son Nones se filtra solos por usuario.
   /// Si el usuario_reg es igual a 0, significa que es supervisor
-  /// y puede ver todos los marcajes de caulquier usuario.
+  /// y puede ver todos los marcajes de cualquier usuario.
   /// Si el usuario es diferente el usuario_reg, significa
   /// que es usuario registrador y por tanto puede ver solo
   /// los marcajes que registro el.
@@ -330,49 +328,38 @@ impl MarcajeRepo {
     fecha_inicio: Option<NaiveDate>,
     fecha_fin: Option<NaiveDate>,
     usuario_reg: Option<u32>,
+    limit: u8,
   ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.fecha DESC, r.hora_inicio DESC";
 
-    let filter = match (usuario_reg, fecha_inicio, fecha_fin) {
-      (Some(usr), Some(_), Some(_)) if usr == usuario || usr == 0 => {
-        "r.usuario = ? AND r.fecha BETWEEN ? AND ?"
-      }
-      (Some(_), Some(_), Some(_)) => {
-        r"r.usuario = ? AND r.fecha BETWEEN ? AND ?
-         AND r.usuario_registrador = ?"
-      }
-      (Some(usr), None, None) if usr == usuario || usr == 0 => "r.usuario = ?",
-      (Some(_), None, None) => "r.usuario = ? AND r.usuario_registrador = ?",
-      (None, Some(_), Some(_)) => "r.usuario = ? AND r.fecha BETWEEN ? AND ?",
-      _ => "r.usuario = ?",
+    let top = if fecha_inicio.is_none() && fecha_fin.is_none() {
+      Some(limit.to_string())
+    } else {
+      None
     };
 
-    use sqlx::Arguments;
-    let mut args = sqlx::mysql::MySqlArguments::default();
-    args
-      .add(usuario)
-      .map_err(|_| DBError::Parametros("Usuario"))?;
-
-    if let (Some(fi), Some(ff)) = (fecha_inicio, fecha_fin) {
-      args
-        .add(fi.formato_sql())
-        .map_err(|_| DBError::Parametros("Fecha inicio"))?;
-      args
-        .add(ff.formato_sql())
-        .map_err(|_| DBError::Parametros("Fecha fin"))?;
-    }
-
-    if let Some(ur) = usuario_reg
-      && ur != usuario
-      && ur != 0
-    {
-      args
-        .add(ur)
-        .map_err(|_| DBError::Parametros("Usuario registrador"))?;
-    }
-
     self
-      .marcajes(None, Some(filter), Some(args), Some(ORDER_BY))
+      .marcajes(top.as_deref(), Some(ORDER_BY), |qb| {
+        qb.push("r.usuario = ");
+        qb.push_bind(usuario);
+
+        if let (Some(fi), Some(ff)) = (fecha_inicio, fecha_fin) {
+          qb.push(" AND r.fecha BETWEEN ");
+          qb.push_bind(fi.formato_sql());
+          qb.push(" AND ");
+          qb.push_bind(ff.formato_sql());
+        }
+
+        if let Some(ur) = usuario_reg
+          && ur != usuario
+          && ur != 0
+        {
+          qb.push(" AND r.usuario_registrador = ");
+          qb.push_bind(ur);
+        }
+
+        Ok(())
+      })
       .await
   }
 
@@ -389,56 +376,34 @@ impl MarcajeRepo {
   ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
     const ORDER_BY: &str = "r.hora_inicio DESC";
 
-    let filter = match usuario_reg {
-      Some(usr) if usr == usuario => {
-        // Si el usuario registrador es igual al usuario,
-        // el registrador actúa como empleado y solo se
-        // filtra por sus solicitudes y no por las que registró
-        "r.usuario = ? AND r.fecha = ? 
-          AND NOT EXISTS (SELECT id FROM incidencias AS i 
-          WHERE i.marcaje = r.id)"
-      }
-      Some(usr) if usr != 0 => {
-        "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador = ? 
-          AND NOT EXISTS (SELECT id FROM incidencias AS i 
-          WHERE i.marcaje = r.id)"
-      }
-      Some(_) => {
-        // Cuando el usuario es igual a cero significa que
-        // un supervisor puede ver todos los marcajes que
-        // se registraron por alguien que no era el usuario
-        // del marcaje
-        "r.usuario = ? AND r.fecha = ? AND r.usuario_registrador IS NOT NULL 
-          AND NOT EXISTS (SELECT id FROM incidencias AS i 
-          WHERE i.marcaje = r.id)"
-      }
-      _ => {
-        "r.usuario = ? AND r.fecha = ? 
-          AND NOT EXISTS (SELECT id FROM incidencias AS i
-          WHERE i.marcaje = r.id)"
-      }
-    };
-
-    use sqlx::Arguments;
-    let mut args = sqlx::mysql::MySqlArguments::default();
-    args
-      .add(usuario)
-      .map_err(|_| DBError::Parametros("Usuario"))?;
-    args
-      .add(fecha.formato_sql())
-      .map_err(|_| DBError::Parametros("Fecha"))?;
-
-    if let Some(ur) = usuario_reg
-      && ur != usuario
-      && ur != 0
-    {
-      args
-        .add(ur)
-        .map_err(|_| DBError::Parametros("Usuario registrador"))?;
-    }
-
     self
-      .marcajes(None, Some(filter), Some(args), Some(ORDER_BY))
+      .marcajes(None, Some(ORDER_BY), |qb| {
+        qb.push("r.usuario = ");
+        qb.push_bind(usuario);
+        qb.push(" AND r.fecha = ");
+        qb.push_bind(fecha.formato_sql());
+
+        match usuario_reg {
+          Some(ur) if ur == usuario => {
+            // No extra usuario_registrador condition needed
+          }
+          Some(ur) if ur != 0 => {
+            qb.push(" AND r.usuario_registrador = ");
+            qb.push_bind(ur);
+          }
+          Some(_) => {
+            // Supervisor: show marcajes registered by someone else
+            qb.push(" AND r.usuario_registrador IS NOT NULL");
+          }
+          _ => {}
+        }
+
+        qb.push(
+          " AND NOT EXISTS (SELECT id FROM incidencias AS i WHERE i.marcaje = r.id)",
+        );
+
+        Ok(())
+      })
       .await
   }
 
@@ -451,24 +416,25 @@ impl MarcajeRepo {
     const ORDER_BY: &str = "r.hora_inicio DESC";
 
     self
-      .marcajes(
-        None,
-        Some("r.usuario = ? AND r.fecha = ?"),
-        Some(
-          mysql_params![usuario => "usuario", fecha.formato_sql() => "fecha"],
-        ),
-        Some(ORDER_BY),
-      )
+      .marcajes(None, Some(ORDER_BY), |qb| {
+        qb.push("r.usuario = ");
+        qb.push_bind(usuario);
+        qb.push(" AND r.fecha = ");
+        qb.push_bind(fecha.formato_sql());
+        Ok(())
+      })
       .await
   }
 
-  async fn marcajes(
+  async fn marcajes<B>(
     &self,
-    top: Option<&str>,
-    filter: Option<&str>,
-    filter_params: Option<sqlx::mysql::MySqlArguments>,
+    limit: Option<&str>,
     order: Option<&str>,
-  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError> {
+    build_where: B,
+  ) -> Result<DominioWithCacheUsuario<Marcaje>, DBError>
+  where
+    B: FnOnce(&mut QueryBuilder<sqlx::MySql>) -> Result<(), DBError>,
+  {
     const SELECT: &str = "SELECT r.id, r.fecha,
         r.hora_inicio, r.hora_fin,
         u.id AS u_id, u.nombre AS u_nombre,
@@ -483,42 +449,27 @@ impl MarcajeRepo {
         JOIN usuarios u ON u.id = r.usuario
         LEFT JOIN usuarios ur ON ur.id = r.usuario_registrador";
 
-    let mut query = String::with_capacity(
-      SELECT.len()
-        + filter.map_or(0, |f| f.len() + 60)
-        + order.map_or(0, |f| f.len() + 10)
-        + top.map_or(0, |t| t.len() + 10),
-    );
+    let mut qb = QueryBuilder::new(SELECT);
 
-    query.push_str(SELECT);
-
-    if let Some(f) = filter {
-      query.push_str(" WHERE ");
-      query.push_str(f);
-      query.push_str(" AND modificado_por IS NULL AND eliminado IS NULL");
-    }
+    qb.push(" WHERE ");
+    build_where(&mut qb)?;
+    qb.push(" AND modificado_por IS NULL AND eliminado IS NULL");
 
     if let Some(o) = order {
-      query.push_str(" ORDER BY ");
-      query.push_str(o);
+      qb.push(" ORDER BY ");
+      qb.push(o);
     }
 
-    if let Some(t) = top {
-      query.push_str(" LIMIT ");
-      query.push_str(t);
+    if let Some(t) = limit {
+      qb.push(" LIMIT ");
+      qb.push(t);
     }
 
-    let rows = if let Some(args) = filter_params {
-      sqlx::query_with(&query, args)
-        .fetch_all(self.pool.conexion())
-        .await
-        .map_err(DBError::from_sqlx)?
-    } else {
-      sqlx::query(&query)
-        .fetch_all(self.pool.conexion())
-        .await
-        .map_err(DBError::from_sqlx)?
-    };
+    let rows = qb
+      .build()
+      .fetch_all(self.pool.conexion())
+      .await
+      .map_err(DBError::from_sqlx)?;
 
     let capacidad = rows.len();
     let mut resultado = DominioWithCacheUsuario::<Marcaje>::new(capacidad);

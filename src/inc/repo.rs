@@ -222,7 +222,7 @@ impl IncidenciaRepo {
     } else {
       Err(DBError::registro_vacio(format!(
         "No se ha encontrado la incidencia: {}",
-        &inc_id
+        inc_id
       )))
     }
   }
@@ -265,7 +265,7 @@ impl IncidenciaRepo {
     } else {
       Err(DBError::registro_vacio(format!(
         "No se ha encontrado la incidencia: {}",
-        &inc_id
+        inc_id
       )))
     }
   }
@@ -277,6 +277,7 @@ impl IncidenciaRepo {
   /// Si como parámetro se especifica que es supervisor
   /// se obtiene las incidencias que se hicieron por los
   /// registradores o las suyas propias.
+  #[allow(clippy::too_many_arguments)]
   pub(in crate::inc) async fn incidencias(
     &self,
     id: Option<u32>,
@@ -285,6 +286,7 @@ impl IncidenciaRepo {
     estados: &[EstadoIncidencia],
     supervisor: bool,
     usuario: Option<u32>,
+    limit: u8,
   ) -> Result<DominioWithCacheUsuario<Incidencia>, DBError> {
     let mut qb = sqlx::QueryBuilder::<sqlx::MySql>::new(
       r"SELECT
@@ -346,6 +348,11 @@ impl IncidenciaRepo {
       }
 
       qb.push(" ORDER BY i.fecha_solicitud ASC, i.estado ASC, i.fecha ASC");
+
+      if fecha_inicio.is_none() && fecha_fin.is_none() {
+        qb.push(" LIMIT ");
+        qb.push_bind(limit);
+      }
     }
 
     let rows = qb

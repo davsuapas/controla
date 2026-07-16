@@ -259,7 +259,13 @@ impl MarcajeServicio {
 
     self
       .repo
-      .marcajes_entre_fechas_reg(usuario, fecha_inicio, fecha_fin, usuario_reg)
+      .marcajes_entre_fechas_reg(
+        usuario,
+        fecha_inicio,
+        fecha_fin,
+        usuario_reg,
+        self.cnfg.limites.marcajes_registrados,
+      )
       .await
       .map_err(|err| {
         tracing::error!(
@@ -410,8 +416,8 @@ impl MarcajeServicio {
         con alguna hora de fin sin registrar \
         para el usuario: {} en la fecha: {}. \
         Por favor, registre antes la hora de fin.",
-        &reg.usuario,
-        &reg.fecha.formato_corto()
+        reg.usuario,
+        reg.fecha.formato_corto()
       )));
     }
 
@@ -433,8 +439,8 @@ impl MarcajeServicio {
         para el usuario: {} en la fecha: {}. No cree marcajes manuales \
         si registra marcajes automáticos.",
         reg.hora_inicio,
-        &reg.usuario,
-        &reg.fecha.formato_corto()
+        reg.usuario,
+        reg.fecha.formato_corto()
       )));
     }
 
@@ -453,8 +459,8 @@ impl MarcajeServicio {
         "La hora de inicio: {} se encuentra entre un rango de horas \
         ya registrado para el usuario: {} en la fecha: {}",
         reg.hora_inicio,
-        &reg.usuario,
-        &reg.fecha.formato_corto()
+        reg.usuario,
+        reg.fecha.formato_corto()
       )));
     }
 
@@ -475,8 +481,8 @@ impl MarcajeServicio {
         return Err(ServicioError::Usuario(format!(
           "Ya existe un rango horario que se solapa con el \
           marcaje del usuario: {} en la fecha: {} desde: {} hasta: {}",
-          &reg.usuario,
-          &reg.fecha.formato_corto(),
+          reg.usuario,
+          reg.fecha.formato_corto(),
           reg.hora_inicio,
           hora_fin
         )));

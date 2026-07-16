@@ -419,7 +419,12 @@ impl HorarioServicio {
 
     self
       .repo
-      .calendario_fechas(calendario_id, fecha_inicio, fecha_fin)
+      .calendario_fechas(
+        calendario_id,
+        fecha_inicio,
+        fecha_fin,
+        self.cnfg.limites.calendario_fechas,
+      )
       .await
       .map_err(|err| {
         tracing::error!(

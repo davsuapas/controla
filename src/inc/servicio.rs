@@ -650,7 +650,7 @@ impl IncidenciaServicio {
           .autor(Some(usuario_gestor))
           .motivo(Some(format!(
             "Conflicto: '{}' en la fecha: {}",
-            &mensaje, fecha_actual
+            mensaje, fecha_actual
           )))
           .build(&self.cnfg.zona_horaria);
 
@@ -681,7 +681,15 @@ impl IncidenciaServicio {
   ) -> Result<DominioWithCacheUsuario<Incidencia>, ServicioError> {
     self
       .repo
-      .incidencias(id, fecha_inicio, fecha_fin, estados, supervisor, usuario)
+      .incidencias(
+        id,
+        fecha_inicio,
+        fecha_fin,
+        estados,
+        supervisor,
+        usuario,
+        self.cnfg.limites.incidencias,
+      )
       .await
       .map_err(|err| {
         tracing::error!(

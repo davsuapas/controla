@@ -426,6 +426,7 @@ impl HorarioRepo {
     calendario_id: u32,
     fecha_inicio: Option<NaiveDate>,
     fecha_fin: Option<NaiveDate>,
+    limit: u8,
   ) -> Result<Vec<CalendarioFecha>, DBError> {
     let mut qb = sqlx::QueryBuilder::<sqlx::MySql>::new(
       "SELECT id, calendario, fecha_inicio, fecha_fin, tipo
@@ -444,6 +445,11 @@ impl HorarioRepo {
     }
 
     qb.push(" ORDER BY fecha_inicio DESC");
+
+    if fecha_inicio.is_none() && fecha_fin.is_none() {
+      qb.push(" LIMIT ");
+      qb.push_bind(limit);
+    }
 
     let rows = qb
       .build()

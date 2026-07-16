@@ -56,6 +56,12 @@ impl From<PasswordConfig> for PasswordLimites {
 pub struct Limites {
   /// Número máximo de los últimos marcajes horarios a mostrar
   pub ultimos_marcajes: u8,
+  /// Número máximo de días a mostrar en el calendario
+  pub calendario_fechas: u8,
+  /// Número máximo de marcajes registrados a mostrar
+  pub marcajes_registrados: u8,
+  /// Número máximo de incidencias a mostrar
+  pub incidencias: u8,
 }
 
 #[derive(Deserialize)]

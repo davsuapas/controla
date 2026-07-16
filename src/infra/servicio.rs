@@ -24,7 +24,7 @@ impl ServicioError {
   // Devuelve un mensaje formateado para el interface de usuario
   #[inline]
   pub fn mensaje_usuario(&self) -> String {
-    format!("@@:{}", &self.mensaje())
+    format!("@@:{}", self.mensaje())
   }
 
   /// Si hay mensajes de error para el usuario devuelve la

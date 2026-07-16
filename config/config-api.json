@@ -5,7 +5,10 @@
     "nombre": "@DB_NOMBRE",
     "max_conexiones": @DB_MAX_CONN,
     "limites": {
-      "ultimos_marcajes": 10
+      "ultimos_marcajes": 10,
+      "calendario_fechas": 30,
+      "marcajes_registrados": 30,
+      "incidencias": 30
     }
   },
   "log": {
