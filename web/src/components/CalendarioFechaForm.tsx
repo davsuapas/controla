@@ -173,7 +173,7 @@ export default function CalendarioFechaForm(props: CalendarioFechaFormProps) {
           </Grid>
         </Grid>
       </LocalizationProviderES>
-      <Stack direction="row" spacing={2} justifyContent="space-between">
+      <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
         <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={onBack}>
           VOLVER
         </Button>

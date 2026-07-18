@@ -124,6 +124,10 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
       "/incidencias/cambiar/a/solicitud",
       put(cambiar_incidencia_solicitud),
     )
+    .route(
+      "/incidencias/cambiar/a/cancelada",
+      put(cambiar_incidencia_cancelada),
+    )
     .route("/incidencias/procesar", post(procesar_incidencias))
     .route("/incidencias/por/fechas", post(incidencias_por_fechas))
     .route("/calendarios", get(calendarios))
@@ -552,6 +556,29 @@ async fn cambiar_incidencia_solicitud(
   state
     .inc_servicio
     .cambiar_estado_a_solicitud(&solicitud.into())
+    .await
+    .map_err(|err| {
+      (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())
+    })?;
+
+  state
+    .inc_servicio
+    .incidencias(Some(id), None, None, &[], false, None)
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|regs| Json(DominiosWithCacheUsuarioDTO::<IncidenciaDTO>::from(regs)))
+}
+
+/// Api para cancelar una incidencia.
+async fn cambiar_incidencia_cancelada(
+  State(state): State<Arc<AppState>>,
+  Json(cancelada): Json<UsuarioFechaParams>,
+) -> impl IntoResponse {
+  let id = cancelada.id;
+
+  state
+    .inc_servicio
+    .cambiar_estado_a_cancelada(id, cancelada.fecha)
     .await
     .map_err(|err| {
       (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario())

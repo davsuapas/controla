@@ -501,7 +501,7 @@ export default function UsuarioForm(props: UsuarioFormProps) {
             </Grid>
           )}
       </FormGroup>
-      <Stack direction="row" spacing={2} justifyContent="space-between">
+      <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
         {(presentacion !== Presentacion.SOLO_PASSWORD_SIN_VOLVER) && (
           <Button
             variant="contained"

@@ -127,6 +127,34 @@ impl IncidenciaRepo {
     Ok(result.rows_affected() > 0)
   }
 
+  /// Cambia el estado a cancelado
+  ///
+  /// Si no proviene de un estado conocido no se actualiza y
+  /// devuelve false
+  /// La fecha de resolución la utilizamos para indicar
+  /// la fecha de cancelación. Se resuelve por cancelación del empleado
+  pub(in crate::inc) async fn cambiar_estado_cancelado(
+    &self,
+    trans: &mut Transaccion<'_>,
+    id: u32,
+    fecha_cancelacion: NaiveDateTime,
+  ) -> Result<bool, DBError> {
+    const QUERY: &str = "UPDATE incidencias
+      SET estado = ?, error = null, usuario_gestor = null,
+       fecha_resolucion = ?, fecha_estado = null
+      WHERE id = ? and estado <> ?";
+
+    let result = sqlx::query(QUERY)
+      .bind(EstadoIncidencia::Cancelada as u8)
+      .bind(fecha_cancelacion)
+      .bind(id)
+      .bind(EstadoIncidencia::Resuelta as u8)
+      .execute(&mut **trans.deref_mut())
+      .await
+      .map_err(DBError::from_sqlx)?;
+
+    Ok(result.rows_affected() > 0)
+  }
   /// Cambia el estado a rechazado
   ///
   /// Si no proviene de un estado conocido no se actualiza y

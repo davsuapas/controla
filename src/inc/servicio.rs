@@ -1,15 +1,15 @@
-use chrono::{NaiveDate, Utc};
+use chrono::{NaiveDate, NaiveDateTime, Utc};
 
 use crate::{
   agregar_traza,
   config::ConfigTrabajo,
   inc::{
     EstadoIncidencia, Incidencia, IncidenciaMarcaje, IncidenciaProceso,
-    IncidenciaRepo, IncidenciaSolictud, TipoIncidencia,
+    IncidenciaRepo, IncidenciaSolictud, IncidenciaTraza, TipoIncidencia,
   },
   infra::{DominioWithCacheUsuario, ServicioError, Transaccion},
   marcaje::{Marcaje, MarcajeServicio},
-  traza::{TipoTraza, TrazaBuilder, TrazaServicio},
+  traza::{TipoTraza, Traza, TrazaBuilder, TrazaServicio},
 };
 
 /// Servicio que gestiona las incidencias del usuario
@@ -124,32 +124,19 @@ impl IncidenciaServicio {
       return Ok(());
     }
 
-    // En el motivo incluyo los campos de incidencia_traza
-    let traza = TrazaBuilder::with_inc(TipoTraza::IncReSolictar, inc.id)
-      .autor(Some(inc.usuario_creador))
-      .motivo(Some(format!(
-        "Se vuelve a realizar la solicitud. Registro previo: \
-        (Fecha solicitud: {:?}, Motivo solictud: '{}' \
-        Entrada: '{:?}' Salida: '{:?}' \
-        Motivo rechazo: '{}' Fecha estado: '{:?}' \
-        Creador: {} Gestor: {:?} Error: '{}')",
-        incidencia_traza.fecha_solicitud,
-        incidencia_traza.motivo_solicitud.as_deref().unwrap_or(""),
-        incidencia_traza.hora_inicio,
-        incidencia_traza.hora_fin,
-        incidencia_traza.motivo_rechazo.as_deref().unwrap_or(""),
-        incidencia_traza.fecha_estado,
-        incidencia_traza.usuario_creador,
-        incidencia_traza.usuario_gestor,
-        incidencia_traza.error.as_deref().unwrap_or(""),
-      )))
-      .build(&self.cnfg.zona_horaria);
+    let traza = self.traza_cambio_estado(
+      TipoTraza::IncReSolicitar,
+      "Se vuelve a realizar la solicitud",
+      inc.id,
+      inc.usuario_creador,
+      &incidencia_traza,
+    );
 
     agregar_traza!(
       self,
       tr,
       traza,
-      "Creando actualizando incidencia cambiando a estado solicitud",
+      "Cambio de estado a solicitud de incidencia",
       incidencia = inc.id
     );
 
@@ -163,6 +150,93 @@ impl IncidenciaServicio {
     tracing::debug!(
       incidencia = inc.id,
       "Se ha completado satisfactoriamente el cambio a estado solictud"
+    );
+
+    Ok(())
+  }
+
+  /// Cancela una incidencia usando la transacción de la capa de datos.
+  pub async fn cambiar_estado_a_cancelada(
+    &self,
+    id: u32,
+    fecha_cancelacion: NaiveDateTime,
+  ) -> Result<(), ServicioError> {
+    tracing::info!(
+      incidencia = id,
+      "Se ha iniciado el servicio para cambiar a estado cancelado"
+    );
+
+    let incidencia_traza =
+      self.repo.incidencia_para_traza(id).await.map_err(|err| {
+        tracing::error!(
+           incidencia = id, error = %err,
+           "Obteniendo datos de incidencia para traza");
+        ServicioError::from(err)
+      })?;
+
+    let mut tr =
+      self
+        .repo
+        .conexion()
+        .empezar_transaccion()
+        .await
+        .map_err(|err| {
+          tracing::error!(
+            incidencia = id,
+            error = %err,
+            "Iniciando transacción cambiar a estado cancelado"
+          );
+          ServicioError::from(err)
+        })?;
+
+    if !self
+      .repo
+      .cambiar_estado_cancelado(&mut tr, id, fecha_cancelacion)
+      .await
+      .map_err(|err| {
+        tracing::error!(
+          incidencia = id,
+          error = %err,
+          "Actualizando incidencia cambiando a estado cancelado"
+        );
+        ServicioError::from(err)
+      })?
+    {
+      tracing::warn!(
+        incidencia = id,
+        "No se ha podido cambiar a estado cancelado, posiblemente ya se ha cambiado previamente"
+      );
+      return Ok(());
+    }
+
+    let traza = self.traza_cambio_estado(
+      TipoTraza::IncCancelada,
+      "Se canceló la incidencia",
+      id,
+      incidencia_traza.usuario_creador,
+      &incidencia_traza,
+    );
+
+    agregar_traza!(
+      self,
+      tr,
+      traza,
+      "Cambio de estado a solicitud de incidencia",
+      incidencia = id
+    );
+
+    tr.commit().await.map_err(|err| {
+      tracing::error!(
+        incidencia = id,
+        error = %err,
+        "Commit transacción para cambiar a estado cancelado"
+      );
+      ServicioError::from(err)
+    })?;
+
+    tracing::debug!(
+      incidencia = id,
+      "Se ha completado satisfactoriamente el cambio a estado cancelado"
     );
 
     Ok(())
@@ -552,6 +626,38 @@ impl IncidenciaServicio {
           .await
       }
     }
+  }
+
+  /// Crea una traza motivada por el cambio de estado de la incidencia
+  #[inline]
+  fn traza_cambio_estado(
+    &self,
+    tipo_traza: TipoTraza,
+    msg: &str,
+    incidencia_id: u32,
+    usuario_creador: u32,
+    incidencia_traza: &IncidenciaTraza,
+  ) -> Traza {
+    TrazaBuilder::with_inc(tipo_traza, incidencia_id)
+      .autor(Some(usuario_creador))
+      .motivo(Some(format!(
+        "{}. Registro previo: \
+        (Fecha solicitud: {:?}, Motivo solictud: '{}' \
+        Entrada: '{:?}' Salida: '{:?}' \
+        Motivo rechazo: '{}' Fecha estado: '{:?}' \
+        Creador: {} Gestor: {:?} Error: '{}')",
+        msg,
+        incidencia_traza.fecha_solicitud,
+        incidencia_traza.motivo_solicitud.as_deref().unwrap_or(""),
+        incidencia_traza.hora_inicio,
+        incidencia_traza.hora_fin,
+        incidencia_traza.motivo_rechazo.as_deref().unwrap_or(""),
+        incidencia_traza.fecha_estado,
+        incidencia_traza.usuario_creador,
+        incidencia_traza.usuario_gestor,
+        incidencia_traza.error.as_deref().unwrap_or(""),
+      )))
+      .build(&self.cnfg.zona_horaria)
   }
 
   /// Elimina el marcaje asociado a la incidencia

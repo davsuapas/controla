@@ -48,14 +48,16 @@
 //!    El supervisor puede ver todas las hechas por el registrador.
 //!    Estas son todas aquellas que el campos usuario del marcaje
 //!    difiere del campo creador de la incidencia
+//!  - Si la incidencia no esta en estado resuelta,
+//!    el usuario puede cancelarla.
 //!
 //! Diagrama de estados:
-//!   Solicitud -> Resolver, Rechazar
+//!   Solicitud -> Resolver, Rechazar, Cancelada
 //!   Resolver -> Conflicto, ErrorResolver, Resuelta
-//!   Conflicto -> Solicitud
-//!   ErrorResolver -> Resolver
+//!   Conflicto -> Solicitud, Cancelada
+//!   ErrorResolver -> Resolver, Cancelada
 //!   Rechazar -> Rechazada
-//!   Rechazada -> Solicitud
+//!   Rechazada -> Solicitud. Cancelada
 
 /// Módulo para manejar los dominios sobre las incidencias.
 mod dominio;

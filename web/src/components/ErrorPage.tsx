@@ -142,8 +142,8 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({ type, message }) => {
             >
               <Typography
                 variant="body2"
-                fontFamily="monospace"
                 color="text.secondary"
+                sx={{ fontFamily: "monospace" }}
               >
                 {errorMessage}
               </Typography>

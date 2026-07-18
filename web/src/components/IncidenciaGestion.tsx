@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import CheckIcon from '@mui/icons-material/Check';
+import CancelIcon from '@mui/icons-material/Cancel';
 import PageContainer from './PageContainer';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import IncidenciaList, { IncidenciaAction, IncidenciaGrid } from './IncidenciaList';
@@ -20,6 +21,9 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 // o bien que contienen algún conflicto.
 // Se vuelve a crear una solicitud volviendo a pedir la
 // info de solicitud.
+type EjecutarSolicitud = (
+) => Promise<Incidencia>;
+
 export default function GestionIncidencia() {
   const notifica = useNotifications();
   const usuario = useUsuarioLogeado().getUsrLogeado();
@@ -33,23 +37,14 @@ export default function GestionIncidencia() {
 
   const actualizarRegistro = React.useCallback((rowu: IncidenciaGrid) => {
     setRows(prevRows => prevRows.map(row => row.id === rowu.id ? rowu : row));
-  }, []); // Dependencia: setRows (estable por naturaleza de useState)
+  }, []);
 
-  const procesarSolicitud = React.useCallback(
-    async (info: InfoSolicitud, row: IncidenciaGrid) => {
+  const cambiarEstado = React.useCallback(
+    async (ejecutarCambio: EjecutarSolicitud) => {
       setIsLoading(true);
 
       try {
-        const inc = await api().inc.cambiarIncidenciaASolictud(
-          Incidencia.crearSolicitudFromEstado(
-            row.id,
-            row.estado,
-            info.horaEntrada ?? null,
-            info.horaSalida ?? null,
-            usuario.id,
-            info.motivo,
-          )
-        );
+        const inc = await ejecutarCambio();
 
         if (isMounted.current) {
           actualizarRegistro(IncidenciaGrid.fromIncidencia(inc));
@@ -57,7 +52,7 @@ export default function GestionIncidencia() {
       } catch (error) {
         if (!(error instanceof NetErrorControlado)) {
           logError('gestion-incidencia.solicitar-incidencia', dialogo?.alert, error);
-          notifica.show( // <--- Dependencia
+          notifica.show(
             'Error inesperado al volver a realizar una solicitud de incidencia',
             { severity: 'error', autoHideDuration: 5000 }
           );
@@ -67,13 +62,13 @@ export default function GestionIncidencia() {
         setIsLoading(false);
       }
     },
-    [usuario.id, actualizarRegistro, notifica] // Dependencias estables
+    [actualizarRegistro, dialogo?.alert, isMounted, notifica]
   );
 
   const abrirModalInfo = React.useCallback((row: IncidenciaGrid) => {
     setRow(row);
     setModalOpenInfo(true);
-  }, []); // Dependencias: setRow, setModalOpenInfo (estables)
+  }, []);
 
   const incidenciaActions: IncidenciaAction[] = React.useMemo(
     () => [
@@ -82,11 +77,26 @@ export default function GestionIncidencia() {
         label: 'Volver a solicitar',
         tooltip: 'Volver a solicitar',
         onClick: (row: IncidenciaGrid) => {
-          abrirModalInfo(row); // <--- Dependencia
+          abrirModalInfo(row);
         },
         show: (row: IncidenciaGrid) =>
           row.estado === EstadoIncidencia.Conflicto ||
           row.estado === EstadoIncidencia.Rechazada
+      },
+      {
+        icon: <CancelIcon />,
+        label: 'Cancelar',
+        tooltip: 'Cancelar solicitud',
+        onClick: (row: IncidenciaGrid) => {
+          cambiarEstado(async () =>
+            api().inc.cambiarIncidenciaACancelada(
+              row.id,
+              dayjs()
+            ));
+        },
+        show: (row: IncidenciaGrid) =>
+          row.estado !== EstadoIncidencia.Resuelta &&
+          row.estado !== EstadoIncidencia.Cancelada
       },
     ],
     [abrirModalInfo]
@@ -97,24 +107,36 @@ export default function GestionIncidencia() {
       setModalOpenInfo(false);
 
       if (info && row) {
-        procesarSolicitud(info, row); // <--- Dependencia
+        cambiarEstado(async () =>
+          api().inc.cambiarIncidenciaASolictud(
+            Incidencia.crearSolicitudFromEstado(
+              row.id,
+              row.estado,
+              info.horaEntrada ?? null,
+              info.horaSalida ?? null,
+              usuario.id,
+              info.motivo,
+            )
+          )
+        );
       }
 
       setRow(undefined);
     },
-    [row, procesarSolicitud]
+    [cambiarEstado, row, usuario.id]
   );
 
   // Evita que se vuelve a crear en los renderizados
   // Además, como estadosFiltro es usado en dependencias
   // puede provocar que aunque no cambie el contenido
   // si cambia el puntero y react vuelve a construir
-  // la función y proboca recursividad.
+  // la función y provoca recursividad.
   const estadosFiltroMemo = React.useMemo(() => [
     EstadoIncidencia.Solicitud,
     EstadoIncidencia.Conflicto,
     EstadoIncidencia.Rechazada,
     EstadoIncidencia.Resuelta,
+    EstadoIncidencia.Cancelada,
   ], []);
 
   return (

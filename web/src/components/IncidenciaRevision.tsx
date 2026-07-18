@@ -213,7 +213,7 @@ export default function RevisionIncidencia() {
     <PageContainer
       title={'Revisión incidencias'}
       actions={
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <Button
             variant="contained"
             startIcon={<SyncIcon />}

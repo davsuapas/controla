@@ -159,7 +159,7 @@ export default function CalendarioFechas() {
       title={pageTitle}
       breadcrumbs={[{ title: 'Calendarios', path: '/calendarios' }, { title: 'Fechas' }]}
       actions={
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <Button variant="contained" onClick={handleCreateClick} startIcon={<AddIcon />}>
             NUEVO
           </Button>

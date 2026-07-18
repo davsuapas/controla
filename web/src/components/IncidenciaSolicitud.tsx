@@ -432,7 +432,7 @@ export default function SolicitudIncidencia() {
               onChange={(v) => setFecha(v)}
               sx={{ width: '100%' }}
             />
-            <Grid container spacing={1} justifyContent="flex-end">
+            <Grid container spacing={1} sx={{ justifyContent: "flex-end" }}>
               <Grid size={{ xs: 12, sm: 12, md: 5 }}
                 sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Button
@@ -573,10 +573,10 @@ export interface ModalInfoSolicitudProps {
   titulo?: string;
 }
 
-// Permite editar la información para crear una solictud de incidenia
+// Permite editar la información para crear una solicitud de incidencia
 // Dependiendo del tipo la información puede ser diferente
 // pidiendo la hora de entrada, salida y un campo para motivar
-// la solictud.
+// la solicitud.
 export function ModalInfoSolicitud({
   open,
   onClose,
@@ -610,19 +610,19 @@ export function ModalInfoSolicitud({
 
   const handleSubmit = React.useCallback(() => {
     const validaEntrada =
-      !mostrarEntrada || validarFechaHora(infoSolicitud.horaEntrada); // Usa mostrarEntrada, validarFechaHora, infoSolicitud
+      !mostrarEntrada || validarFechaHora(infoSolicitud.horaEntrada);
     const validaSalida =
-      !mostrarSalida || validarFechaHora(infoSolicitud.horaSalida); // Usa mostrarSalida, validarFechaHora, infoSolicitud
+      !mostrarSalida || validarFechaHora(infoSolicitud.horaSalida);
 
     if (validaEntrada && validaSalida) {
-      onClose(infoSolicitud); // Usa onClose, infoSolicitud
+      onClose(infoSolicitud);
     } else {
-      setFormErrors({ // Usa setFormErrors
+      setFormErrors({
         horaEntrada: validaEntrada ? undefined : HORA_NO_VALIDA,
         horaSalida: validaSalida ? undefined : HORA_NO_VALIDA
       })
 
-      notifica.show( // Usa notifica
+      notifica.show(
         'Imposible realizar la solicitud. Corriga los errores',
         {
           severity: 'warning',
@@ -646,7 +646,7 @@ export function ModalInfoSolicitud({
         <LocalizationProviderES>
           <Box sx={{ pt: 3 }}>
             {mostrarEntrada && (
-              <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+              <Grid container spacing={2} sx={{ alignItems: 'center', mb: 2 }}>
                 <Grid size={{ xs: 12, sm: 8 }}>
                   <TimePicker
                     label="Hora de Entrada"
@@ -664,7 +664,7 @@ export function ModalInfoSolicitud({
               </Grid>
             )}
             {mostrarSalida && (
-              <Grid container spacing={2} alignItems="center">
+              <Grid container spacing={2} sx={{ alignItems: 'center' }}>
                 <Grid size={{ xs: 12, sm: 8 }}>
                   <TimePicker
                     label="Hora de Salida"

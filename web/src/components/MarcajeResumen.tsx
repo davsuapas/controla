@@ -137,8 +137,7 @@ export default function ResumenMacaje(props: ResumenMarcajesProps) {
             gap: 1, flexWrap: 'wrap'
           }}>
           {horario === null ? (
-            <Typography variant="body2" color="text.secondary"
-              fontStyle="italic">
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
               No hay horario disponible para este día
             </Typography>
           ) : (

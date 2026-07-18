@@ -142,7 +142,7 @@ export default function CalendarioList() {
       title={pageTitle}
       breadcrumbs={[{ title: pageTitle }]}
       actions={
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <Tooltip title="Recargar datos" placement="right" enterDelay={1000}>
             <IconButton size="small" aria-label="refresh" onClick={handleRefresh}>
               <RefreshIcon />

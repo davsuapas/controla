@@ -399,7 +399,9 @@ impl MarcajeRepo {
         }
 
         qb.push(
-          " AND NOT EXISTS (SELECT id FROM incidencias AS i WHERE i.marcaje = r.id)",
+          " AND NOT EXISTS
+           (SELECT id FROM incidencias AS i 
+           WHERE i.marcaje = r.id AND estado <> 8)",
         );
 
         Ok(())

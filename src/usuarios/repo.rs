@@ -356,7 +356,7 @@ impl UsuarioRepo {
     } else {
       Err(DBError::registro_vacio(format!(
         "No se ha encontrado ningún usuario con dni: {}",
-        &dni
+        dni
       )))
     }
   }

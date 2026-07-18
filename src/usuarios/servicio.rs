@@ -225,7 +225,8 @@ impl UsuarioServicio {
         .autor(Some(modificado_por))
         .motivo(Some(format!(
           "Nombre cambiado de {} a {}",
-          &usr_persistido.nombre_completo(), &usuario.nombre_completo()
+          usr_persistido.nombre_completo(),
+          usuario.nombre_completo()
         )))
         .build(&self.cnfg.zona_horaria);
 

@@ -28,6 +28,7 @@ export enum EstadoIncidencia {
   Resuelta = 5,
   Resolver = 6,
   Rechazar = 7,
+  Cancelada = 8,
 }
 
 export const NombresEstadoIncidencia: Record<EstadoIncidencia, string> = {
@@ -38,6 +39,7 @@ export const NombresEstadoIncidencia: Record<EstadoIncidencia, string> = {
   [EstadoIncidencia.Resuelta]: "Resuelta",
   [EstadoIncidencia.Resolver]: "Resolver",
   [EstadoIncidencia.Rechazar]: "Rechazar",
+  [EstadoIncidencia.Cancelada]: "Cancelada",
 };
 
 // Entidad incidencia que es válida tanto de entrada como salida

@@ -5,12 +5,13 @@ import dayjs from "dayjs";
 import { DescriptorMarcaje } from "../modelos/marcaje";
 import { DescriptorUsuario } from "../modelos/usuarios";
 import { DominiosWithCacheUsuarioDTO, IncidenciaProcesoDTO } from "../modelos/dto";
-import { formatDateForServer } from "../modelos/formatos";
+import { formatDateForServer, formatDateTimeForServer } from "../modelos/formatos";
 
 export interface IncidenciaApi {
   crearIncidencia(inc: Incidencia): Promise<void>;
   // Se crea una solicitud desde un estado previo
   cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia>;
+  cambiarIncidenciaACancelada(id: number, fecha: dayjs.Dayjs): Promise<Incidencia>;
   // Procesa las incidencias y devuelve las incidencias procesadas
   // según un filtro y las incidencias con errores faltales
   procesar(
@@ -47,6 +48,20 @@ export class IncidenciaAxiosApi implements IncidenciaApi {
   async cambiarIncidenciaASolictud(inc: {}): Promise<Incidencia> {
     const response = await this.axios.put(
       'incidencias/cambiar/a/solicitud', inc);
+
+    return Incidencia.fromRequest(
+      DominiosWithCacheUsuarioDTO.fromResponse(response.data))[0];
+  }
+
+  async cambiarIncidenciaACancelada(
+    id: number, fecha: dayjs.Dayjs): Promise<Incidencia> {
+    const response = await this.axios.put(
+      'incidencias/cambiar/a/cancelada',
+      {
+        id: id,
+        fecha: formatDateTimeForServer(fecha)
+      }
+    );
 
     return Incidencia.fromRequest(
       DominiosWithCacheUsuarioDTO.fromResponse(response.data))[0];
@@ -101,6 +116,12 @@ export class IncidenciaTestApi implements IncidenciaApi {
   }
 
   async cambiarIncidenciaASolictud(_: {}): Promise<Incidencia> {
+    const incs = await this.incidencias(null, null, [], false, null);
+    return incs[0];
+  }
+
+  async cambiarIncidenciaACancelada(
+    _: number, __: dayjs.Dayjs): Promise<Incidencia> {
     const incs = await this.incidencias(null, null, [], false, null);
     return incs[0];
   }

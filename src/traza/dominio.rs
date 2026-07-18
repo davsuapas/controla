@@ -14,8 +14,9 @@ pub enum TipoTraza {
   PasswordModificada = 7,
   PrimerInicio = 8,
   IncConflicto = 9,
-  IncReSolictar = 10,
+  IncReSolicitar = 10,
   UsrCalendariosModificados = 11,
+  IncCancelada = 12,
 }
 
 #[repr(u8)]

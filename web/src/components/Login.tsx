@@ -126,7 +126,7 @@ export default function Login() {
     }, [setUsrLogeado, dialogo, navegar, location]);
 
   return (
-    <SignInContainer direction="column" justifyContent="space-between">
+    <SignInContainer direction="column" sx={{ justifyContent: 'center', }}>
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <Card variant="outlined">
         <ControlaIcon />

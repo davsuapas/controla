@@ -27,6 +27,7 @@ import { useIsMounted } from '../hooks/useComponentMounted';
 function getEstadoColor(estado: EstadoIncidencia):
   "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" {
   switch (estado) {
+    case EstadoIncidencia.Cancelada:
     case EstadoIncidencia.Resuelta:
       return 'success';
     case EstadoIncidencia.ErrorResolver:
@@ -571,7 +572,8 @@ function IncidenciaDetalle({
             <>
               <Divider sx={{ my: 2 }} />
               <Box>
-                <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                <Typography variant="body2"
+                  sx={{ mb: 0.5, color: 'text.secondary', fontWeight: "medium" }}>
                   Error
                 </Typography>
                 <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'warning.main' }}>
@@ -586,7 +588,8 @@ function IncidenciaDetalle({
           {/* Datos rectificación */}
           {incidencia.tipo !== TipoIncidencia.EliminacionMarcaje && (
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" fontWeight="medium" sx={{ mb: 1, color: 'text.secondary' }}>
+              <Typography variant="body2"
+                sx={{ mb: 1, color: 'text.secondary', fontWeight: "medium" }}>
                 Datos rectificación
               </Typography>
               <Typography variant="body2">
@@ -602,7 +605,8 @@ function IncidenciaDetalle({
           {/* Referencia marcaje */}
           {incidencia.marcaje && (
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" fontWeight="medium" sx={{ mb: 1, color: 'text.secondary' }}>
+              <Typography variant="body2"
+                sx={{ mb: 1, color: 'text.secondary', fontWeight: "medium" }}>
                 Referencia marcaje
               </Typography>
               <Typography variant="body2">
@@ -615,7 +619,8 @@ function IncidenciaDetalle({
 
           {/* Usuarios */}
           <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5, color: 'text.secondary' }}>
+            <Typography variant="body2"
+              sx={{ mb: 0.5, color: 'text.secondary', fontWeight: "medium" }}>
               Creado por
             </Typography>
             <Typography variant="body2" sx={{ mb: 1 }}>
@@ -624,7 +629,8 @@ function IncidenciaDetalle({
 
             {incidencia.usuarioGestor && (
               <>
-                <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                <Typography variant="body2"
+                  sx={{ mb: 0.5, color: 'text.secondary', fontWeight: "medium" }}>
                   Gestionado por
                 </Typography>
                 <Typography variant="body2">
@@ -642,7 +648,8 @@ function IncidenciaDetalle({
           <Box sx={{ mb: 2 }}>
             {incidencia.motivoSolicitud && (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                <Typography variant="body2"
+                  sx={{ mb: 0.5, color: 'text.secondary', fontWeight: "medium" }}>
                   Motivo solicitud
                 </Typography>
                 <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
@@ -653,7 +660,8 @@ function IncidenciaDetalle({
 
             {incidencia.motivoRechazo && (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                <Typography variant="body2"
+                  sx={{ mb: 0.5, color: 'text.secondary', fontWeight: "medium" }}>
                   Motivo rechazo
                 </Typography>
                 <Typography variant="body2" sx={{ fontStyle: 'italic' }}>

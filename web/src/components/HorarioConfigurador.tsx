@@ -282,7 +282,7 @@ export default function HorarioConfigurador() {
     <PageContainer title="Configuración de Horarios">
       <Box sx={{ ...FULL_HEIGHT_WIDTH, display: 'flex', flexDirection: 'column', p: 2 }}>
         {/* Cabecera */}
-        <Grid container spacing={2} alignItems="center">
+        <Grid container spacing={2} sx={{ alignItems: 'center' }}>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               label="Última fecha de configuración"
@@ -306,7 +306,7 @@ export default function HorarioConfigurador() {
 
         <Divider sx={{ my: 2, width: '100%' }} />
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+        <Grid container spacing={2} sx={{ alignItems: 'center', mb: 2 }}>
           <Grid size={{ xs: 12, md: 6 }}>
             <SelectorEmpleado
               onChange={handleEmpleadoChange}

@@ -16,9 +16,11 @@ pub enum EstadoIncidencia {
   ErrorResolver = 3,
   Rechazada = 4,
   Resuelta = 5,
-  /// Todas estos estados posteriores son acciones
-  Resolver = 6,
-  Rechazar = 7,
+  Resolver = 6, // Acción
+  Rechazar = 7, // Acción
+  /// Se puede cancelar si no esta en estado resulta.
+  /// Si se cambia, cambiar la consulta marcajes_inc_por_fecha_reg
+  Cancelada = 8, // Si se cambia, cambiar la consulta marcajes_inc_por_fecha_reg
 }
 
 impl From<u8> for EstadoIncidencia {
@@ -31,6 +33,7 @@ impl From<u8> for EstadoIncidencia {
       5 => EstadoIncidencia::Resuelta,
       6 => EstadoIncidencia::Resolver,
       7 => EstadoIncidencia::Rechazar,
+      8 => EstadoIncidencia::Cancelada,
       _ => panic!("Valor de estado de incidencia no válido"),
     }
   }
@@ -64,6 +67,9 @@ pub struct Incidencia {
   pub id: u32,
   pub tipo: TipoIncidencia,
   pub fecha_solicitud: NaiveDateTime,
+  /// La fecha de resolución se utiliza tanto para incidencias resueltas
+  /// como para incidencias canceladas. Se resuelve por cancelación
+  /// del empleado
   pub fecha_resolucion: Option<NaiveDateTime>,
   pub usuario: u32,
   pub fecha: NaiveDate,
@@ -71,7 +77,7 @@ pub struct Incidencia {
   pub hora_fin: Option<NaiveTime>,
   pub marcaje: Option<DescriptorMarcaje>,
   pub estado: EstadoIncidencia,
-  // La fecha solo para estados intermedios, no para solicitud ni resolución
+  // La fecha solo para estados intermedios
   pub fecha_estado: Option<NaiveDateTime>,
   pub error: Option<String>,
   pub usuario_creador: u32,
