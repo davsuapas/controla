@@ -9,6 +9,7 @@ use std::{sync::Arc, time::Duration};
 
 pub use api::*;
 
+use crate::config::{ConfigRepo, ConfigServicio};
 use crate::horario::{HorarioRepo, HorarioServicio};
 use crate::{
   config::{Config, ConfigTrabajo},
@@ -24,6 +25,7 @@ use crate::{
 pub struct AppState {
   pub manejador_sesion: Arc<middleware::ManejadorSesion>,
   pub marcaje_servicio: MarcajeServicio,
+  pub config_servicio: ConfigServicio,
   pub usuario_servicio: UsuarioServicio,
   pub horario_servicio: HorarioServicio,
   pub inc_servicio: IncidenciaServicio,
@@ -42,6 +44,7 @@ impl AppState {
         Duration::from_secs(cnfg.caducidad_sesion),
         cnfg.produccion,
       )),
+      config_servicio: ConfigServicio::new(ConfigRepo::new(pool.clone())),
       usuario_servicio: UsuarioServicio::new(
         cnfg.clone(),
         UsuarioRepo::new(pool.clone()),

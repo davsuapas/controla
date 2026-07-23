@@ -41,6 +41,7 @@ import CalendarioFechas from './components/CalendarioFechas';
 import CalendarioFechaCrear from './components/CalendarioFechaCrear';
 import CalendarioFechaEdit from './components/CalendarioFechaEdit';
 import InformeCumplimientoHorario from './components/InformeCumplimientoHorario';
+import ConfigForm from './components/ConfigForm';
 
 crearAPI(true);
 
@@ -132,6 +133,11 @@ const rutas = [
                 errorElement: <ErrorPage />,
               },
             ]
+          },
+          {
+            path: 'sistema',
+            Component: ConfigForm,
+            errorElement: <ErrorPage />,
           },
           {
             path: 'usuarios',

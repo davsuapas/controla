@@ -20,6 +20,7 @@ import WysiwygIcon from '@mui/icons-material/Wysiwyg';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DateRangeIcon from '@mui/icons-material/DateRange';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../config';
@@ -208,6 +209,14 @@ export default function DashboardSidebar({
                     minWidth: 240,
                   }}
                 >
+                  <DashboardSidebarPageItem
+                    id="sistema"
+                    title="Sistema"
+                    icon={<SettingsSuggestIcon />}
+                    href="/sistema"
+                    visible={user.acceso_a_ruta('/sistema')}
+                    selected={!!matchPath('/sistema/*', pathname)}
+                  />
                   <DashboardSidebarPageItem
                     id="horarios"
                     title="Horarios"

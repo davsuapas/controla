@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 
+use crate::config::{ConfigGlobal, Localizacion as LocalizacionDomain};
 use crate::horario::{
   Calendario, CalendarioFecha, ConfigHorario, DescriptorHorario, Dia,
   TipoCalendarioFecha,
@@ -558,6 +559,59 @@ where
         .into_iter()
         .map(|(id, user)| (id, user.into()))
         .collect(),
+    }
+  }
+}
+
+// Define la entidad de intercambio para la localización geográfica.
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct LocalizacionDTO {
+  pub lat: f64,
+  pub lng: f64,
+  pub accuracy: f64,
+}
+
+impl From<LocalizacionDomain> for LocalizacionDTO {
+  fn from(loc: LocalizacionDomain) -> Self {
+    LocalizacionDTO {
+      lat: loc.lat,
+      lng: loc.lng,
+      accuracy: loc.accuracy,
+    }
+  }
+}
+
+impl From<LocalizacionDTO> for LocalizacionDomain {
+  fn from(dto: LocalizacionDTO) -> Self {
+    LocalizacionDomain {
+      lat: dto.lat,
+      lng: dto.lng,
+      accuracy: dto.accuracy,
+    }
+  }
+}
+
+// Define la entidad de intercambio para la configuración general.
+#[derive(Serialize, Deserialize)]
+pub(in crate::app) struct ConfigDTO {
+  pub localizacion: Option<LocalizacionDTO>,
+  pub margen_recinto: Option<i32>,
+}
+
+impl From<ConfigGlobal> for ConfigDTO {
+  fn from(config: ConfigGlobal) -> Self {
+    ConfigDTO {
+      localizacion: config.localizacion.map(LocalizacionDTO::from),
+      margen_recinto: config.margen_recinto,
+    }
+  }
+}
+
+impl From<ConfigDTO> for ConfigGlobal {
+  fn from(dto: ConfigDTO) -> Self {
+    ConfigGlobal {
+      localizacion: dto.localizacion.map(LocalizacionDomain::from),
+      margen_recinto: dto.margen_recinto,
     }
   }
 }
