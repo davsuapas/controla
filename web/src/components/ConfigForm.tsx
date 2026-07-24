@@ -17,6 +17,8 @@ import useNotifications from '../hooks/useNotifications/useNotifications';
 import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useIsMounted } from '../hooks/useComponentMounted';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
+import useConfig from '../hooks/useConfig/useConfig';
+
 
 // Límites válidos para el radio de tolerancia del recinto (metros).
 // Se usan tanto para acotar el valor sugerido por defecto como para
@@ -67,8 +69,8 @@ export default function ConfigForm() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [config, setConfig] = React.useState<Config | null>(null);
   const [acotarMarcajes, setAcotarMarcajes] = React.useState(false);
-  const [isGeolocalizando, setIsGeolocalizando] = React.useState(false);
   const [margenRecintoError, setMargenRecintoError] = React.useState<string | undefined>();
+  const configGlobal = useConfig();
 
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
@@ -127,8 +129,6 @@ export default function ConfigForm() {
         return;
       }
 
-      setIsGeolocalizando(true);
-
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -158,8 +158,6 @@ export default function ConfigForm() {
           autoHideDuration: 5000,
         });
         setAcotarMarcajes(false);
-      } finally {
-        setIsGeolocalizando(false);
       }
     }, [notifica]);
 
@@ -182,6 +180,7 @@ export default function ConfigForm() {
 
     try {
       await api().config.actualizar(config);
+      configGlobal.setConfig(config);
       notifica.show('Configuración actualizada satisfactoriamente', {
         severity: 'success',
         autoHideDuration: 5000,
