@@ -18,6 +18,7 @@ import UsuarioEdit from './components/UsuarioEdit';
 import UsuarioPassword from './components/UsuarioPassword';
 import Login from './components/Login';
 import UsuarioLogeadoProvider from './hooks/useUsuarioLogeado/UsuarioLogeadoProvider';
+import ConfigProvider from './hooks/useConfig/ConfigProvider';
 import useUsuarioLogeado from './hooks/useUsuarioLogeado/useUsuarioLogeado';
 import Logout from './components/Logout';
 import UsuarioShow from './components/UsuarioShow';
@@ -41,8 +42,9 @@ import CalendarioFechas from './components/CalendarioFechas';
 import CalendarioFechaCrear from './components/CalendarioFechaCrear';
 import CalendarioFechaEdit from './components/CalendarioFechaEdit';
 import InformeCumplimientoHorario from './components/InformeCumplimientoHorario';
+import ConfigForm from './components/ConfigForm';
 
-crearAPI(true);
+crearAPI(false);
 
 // Layout raíz que permite usar los hooks
 const RootLayout = () => {
@@ -132,6 +134,11 @@ const rutas = [
                 errorElement: <ErrorPage />,
               },
             ]
+          },
+          {
+            path: 'sistema',
+            Component: ConfigForm,
+            errorElement: <ErrorPage />,
           },
           {
             path: 'usuarios',
@@ -293,7 +300,9 @@ export default function Controla(props: { disableCustomTheme?: boolean }) {
       <AppTheme {...props} themeComponents={themeComponents}>
         <CssBaseline enableColorScheme />
         <UsuarioLogeadoProvider>
-          <RouterProvider router={router} />
+          <ConfigProvider>
+            <RouterProvider router={router} />
+          </ConfigProvider>
         </UsuarioLogeadoProvider>
       </AppTheme>
     </ErrorBoundary>

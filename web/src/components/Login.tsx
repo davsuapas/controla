@@ -14,6 +14,7 @@ import { api } from '../api/fabrica';
 import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { useLocation, useNavigate } from 'react-router';
 import useUsuarioLogeado from '../hooks/useUsuarioLogeado/useUsuarioLogeado';
+import useConfig from '../hooks/useConfig/useConfig';
 import { AxiosError } from 'axios';
 import { ROLES, RolID } from '../modelos/usuarios';
 
@@ -64,6 +65,7 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 // de acuerdo a su rol
 export default function Login() {
   const { setUsrLogeado } = useUsuarioLogeado()
+  const { setConfig } = useConfig()
   const dialogo = useDialogs();
   const location = useLocation();
   const navegar = useNavigate();
@@ -79,6 +81,7 @@ export default function Login() {
         const usr = await api().usuarios.login(
           dni,
           data.get('password') as string);
+        const cfg = await api().config.data();
 
         // Obtener la ruta de destino desde el estado de navegación
         // Extraer el primer segmento de la ruta
@@ -95,6 +98,7 @@ export default function Login() {
 
           // Redirigir a la página que originó la navegación al login
           setUsrLogeado(usr);
+          setConfig(cfg);
           navegar(paginaOrigen, { replace: true });
 
           return;
@@ -103,6 +107,7 @@ export default function Login() {
         for (const [rolId, rolInfo] of ROLES.entries()) {
           if (usr.anyRoles([Number(rolId) as RolID])) {
             setUsrLogeado(usr);
+            setConfig(cfg);
             navegar(rolInfo.ruta_login, { replace: true });
 
             return;
@@ -123,7 +128,7 @@ export default function Login() {
 
         dialogo.alert(msg, { title: 'DNI: ' + dni });
       }
-    }, [setUsrLogeado, dialogo, navegar, location]);
+    }, [setUsrLogeado, setConfig, dialogo, navegar, location]);
 
   return (
     <SignInContainer direction="column" sx={{ justifyContent: 'center', }}>

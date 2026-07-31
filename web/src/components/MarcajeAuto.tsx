@@ -16,6 +16,21 @@ import PageContainer from './PageContainer';
 import { useDialogs } from '../hooks/useDialogs/useDialogs';
 import { FULL_HEIGHT_WIDTH } from '../context/DashboardSidebarContext';
 import { useIsMounted } from '../hooks/useComponentMounted';
+import useConfig from '../hooks/useConfig/useConfig';
+import { Config } from '../modelos/config';
+
+// Distancia en metros entre dos coordenadas geográficas (fórmula del semiverseno)
+function calcDistanciaMetros(
+  lat1: number, lng1: number, lat2: number, lng2: number
+): number {
+  const R = 6371e3;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // El marcaje automático se caracteríza por disponer de
 // dos botones; uno para la entrada y otro para la salida
@@ -30,6 +45,71 @@ export default function MarcajeAuto() {
   const [fechaActual, setFechaActual] = React.useState<dayjs.Dayjs>(dayjs());
   const [entrada, setEntrada] = React.useState<boolean>(true);
   const [bloquear, setBloquear] = React.useState<boolean>(false);
+  const [ubicacionValida, setUbicacionValida] = React.useState<boolean | null>(true);
+
+  const { getConfig } = useConfig();
+  const config = React.useMemo<Config | null>(() => {
+    try { return getConfig(); }
+    catch { return null; }
+  }, [getConfig]);
+
+  const comprobarUbicacion = React.useCallback(async (): Promise<boolean> => {
+    if (!config?.localizacion) return true;
+
+    if (!('geolocation' in navigator)) {
+      notifica.show(
+        'La geolocalización no está disponible en este navegador. ' +
+        'No se pueden realizar marcajes sin acceso a la ubicación.',
+        { severity: 'error', autoHideDuration: 10000 }
+      );
+      return false;
+    }
+
+    const margen = config.margenRecinto ?? 0;
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const distancia = calcDistanciaMetros(
+        config.localizacion!.lat, config.localizacion!.lng,
+        position.coords.latitude, position.coords.longitude
+      );
+
+      const valida = distancia <= margen;
+      setUbicacionValida(valida);
+
+      if (!valida) {
+        notifica.show(
+          'No se pueden realizar marcajes si no se encuentra ' +
+          'dentro del edificio de trabajo. Distancia: ' + distancia.toString(),
+          { severity: 'warning', autoHideDuration: 8000 }
+        );
+      }
+
+      return valida;
+    } catch (error: any) {
+      setUbicacionValida(false);
+      const message = error?.code === error?.PERMISSION_DENIED
+        ? 'Permiso de geolocalización denegado. ' +
+        'No se pueden realizar marcajes sin acceso a la ubicación.'
+        : error?.code === error?.POSITION_UNAVAILABLE
+          ? 'No se pudo obtener la ubicación. ' +
+          'Señal GPS no disponible. No se pueden realizar marcajes.'
+          : error?.code === error?.TIMEOUT
+            ? 'La solicitud de ubicación ha expirado. ' +
+            'No se pueden realizar marcajes.'
+            : 'Error inesperado de geolocalización. ' +
+            'No se pueden realizar marcajes.';
+      notifica.show(message, { severity: 'error', autoHideDuration: 10000 });
+      return false;
+    }
+  }, [config, notifica]);
 
   const usuarioSoloEmpleado = !usuarioLog.tieneRol(RolID.Registrador);
 
@@ -76,6 +156,8 @@ export default function MarcajeAuto() {
 
   // Marcar la entrada
   const handleEntrada = React.useCallback(async () => {
+    if (!await comprobarUbicacion()) return;
+
     try {
       const fechaActual = dayjs()
 
@@ -108,10 +190,12 @@ export default function MarcajeAuto() {
         });
       }
     }
-  }, [notifica, dialogo]);
+  }, [notifica, dialogo, comprobarUbicacion]);
 
   // Marcar la salida
   const handleSalida = React.useCallback(async () => {
+    if (!await comprobarUbicacion()) return;
+
     try {
       const fechaActual = dayjs()
 
@@ -137,7 +221,7 @@ export default function MarcajeAuto() {
         });
       }
     }
-  }, [notifica, dialogo]);
+  }, [notifica, dialogo, comprobarUbicacion]);
 
   const handleEmpleadoChange = React.useCallback(
     (empleado: DescriptorUsuario) => {
@@ -168,7 +252,7 @@ export default function MarcajeAuto() {
               color="success"
               fullWidth
               size="large"
-              disabled={bloquear || !entrada}
+              disabled={bloquear || !entrada || !ubicacionValida}
               onClick={handleEntrada}
             >
               ENTRADA
@@ -180,7 +264,7 @@ export default function MarcajeAuto() {
               color="error"
               fullWidth
               size="large"
-              disabled={bloquear || entrada}
+              disabled={bloquear || entrada || !ubicacionValida}
               onClick={handleSalida}
             >
               SALIDA

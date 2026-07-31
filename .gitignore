@@ -30,3 +30,6 @@ target
 
 # Configuración para pruebas de usuario
 /config/test/
+
+# Agentes
+/.kilo

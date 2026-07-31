@@ -14,6 +14,7 @@
 //! - Gestión de horarios múltiples del empleado.
 //! - Gestión de los calendarios de los empleados.
 //! - Marcaje de entrada y salida por el empleado.
+//! - Marcaje Geo-localizado del empleado (opcional).
 //! - Marcaje manual por el registrador en nombre del empleado.
 //! - Consulta de los registros de marcajes.
 //! - Informes de saldo horario: Diferencia entre horas marcadas y horas trabajadas.

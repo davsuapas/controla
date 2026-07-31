@@ -14,7 +14,7 @@ use crate::{
   app::{
     AppState,
     dto::{
-      CalendarioDTO, CalendarioFechaDTO, ConfigHorarioDTO,
+      CalendarioDTO, CalendarioFechaDTO, ConfigDTO, ConfigHorarioDTO,
       DescriptorUsuarioDTO, DominiosWithCacheUsuarioDTO, HorarioDTO,
       IncidenciaDTO, IncidenciaInProcesoDTO, IncidenciaOutProcesoDTO,
       IncidenciaSolictudDTO, IncidenciasFiltroParams, InformeCumplimientoDTO,
@@ -147,6 +147,8 @@ pub fn rutas(cod_app: &str, app: Arc<AppState>) -> Router {
       "/informes/cumplimiento/horario",
       get(informe_cumplimiento_horario),
     )
+    .route("/config", get(config_data))
+    .route("/config", put(config_actualizar))
     .layer(axum::middleware::from_fn(
       crate::infra::middleware::autenticacion,
     ));
@@ -603,6 +605,31 @@ async fn informe_cumplimiento_horario(
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
     .map(|informe| Json(InformeCumplimientoDTO::from(informe)))
+}
+
+/// Api para obtener la configuración general.
+async fn config_data(
+  State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+  state
+    .config_servicio
+    .data()
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|c| Json(ConfigDTO::from(c)))
+}
+
+/// Api para actualizar la configuración general.
+async fn config_actualizar(
+  State(state): State<Arc<AppState>>,
+  Json(dto): Json<ConfigDTO>,
+) -> impl IntoResponse {
+  state
+    .config_servicio
+    .actualizar(&dto.into())
+    .await
+    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.mensaje_usuario()))
+    .map(|_| StatusCode::NO_CONTENT)
 }
 
 /// Api para obtener todos los calendarios laborales.

@@ -124,6 +124,17 @@ CREATE TABLE IF NOT EXISTS calendarios_usuario (
   CONSTRAINT usuario_calendario_calendario_FK FOREIGN KEY (calendario) REFERENCES calendarios (id) ON UPDATE CASCADE
 ) COMMENT='Calendarios asignados a un usuario';
 
+CREATE TABLE IF NOT EXISTS config (
+  id int(11) NOT NULL CHECK (id = 1),
+  lat double DEFAULT NULL,
+  lng double DEFAULT NULL,
+  accuracy double DEFAULT NULL,
+  margen_recinto int(10) DEFAULT NULL,
+  PRIMARY KEY (id)
+) COMMENT='Configuración general de la aplicación';
+
+INSERT INTO config (id) VALUES(1) ON DUPLICATE KEY UPDATE id=id;
+
 CREATE TABLE  IF NOT EXISTS schema_info (
   id int(11) NOT NULL CHECK (id = 1),
   version_actual varchar(20) NOT NULL,

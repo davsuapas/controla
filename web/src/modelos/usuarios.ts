@@ -69,6 +69,7 @@ export const ROLES: Map<RolID, {
     ruta_login: '/usuarios',
     rutas_acceso: [
       '/miarea/*',
+      '/sistema/*',
       '/usuarios/*',
       '/horarios/*',
       '/calendarios/*'
